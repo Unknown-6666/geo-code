@@ -28,9 +28,7 @@ class AIChat(commands.Cog):
                 self.bot.loop.run_in_executor(
                     None,
                     lambda: g4f.ChatCompletion.create(
-                        model="gpt-3.5-turbo",
-                        messages=[{"role": "user", "content": question}],
-                        provider=g4f.Provider.OpenaiChat
+                        messages=[{"role": "user", "content": question}]
                     )
                 ),
                 timeout=30.0  # 30 second timeout
@@ -78,12 +76,10 @@ class AIChat(commands.Cog):
                 self.bot.loop.run_in_executor(
                     None,
                     lambda: g4f.ChatCompletion.create(
-                        model="gpt-3.5-turbo",
                         messages=[
                             {"role": "system", "content": "You are a friendly and helpful chat bot. Keep responses concise and engaging."},
                             {"role": "user", "content": message}
-                        ],
-                        provider=g4f.Provider.DeepAi
+                        ]
                     )
                 ),
                 timeout=30.0  # 30 second timeout
