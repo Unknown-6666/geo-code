@@ -6,6 +6,7 @@ import logging
 from discord.ext import commands, tasks
 from discord import app_commands
 from config import TOKEN, DEFAULT_PREFIX, STATUS_MESSAGES
+from database import init_db, Base, session
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -29,7 +30,6 @@ class Bot(commands.Bot):
         logger.info("Setting up bot...")
         # Load all cogs
         await self.load_extension("cogs.basic_commands")
-        await self.load_extension("cogs.member_events")
         await self.load_extension("cogs.youtube_tracker")
         await self.load_extension("cogs.economy")
         await self.load_extension("cogs.memes")
@@ -80,9 +80,21 @@ class Bot(commands.Bot):
         """Log when commands are used"""
         logger.info(f'Command "{ctx.command}" used by {ctx.author} in {ctx.guild}')
 
+def init_bot_db():
+    """Initialize database tables"""
+    try:
+        from models.economy import initialize_shop
+        init_db()  # Create all tables
+        initialize_shop()  # Initialize shop items
+        logger.info("Database tables and shop items created successfully")
+    except Exception as e:
+        logger.error(f"Error initializing database: {str(e)}")
+        raise
+
 async def main():
     """Main function to run the bot"""
     logger.info("Starting bot...")
+    init_bot_db()  # Initialize database tables
     async with Bot() as bot:
         await bot.start(TOKEN)
 

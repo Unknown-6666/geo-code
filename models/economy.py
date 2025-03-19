@@ -1,37 +1,47 @@
-from database import db
+from database import Base, session
+from sqlalchemy import Column, Integer, String, DateTime, Boolean, ForeignKey
+from sqlalchemy.orm import relationship
 from datetime import datetime
 
-class UserEconomy(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.String(20), unique=True, nullable=False)
-    wallet = db.Column(db.Integer, default=0)
-    bank = db.Column(db.Integer, default=0)
-    bank_capacity = db.Column(db.Integer, default=1000)
-    last_daily = db.Column(db.DateTime)
-    last_work = db.Column(db.DateTime)
-    last_rob = db.Column(db.DateTime)  # Added for robbery cooldown
+class UserEconomy(Base):
+    __tablename__ = 'user_economy'
 
-class Item(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(50), unique=True, nullable=False)
-    description = db.Column(db.String(200))
-    price = db.Column(db.Integer, nullable=False)
-    emoji = db.Column(db.String(20))
-    is_buyable = db.Column(db.Boolean, default=True)
+    id = Column(Integer, primary_key=True)
+    user_id = Column(String(20), unique=True, nullable=False)
+    wallet = Column(Integer, default=0)
+    bank = Column(Integer, default=0)
+    bank_capacity = Column(Integer, default=1000)
+    last_daily = Column(DateTime)
+    last_work = Column(DateTime)
+    last_rob = Column(DateTime)
 
-class Inventory(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.String(20), nullable=False)
-    item_id = db.Column(db.Integer, db.ForeignKey('item.id'), nullable=False)
-    quantity = db.Column(db.Integer, default=1)
-    item = db.relationship('Item')
+class Item(Base):
+    __tablename__ = 'items'
 
-class Transaction(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.String(20), nullable=False)
-    amount = db.Column(db.Integer, nullable=False)
-    description = db.Column(db.String(200))
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    id = Column(Integer, primary_key=True)
+    name = Column(String(50), unique=True, nullable=False)
+    description = Column(String(200))
+    price = Column(Integer, nullable=False)
+    emoji = Column(String(20))
+    is_buyable = Column(Boolean, default=True)
+
+class Inventory(Base):
+    __tablename__ = 'inventory'
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(String(20), nullable=False)
+    item_id = Column(Integer, ForeignKey('items.id'), nullable=False)
+    quantity = Column(Integer, default=1)
+    item = relationship('Item')
+
+class Transaction(Base):
+    __tablename__ = 'transactions'
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(String(20), nullable=False)
+    amount = Column(Integer, nullable=False)
+    description = Column(String(200))
+    timestamp = Column(DateTime, default=datetime.utcnow)
 
 def initialize_shop():
     """Initialize the shop with default items"""
@@ -63,7 +73,7 @@ def initialize_shop():
     ]
 
     for item_data in default_items:
-        item = Item.query.filter_by(name=item_data['name']).first()
+        item = session.query(Item).filter_by(name=item_data['name']).first()
         if not item:
             item = Item(
                 name=item_data['name'],
@@ -72,6 +82,6 @@ def initialize_shop():
                 emoji=item_data['emoji'],
                 is_buyable=True
             )
-            db.session.add(item)
+            session.add(item)
 
-    db.session.commit()
+    session.commit()
