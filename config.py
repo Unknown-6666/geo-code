@@ -7,9 +7,9 @@ if not TOKEN:
     raise ValueError("No Discord token found in environment variables")
 
 # Bot owner and permission configuration
-BOT_OWNER_ID = 123456789  # Replace with your Discord ID
+BOT_OWNER_ID = 1003686821600960582  # Your Discord ID
 MOD_ROLE_IDS = [
-    123456789,  # Replace with your mod role IDs
+    954166360680837182,  # Moderator role ID
 ]
 
 # YouTube channel configuration
