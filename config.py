@@ -12,6 +12,13 @@ MOD_ROLE_IDS = [
     123456789,  # Replace with your mod role IDs
 ]
 
+# YouTube channel configuration
+YOUTUBE_CHANNELS = [
+    "UCJXJvWQMfnp7P36_jab4dog",
+    "UChwib7NAVu03BvV3nUUqpSQ"
+]
+DEFAULT_ANNOUNCEMENT_CHANNEL = None  # Will be set when first announcement channel is configured
+
 # Discord color scheme
 COLORS = {
     "PRIMARY": 0x7289DA,    # Discord Blurple
