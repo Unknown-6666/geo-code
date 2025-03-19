@@ -13,7 +13,6 @@ class AIChat(commands.Cog):
         logger.info("AI Chat cog initialized")
         # Configure g4f settings
         g4f.debug.logging = False  # Disable debug logging
-        # Use a more reliable provider
 
     @app_commands.command(name="ask", description="Ask the AI a question")
     @app_commands.describe(question="The question or prompt for the AI")
@@ -27,11 +26,16 @@ class AIChat(commands.Cog):
             response = await self.bot.loop.run_in_executor(
                 None,
                 lambda: g4f.ChatCompletion.create(
-                    model="gpt-3.5-turbo",
+                    model=g4f.models.gpt_35_turbo,
                     messages=[{"role": "user", "content": question}],
-                    stream=False
+                    provider=g4f.Provider.DeepAi
                 )
             )
+
+            if not response:
+                raise ValueError("Empty response received from AI provider")
+
+            logger.info(f"AI Response generated successfully: {response[:100]}...")  # Log first 100 chars
 
             # Create embed with the response
             embed = create_embed(
@@ -42,12 +46,12 @@ class AIChat(commands.Cog):
             embed.add_field(name="Your Question", value=question)
 
             await interaction.followup.send(embed=embed)
-            logger.info("Successfully generated AI response")
+            logger.info("Successfully sent AI response")
 
         except Exception as e:
             logger.error(f"Error generating AI response: {str(e)}")
             await interaction.followup.send(
-                embed=create_error_embed("Error", "An error occurred while generating the response. Please try again later."),
+                embed=create_error_embed("Error", "I'm having trouble connecting to the AI service right now. Please try again in a few moments."),
                 ephemeral=True
             )
 
@@ -63,14 +67,19 @@ class AIChat(commands.Cog):
             response = await self.bot.loop.run_in_executor(
                 None,
                 lambda: g4f.ChatCompletion.create(
-                    model="gpt-3.5-turbo",
+                    model=g4f.models.gpt_35_turbo,
                     messages=[
                         {"role": "system", "content": "You are a friendly and helpful chat bot. Keep responses concise and engaging."},
                         {"role": "user", "content": message}
                     ],
-                    stream=False
+                    provider=g4f.Provider.DeepAi
                 )
             )
+
+            if not response:
+                raise ValueError("Empty response received from AI provider")
+
+            logger.info(f"Casual AI Response generated successfully: {response[:100]}...")  # Log first 100 chars
 
             embed = create_embed(
                 "💭 AI Chat",
@@ -79,12 +88,12 @@ class AIChat(commands.Cog):
             )
 
             await interaction.followup.send(embed=embed)
-            logger.info("Successfully generated casual AI response")
+            logger.info("Successfully sent casual AI response")
 
         except Exception as e:
             logger.error(f"Error in AI chat: {str(e)}")
             await interaction.followup.send(
-                embed=create_error_embed("Error", "An error occurred during our conversation. Please try again later."),
+                embed=create_error_embed("Error", "I'm having trouble connecting to the AI service right now. Please try again in a few moments."),
                 ephemeral=True
             )
 
