@@ -307,11 +307,13 @@ class Moderation(commands.Cog):
         delay = max(0, min(21600, delay))
 
         try:
+            # Edit channel first
             await interaction.channel.edit(
                 slowmode_delay=delay,
                 reason=f"Slowmode changed by {interaction.user}: {reason}"
             )
 
+            # Then respond to the interaction
             if delay == 0:
                 description = "Slowmode has been disabled."
             else:
@@ -378,6 +380,107 @@ class Moderation(commands.Cog):
             embed.add_field(name="Boosts", value=str(guild.premium_subscription_count), inline=True)
 
         await interaction.response.send_message(embed=embed)
+
+    @app_commands.command(name="announce", description="Send an announcement to a channel")
+    @app_commands.describe(
+        channel="The channel to send the announcement to",
+        message="The announcement message"
+    )
+    @app_commands.default_permissions(manage_messages=True)
+    async def announce(self, interaction: discord.Interaction, channel: discord.TextChannel, *, message: str):
+        """Send an announcement to a specified channel"""
+        try:
+            # Check if bot has permission to send messages in the target channel
+            if not channel.permissions_for(interaction.guild.me).send_messages:
+                await interaction.response.send_message(
+                    embed=create_error_embed("Error", "I don't have permission to send messages in that channel."),
+                    ephemeral=True
+                )
+                return
+
+            await channel.send(message)
+
+            embed = create_embed(
+                "📢 Announcement Sent",
+                f"Successfully sent announcement to {channel.mention}",
+                color=0x43B581
+            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+
+        except discord.Forbidden:
+            await interaction.response.send_message(
+                embed=create_error_embed("Error", "I don't have permission to send announcements."),
+                ephemeral=True
+            )
+        except Exception as e:
+            logger.error(f"Error sending announcement: {str(e)}")
+            await interaction.response.send_message(
+                embed=create_error_embed("Error", "An error occurred while sending the announcement."),
+                ephemeral=True
+            )
+
+    @app_commands.command(name="embedannounce", description="Send an embed announcement")
+    @app_commands.describe(
+        channel="The channel to send the announcement to",
+        title="The title of the announcement",
+        description="The content of the announcement",
+        color="The color of the embed (optional, hex code like #FF0000)"
+    )
+    @app_commands.default_permissions(manage_messages=True)
+    async def embedannounce(
+        self,
+        interaction: discord.Interaction,
+        channel: discord.TextChannel,
+        title: str,
+        description: str,
+        color: str = None
+    ):
+        """Send a formatted embed announcement"""
+        try:
+            # Check if bot has permission to send messages in the target channel
+            if not channel.permissions_for(interaction.guild.me).send_messages:
+                await interaction.response.send_message(
+                    embed=create_error_embed("Error", "I don't have permission to send messages in that channel."),
+                    ephemeral=True
+                )
+                return
+
+            # Convert hex color to discord.Color
+            embed_color = 0x43B581  # Default green color
+            if color:
+                try:
+                    color = color.strip("#")  # Remove # if present
+                    embed_color = int(color, 16)
+                except ValueError:
+                    await interaction.response.send_message(
+                        embed=create_error_embed("Error", "Invalid color format. Use hex code like #FF0000"),
+                        ephemeral=True
+                    )
+                    return
+
+            embed = create_embed(title, description, color=embed_color)
+            embed.set_footer(text=f"Announcement by {interaction.user.name}")
+
+            await channel.send(embed=embed)
+
+            confirmation_embed = create_embed(
+                "📢 Embed Announcement Sent",
+                f"Successfully sent announcement to {channel.mention}",
+                color=0x43B581
+            )
+            await interaction.response.send_message(embed=confirmation_embed, ephemeral=True)
+
+        except discord.Forbidden:
+            await interaction.response.send_message(
+                embed=create_error_embed("Error", "I don't have permission to send announcements."),
+                ephemeral=True
+            )
+        except Exception as e:
+            logger.error(f"Error sending embed announcement: {str(e)}")
+            await interaction.response.send_message(
+                embed=create_error_embed("Error", "An error occurred while sending the announcement."),
+                ephemeral=True
+            )
 
 async def setup(bot):
     await bot.add_cog(Moderation(bot))
