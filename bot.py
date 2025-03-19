@@ -34,7 +34,8 @@ class Bot(commands.Bot):
         await self.load_extension("cogs.youtube_tracker")
         await self.load_extension("cogs.economy")
         await self.load_extension("cogs.memes")
-        await self.load_extension("cogs.moderation")  # Added moderation cog
+        await self.load_extension("cogs.moderation")
+        await self.load_extension("cogs.music")  
         logger.info("Loaded all cogs successfully")
 
         # Sync commands with Discord
