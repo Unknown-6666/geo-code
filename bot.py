@@ -36,6 +36,7 @@ class Bot(commands.Bot):
         await self.load_extension("cogs.memes")
         await self.load_extension("cogs.moderation")
         await self.load_extension("cogs.music")  
+        await self.load_extension("cogs.ai_chat")  # Added AI chat cog
         logger.info("Loaded all cogs successfully")
 
         # Sync commands with Discord
