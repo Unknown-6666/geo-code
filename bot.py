@@ -4,6 +4,7 @@ import asyncio
 import discord
 import logging
 from discord.ext import commands, tasks
+from discord import app_commands
 from config import TOKEN, DEFAULT_PREFIX, STATUS_MESSAGES
 
 # Set up logging
@@ -21,6 +22,7 @@ class Bot(commands.Bot):
             intents=intents,
             help_command=None
         )
+        self.tree.on_error = self.on_app_command_error
 
     async def setup_hook(self):
         """Load cogs and start tasks"""
@@ -28,7 +30,13 @@ class Bot(commands.Bot):
         # Load all cogs
         await self.load_extension("cogs.basic_commands")
         await self.load_extension("cogs.member_events")
+        await self.load_extension("cogs.youtube_tracker")
         logger.info("Loaded all cogs successfully")
+
+        # Sync commands with Discord
+        logger.info("Syncing commands with Discord...")
+        await self.tree.sync()
+        logger.info("Commands synced successfully")
 
     async def on_ready(self):
         """Called when the bot is ready"""
@@ -53,6 +61,15 @@ class Bot(commands.Bot):
             await self.change_presence(activity=discord.Game(status))
         except Exception as e:
             logger.error(f"Error changing status: {str(e)}")
+
+    async def on_app_command_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
+        """Handle slash command errors"""
+        logger.error(f'Slash command error: {str(error)}')
+
+        if isinstance(error, app_commands.MissingPermissions):
+            await interaction.response.send_message("You don't have permission to use this command.", ephemeral=True)
+        else:
+            await interaction.response.send_message(f"An error occurred: {str(error)}", ephemeral=True)
 
     async def on_command(self, ctx):
         """Log when commands are used"""

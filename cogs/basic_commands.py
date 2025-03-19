@@ -1,5 +1,6 @@
 import discord
 import logging
+from discord import app_commands
 from discord.ext import commands
 from utils.embed_helpers import create_embed, create_error_embed
 from config import COLORS
@@ -12,47 +13,154 @@ class BasicCommands(commands.Cog):
 
     @commands.command(name="ping")
     async def ping(self, ctx):
-        """Check the bot's latency"""
+        """Legacy ping command"""
+        await self._show_ping(ctx)
+
+    @app_commands.command(name="ping", description="Check the bot's latency")
+    async def ping_slash(self, interaction: discord.Interaction):
+        """Slash command version of ping"""
         latency = round(self.bot.latency * 1000)
         logger.info(f'Ping command used. Latency: {latency}ms')
         embed = create_embed("Pong! 🏓", f"Latency: {latency}ms")
-        await ctx.send(embed=embed)
+        await interaction.response.send_message(embed=embed)
 
     @commands.command(name="help")
-    async def custom_help(self, ctx):
-        """Display help information about the bot"""
+    async def help(self, ctx):
+        """Legacy help command"""
+        await self._show_help(ctx)
+
+    @app_commands.command(name="help", description="Display help information about the bot")
+    async def help_slash(self, interaction: discord.Interaction):
+        """Slash command version of help"""
         embed = discord.Embed(
             title="Bot Help",
             description="Here are all available commands:",
             color=COLORS["PRIMARY"]
         )
-        
-        # Basic Commands
+
+        embed.add_field(
+            name="Basic Commands",
+            value="""
+            `/ping` - Check bot's latency
+            `/help` - Show this help message
+            `/info` - Get server information
+            """,
+            inline=False
+        )
+
+        embed.add_field(
+            name="Member Commands",
+            value="""
+            `/userinfo [user]` - Get information about a user
+            """,
+            inline=False
+        )
+
+        embed.add_field(
+            name="YouTube Commands",
+            value="""
+            `/setyoutube <channel_id> [#announcement-channel]` - Set up YouTube video tracking
+            """,
+            inline=False
+        )
+
+        embed.set_footer(text="Use / to access slash commands")
+        await interaction.response.send_message(embed=embed)
+
+    @commands.command(name="info")
+    async def info(self, ctx):
+        """Legacy server info command"""
+        await self._show_server_info(ctx)
+
+    @app_commands.command(name="info", description="Display server information")
+    async def info_slash(self, interaction: discord.Interaction):
+        """Slash command version of server info"""
+        guild = interaction.guild
+        embed = create_embed(
+            f"{guild.name} Server Information",
+            f"Created on {guild.created_at.strftime('%B %d, %Y')}"
+        )
+        embed.add_field(name="Server Owner", value=guild.owner, inline=True)
+        embed.add_field(name="Member Count", value=guild.member_count, inline=True)
+        embed.add_field(name="Channel Count", value=len(guild.channels), inline=True)
+
+        if guild.icon:
+            embed.set_thumbnail(url=guild.icon.url)
+
+        await interaction.response.send_message(embed=embed)
+
+    @commands.command(name="userinfo")
+    async def userinfo(self, ctx, member: discord.Member = None):
+        """Legacy user info command"""
+        await self._show_user_info(ctx, member)
+
+    @app_commands.command(name="userinfo", description="Display information about a user")
+    async def userinfo_slash(self, interaction: discord.Interaction, member: discord.Member = None):
+        """Slash command version of user info"""
+        member = member or interaction.user
+        embed = create_embed(
+            f"User Information - {member.name}",
+            f"Account created on {member.created_at.strftime('%B %d, %Y')}"
+        )
+        embed.add_field(name="Joined Server", value=member.joined_at.strftime("%B %d, %Y"), inline=True)
+        embed.add_field(name="Roles", value=len(member.roles), inline=True)
+
+        if member.avatar:
+            embed.set_thumbnail(url=member.avatar.url)
+
+        await interaction.response.send_message(embed=embed)
+
+    async def _show_ping(self, ctx):
+        """Helper method for ping command"""
+        latency = round(self.bot.latency * 1000)
+        logger.info(f'Ping command used. Latency: {latency}ms')
+        embed = create_embed("Pong! 🏓", f"Latency: {latency}ms")
+        await ctx.send(embed=embed)
+
+    async def _show_help(self, ctx):
+        """Helper method for help command"""
+        embed = discord.Embed(
+            title="Bot Help",
+            description="Here are all available commands:",
+            color=COLORS["PRIMARY"]
+        )
+
         embed.add_field(
             name="Basic Commands",
             value="""
             `!ping` - Check bot's latency
             `!help` - Show this help message
             `!info` - Get server information
+            `/ping` - Check bot's latency
+            `/help` - Show this help message
+            `/info` - Get server information
             """,
             inline=False
         )
-        
-        # Member Commands
+
         embed.add_field(
             name="Member Commands",
             value="""
             `!userinfo [@user]` - Get information about a user
+            `/userinfo [user]` - Get information about a user
             """,
             inline=False
         )
-        
-        embed.set_footer(text="Use ! prefix before each command")
+
+        embed.add_field(
+            name="YouTube Commands",
+            value="""
+            `!setyoutube <channel_id> [#announcement-channel]` - Set up YouTube video tracking
+            `/setyoutube <channel_id> [#announcement-channel]` - Set up YouTube video tracking
+            """,
+            inline=False
+        )
+
+        embed.set_footer(text="Use ! prefix or / for commands")
         await ctx.send(embed=embed)
 
-    @commands.command(name="info")
-    async def server_info(self, ctx):
-        """Display server information"""
+    async def _show_server_info(self, ctx):
+        """Helper method for server info command"""
         guild = ctx.guild
         embed = create_embed(
             f"{guild.name} Server Information",
@@ -61,27 +169,25 @@ class BasicCommands(commands.Cog):
         embed.add_field(name="Server Owner", value=guild.owner, inline=True)
         embed.add_field(name="Member Count", value=guild.member_count, inline=True)
         embed.add_field(name="Channel Count", value=len(guild.channels), inline=True)
-        
+
         if guild.icon:
             embed.set_thumbnail(url=guild.icon.url)
-            
+
         await ctx.send(embed=embed)
 
-    @commands.command(name="userinfo")
-    async def user_info(self, ctx, member: discord.Member = None):
-        """Display information about a user"""
+    async def _show_user_info(self, ctx, member):
+        """Helper method for user info command"""
         member = member or ctx.author
-        
         embed = create_embed(
             f"User Information - {member.name}",
             f"Account created on {member.created_at.strftime('%B %d, %Y')}"
         )
         embed.add_field(name="Joined Server", value=member.joined_at.strftime("%B %d, %Y"), inline=True)
         embed.add_field(name="Roles", value=len(member.roles), inline=True)
-        
+
         if member.avatar:
             embed.set_thumbnail(url=member.avatar.url)
-            
+
         await ctx.send(embed=embed)
 
     @commands.Cog.listener()
