@@ -6,6 +6,12 @@ TOKEN = os.getenv("DISCORD_TOKEN")
 if not TOKEN:
     raise ValueError("No Discord token found in environment variables")
 
+# Bot owner and permission configuration
+BOT_OWNER_ID = 123456789  # Replace with your Discord ID
+MOD_ROLE_IDS = [
+    123456789,  # Replace with your mod role IDs
+]
+
 # Discord color scheme
 COLORS = {
     "PRIMARY": 0x7289DA,    # Discord Blurple

@@ -4,6 +4,7 @@ from discord import app_commands
 from discord.ext import commands
 from utils.embed_helpers import create_embed, create_error_embed
 from config import COLORS
+from utils.permissions import PermissionChecks
 
 logger = logging.getLogger('discord')
 
@@ -208,7 +209,7 @@ class BasicCommands(commands.Cog):
         await ctx.send(embed=embed)
 
     @commands.command(name="sync")
-    @commands.is_owner()
+    @PermissionChecks.is_owner()
     async def sync_commands(self, ctx):
         """Sync slash commands across all servers (Bot Owner Only)"""
         try:
@@ -227,7 +228,7 @@ class BasicCommands(commands.Cog):
             await ctx.send(embed=embed)
 
     @commands.command(name="sync_guild")
-    @commands.is_owner()
+    @PermissionChecks.is_owner()
     async def sync_guild_commands(self, ctx):
         """Sync slash commands for the current server only (Bot Owner Only)"""
         try:
