@@ -18,7 +18,7 @@ DISCORD_AUTHORIZATION_BASE_URL = DISCORD_API_BASE_URL + '/oauth2/authorize'
 DISCORD_TOKEN_URL = DISCORD_API_BASE_URL + '/oauth2/token'
 
 if os.getenv('REPL_SLUG'):  # Check if running on Replit
-    DISCORD_REDIRECT_URI = f'https://{os.getenv("REPL_SLUG")}.replit.app/callback'
+    DISCORD_REDIRECT_URI = f'https://{os.getenv("REPL_SLUG")}.{os.getenv("REPL_OWNER")}.repl.co/callback'
 
 # Import db after app configuration
 from database import db
