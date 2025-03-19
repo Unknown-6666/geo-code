@@ -33,6 +33,7 @@ class Bot(commands.Bot):
         await self.load_extension("cogs.member_events")
         await self.load_extension("cogs.youtube_tracker")
         await self.load_extension("cogs.economy")
+        await self.load_extension("cogs.memes")  # Added memes cog
         logger.info("Loaded all cogs successfully")
 
         # Sync commands with Discord
@@ -80,9 +81,11 @@ class Bot(commands.Bot):
 def init_db():
     """Initialize database tables"""
     from dashboard.app import app
+    from models.economy import initialize_shop
     with app.app_context():
         db.create_all()
-        logger.info("Database tables created successfully")
+        initialize_shop()  # Initialize shop items
+        logger.info("Database tables and shop items created successfully")
 
 async def main():
     """Main function to run the bot"""

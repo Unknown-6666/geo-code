@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 from utils.embed_helpers import create_embed, create_error_embed
 from models.economy import UserEconomy, Item, Inventory, Transaction
 from database import db
+from typing import Literal
 
 logger = logging.getLogger('discord')
 
@@ -24,6 +25,103 @@ class Economy(commands.Cog):
                 db.session.add(user)
                 db.session.commit()
             return user
+
+    @app_commands.command(name="rob", description="Attempt to steal coins from another user")
+    @app_commands.describe(target="The user you want to rob")
+    async def rob(self, interaction: discord.Interaction, target: discord.Member):
+        """Rob another user"""
+        # Can't rob yourself
+        if target.id == interaction.user.id:
+            await interaction.response.send_message(
+                embed=create_error_embed("Error", "You can't rob yourself!"),
+                ephemeral=True
+            )
+            return
+
+        # Get both user profiles
+        robber = await self.get_user_economy(interaction.user.id)
+        victim = await self.get_user_economy(target.id)
+
+        # Check cooldown (1 hour)
+        now = datetime.utcnow()
+        cooldown = timedelta(hours=1)
+        if hasattr(robber, 'last_rob') and robber.last_rob and now - robber.last_rob < cooldown:
+            time_left = cooldown - (now - robber.last_rob)
+            minutes, seconds = divmod(time_left.seconds, 60)
+            await interaction.response.send_message(
+                embed=create_error_embed("Cooldown", f"You can rob again in {minutes}m {seconds}s"),
+                ephemeral=True
+            )
+            return
+
+        # Minimum wallet requirement for robber (100 coins)
+        if robber.wallet < 100:
+            await interaction.response.send_message(
+                embed=create_error_embed("Error", "You need at least 100 coins in your wallet to rob someone!"),
+                ephemeral=True
+            )
+            return
+
+        # Minimum wallet requirement for victim (50 coins)
+        if victim.wallet < 50:
+            await interaction.response.send_message(
+                embed=create_error_embed("Error", f"{target.name} doesn't have enough coins to rob!"),
+                ephemeral=True
+            )
+            return
+
+        # 40% success rate
+        success = random.random() < 0.4
+        robber.last_rob = now
+
+        if success:
+            # Steal 20-50% of victim's wallet
+            steal_percentage = random.uniform(0.2, 0.5)
+            amount = int(victim.wallet * steal_percentage)
+
+            victim.wallet -= amount
+            robber.wallet += amount
+
+            # Record transactions
+            transaction1 = Transaction(
+                user_id=str(interaction.user.id),
+                amount=amount,
+                description=f"Stole {amount} coins from {target.name}"
+            )
+            transaction2 = Transaction(
+                user_id=str(target.id),
+                amount=-amount,
+                description=f"Got robbed by {interaction.user.name}"
+            )
+            db.session.add(transaction1)
+            db.session.add(transaction2)
+
+            embed = create_embed(
+                "🦹 Successful Heist!",
+                f"You stole {amount} coins from {target.name}!",
+                color=0x43B581
+            )
+        else:
+            # Fine for failed robbery (100 coins)
+            fine = 100
+            robber.wallet -= fine
+
+            # Record transaction
+            transaction = Transaction(
+                user_id=str(interaction.user.id),
+                amount=-fine,
+                description="Fine for failed robbery attempt"
+            )
+            db.session.add(transaction)
+
+            embed = create_embed(
+                "👮 Caught in the Act!",
+                f"You got caught trying to rob {target.name} and had to pay a fine of {fine} coins!",
+                color=0xF04747
+            )
+
+        db.session.commit()
+        await interaction.response.send_message(embed=embed)
 
     @app_commands.command(name="balance", description="Check your current balance")
     async def balance(self, interaction: discord.Interaction):
@@ -174,6 +272,238 @@ class Economy(commands.Cog):
             f"Withdrew {amount} coins from your bank",
             color=0x43B581
         )
+        await interaction.response.send_message(embed=embed)
+
+    @app_commands.command(name="coinflip", description="Bet your coins on a coin flip")
+    @app_commands.describe(
+        amount="Amount of coins to bet",
+        choice="Choose heads or tails"
+    )
+    async def coinflip(
+        self,
+        interaction: discord.Interaction,
+        amount: int,
+        choice: Literal["heads", "tails"]
+    ):
+        """Gamble coins on a coin flip"""
+        if amount <= 0:
+            await interaction.response.send_message(
+                embed=create_error_embed("Error", "Bet amount must be positive"),
+                ephemeral=True
+            )
+            return
+
+        user = await self.get_user_economy(interaction.user.id)
+        if amount > user.wallet:
+            await interaction.response.send_message(
+                embed=create_error_embed("Error", "You don't have enough coins in your wallet"),
+                ephemeral=True
+            )
+            return
+
+        result = random.choice(["heads", "tails"])
+        won = choice == result
+
+        if won:
+            user.wallet += amount
+            color = 0x43B581
+            title = "🎉 You won!"
+            description = f"The coin landed on {result}!\nYou won {amount} coins!"
+        else:
+            user.wallet -= amount
+            color = 0xF04747
+            title = "😢 You lost!"
+            description = f"The coin landed on {result}!\nYou lost {amount} coins!"
+
+        # Record transaction
+        transaction = Transaction(
+            user_id=str(interaction.user.id),
+            amount=amount if won else -amount,
+            description=f"Coinflip: {'won' if won else 'lost'}"
+        )
+        db.session.add(transaction)
+        db.session.commit()
+
+        embed = create_embed(title, description, color=color)
+        await interaction.response.send_message(embed=embed)
+
+    @app_commands.command(name="slots", description="Play the slot machine")
+    @app_commands.describe(amount="Amount of coins to bet")
+    async def slots(self, interaction: discord.Interaction, amount: int):
+        """Play the slot machine"""
+        if amount <= 0:
+            await interaction.response.send_message(
+                embed=create_error_embed("Error", "Bet amount must be positive"),
+                ephemeral=True
+            )
+            return
+
+        user = await self.get_user_economy(interaction.user.id)
+        if amount > user.wallet:
+            await interaction.response.send_message(
+                embed=create_error_embed("Error", "You don't have enough coins in your wallet"),
+                ephemeral=True
+            )
+            return
+
+        # Slot machine symbols and their weights
+        symbols = ["🍒", "🍊", "🍋", "🍇", "💎", "7️⃣"]
+        weights = [0.3, 0.25, 0.2, 0.15, 0.07, 0.03]
+
+        # Get three random symbols
+        result = [random.choices(symbols, weights=weights)[0] for _ in range(3)]
+
+        # Calculate winnings
+        winnings = 0
+        if result[0] == result[1] == result[2]:  # All three match
+            if result[0] == "7️⃣":
+                winnings = amount * 10  # Jackpot
+            elif result[0] == "💎":
+                winnings = amount * 5
+            else:
+                winnings = amount * 3
+        elif result[0] == result[1] or result[1] == result[2]:  # Two match
+            winnings = amount * 1.5
+
+        # Round winnings to integer
+        winnings = int(winnings)
+
+        # Update user's wallet
+        user.wallet -= amount
+        if winnings > 0:
+            user.wallet += winnings
+
+        # Create result message
+        display = " ".join(result)
+        if winnings > 0:
+            title = "🎰 You won!"
+            description = f"{display}\nBet: {amount} coins\nWon: {winnings} coins!"
+            color = 0x43B581
+        else:
+            title = "🎰 You lost!"
+            description = f"{display}\nBet: {amount} coins\nBetter luck next time!"
+            color = 0xF04747
+
+        # Record transaction
+        transaction = Transaction(
+            user_id=str(interaction.user.id),
+            amount=winnings - amount,
+            description="Slots game"
+        )
+        db.session.add(transaction)
+        db.session.commit()
+
+        embed = create_embed(title, description, color=color)
+        await interaction.response.send_message(embed=embed)
+
+    @app_commands.command(name="shop", description="View the item shop")
+    async def shop(self, interaction: discord.Interaction):
+        """View available items in the shop"""
+        items = Item.query.filter_by(is_buyable=True).all()
+
+        if not items:
+            await interaction.response.send_message(
+                embed=create_error_embed("Shop", "No items available in the shop right now"),
+                ephemeral=True
+            )
+            return
+
+        embed = create_embed(
+            "🛍️ Item Shop",
+            "Here are the items available for purchase:"
+        )
+
+        for item in items:
+            embed.add_field(
+                name=f"{item.emoji} {item.name} - {item.price} coins",
+                value=item.description,
+                inline=False
+            )
+
+        embed.set_footer(text="Use /buy <item> to purchase an item")
+        await interaction.response.send_message(embed=embed)
+
+    @app_commands.command(name="buy", description="Buy an item from the shop")
+    @app_commands.describe(item_name="Name of the item to buy")
+    async def buy(self, interaction: discord.Interaction, item_name: str):
+        """Buy an item from the shop"""
+        item = Item.query.filter_by(name=item_name, is_buyable=True).first()
+        if not item:
+            await interaction.response.send_message(
+                embed=create_error_embed("Error", "That item doesn't exist or isn't available"),
+                ephemeral=True
+            )
+            return
+
+        user = await self.get_user_economy(interaction.user.id)
+        if user.wallet < item.price:
+            await interaction.response.send_message(
+                embed=create_error_embed("Error", "You don't have enough coins to buy this item"),
+                ephemeral=True
+            )
+            return
+
+        # Add item to inventory
+        inventory = Inventory.query.filter_by(
+            user_id=str(interaction.user.id),
+            item_id=item.id
+        ).first()
+
+        if inventory:
+            inventory.quantity += 1
+        else:
+            inventory = Inventory(
+                user_id=str(interaction.user.id),
+                item_id=item.id,
+                quantity=1
+            )
+            db.session.add(inventory)
+
+        # Deduct coins
+        user.wallet -= item.price
+
+        # Record transaction
+        transaction = Transaction(
+            user_id=str(interaction.user.id),
+            amount=-item.price,
+            description=f"Bought {item.name}"
+        )
+        db.session.add(transaction)
+        db.session.commit()
+
+        embed = create_embed(
+            "✅ Purchase Successful",
+            f"You bought {item.emoji} {item.name} for {item.price} coins!",
+            color=0x43B581
+        )
+        await interaction.response.send_message(embed=embed)
+
+    @app_commands.command(name="inventory", description="View your inventory")
+    async def inventory(self, interaction: discord.Interaction):
+        """View your inventory"""
+        inventory_items = Inventory.query.filter_by(
+            user_id=str(interaction.user.id)
+        ).all()
+
+        if not inventory_items:
+            await interaction.response.send_message(
+                embed=create_error_embed("Inventory", "Your inventory is empty"),
+                ephemeral=True
+            )
+            return
+
+        embed = create_embed(
+            "🎒 Your Inventory",
+            "Here are your items:"
+        )
+
+        for inv in inventory_items:
+            embed.add_field(
+                name=f"{inv.item.emoji} {inv.item.name} x{inv.quantity}",
+                value=inv.item.description,
+                inline=False
+            )
+
         await interaction.response.send_message(embed=embed)
 
 async def setup(bot):
