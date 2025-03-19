@@ -11,6 +11,7 @@ logger = logging.getLogger('discord')
 class BasicCommands(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        logger.info("Basic commands cog initialized")
 
     @commands.command(name="ping")
     async def ping(self, ctx):
@@ -45,13 +46,6 @@ class BasicCommands(commands.Cog):
             `/ping` - Check bot's latency
             `/help` - Show this help message
             `/info` - Get server information
-            """,
-            inline=False
-        )
-
-        embed.add_field(
-            name="Member Commands",
-            value="""
             `/userinfo [user]` - Get information about a user
             """,
             inline=False
@@ -60,12 +54,26 @@ class BasicCommands(commands.Cog):
         embed.add_field(
             name="YouTube Commands",
             value="""
-            `/setyoutube <channel_id> [#announcement-channel]` - Set up YouTube video tracking
+            `/setannouncement` - Set up YouTube video tracking channel
             """,
             inline=False
         )
 
-        embed.set_footer(text="Use / to access slash commands")
+        embed.add_field(
+            name="Music Commands",
+            value="""
+            `/play [query]` - Play a song from YouTube
+            `/stop` - Stop playing and clear queue
+            `/skip` - Skip current song
+            `/queue` - Show current queue
+            `/volume [0-100]` - Set volume
+            `/join` - Join voice channel
+            `/leave` - Leave voice channel
+            """,
+            inline=False
+        )
+
+        embed.set_footer(text="Use / for commands")
         await interaction.response.send_message(embed=embed)
 
     @commands.command(name="info")
@@ -84,6 +92,9 @@ class BasicCommands(commands.Cog):
         embed.add_field(name="Server Owner", value=guild.owner, inline=True)
         embed.add_field(name="Member Count", value=guild.member_count, inline=True)
         embed.add_field(name="Channel Count", value=len(guild.channels), inline=True)
+        embed.add_field(name="Role Count", value=len(guild.roles), inline=True)
+        embed.add_field(name="Boost Level", value=guild.premium_tier, inline=True)
+        embed.add_field(name="Verification Level", value=guild.verification_level, inline=True)
 
         if guild.icon:
             embed.set_thumbnail(url=guild.icon.url)
@@ -99,12 +110,16 @@ class BasicCommands(commands.Cog):
     async def userinfo_slash(self, interaction: discord.Interaction, member: discord.Member = None):
         """Slash command version of user info"""
         member = member or interaction.user
+        roles = [role.mention for role in member.roles[1:]]  # Exclude @everyone
+
         embed = create_embed(
             f"User Information - {member.name}",
             f"Account created on {member.created_at.strftime('%B %d, %Y')}"
         )
         embed.add_field(name="Joined Server", value=member.joined_at.strftime("%B %d, %Y"), inline=True)
-        embed.add_field(name="Roles", value=len(member.roles), inline=True)
+        embed.add_field(name="Nickname", value=member.nick or "None", inline=True)
+        embed.add_field(name="User ID", value=member.id, inline=True)
+        embed.add_field(name="Roles", value=" ".join(roles) if roles else "No roles", inline=False)
 
         if member.avatar:
             embed.set_thumbnail(url=member.avatar.url)
@@ -132,27 +147,7 @@ class BasicCommands(commands.Cog):
             `!ping` - Check bot's latency
             `!help` - Show this help message
             `!info` - Get server information
-            `/ping` - Check bot's latency
-            `/help` - Show this help message
-            `/info` - Get server information
-            """,
-            inline=False
-        )
-
-        embed.add_field(
-            name="Member Commands",
-            value="""
             `!userinfo [@user]` - Get information about a user
-            `/userinfo [user]` - Get information about a user
-            """,
-            inline=False
-        )
-
-        embed.add_field(
-            name="YouTube Commands",
-            value="""
-            `!setyoutube <channel_id> [#announcement-channel]` - Set up YouTube video tracking
-            `/setyoutube <channel_id> [#announcement-channel]` - Set up YouTube video tracking
             """,
             inline=False
         )
