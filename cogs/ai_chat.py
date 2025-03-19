@@ -1,6 +1,7 @@
 import discord
 import logging
 import g4f
+import asyncio
 from discord import app_commands
 from discord.ext import commands
 from utils.embed_helpers import create_embed, create_error_embed
@@ -23,13 +24,16 @@ class AIChat(commands.Cog):
             logger.info(f"Processing AI request from {interaction.user}: {question}")
 
             # Generate response using g4f
-            response = await self.bot.loop.run_in_executor(
-                None,
-                lambda: g4f.ChatCompletion.create(
-                    model=g4f.models.gpt_35_turbo,
-                    messages=[{"role": "user", "content": question}],
-                    provider=g4f.Provider.DeepAi
-                )
+            response = await asyncio.wait_for(
+                self.bot.loop.run_in_executor(
+                    None,
+                    lambda: g4f.ChatCompletion.create(
+                        model="gpt-3.5-turbo",
+                        messages=[{"role": "user", "content": question}],
+                        provider=g4f.Provider.OpenaiChat
+                    )
+                ),
+                timeout=30.0  # 30 second timeout
             )
 
             if not response:
@@ -48,6 +52,12 @@ class AIChat(commands.Cog):
             await interaction.followup.send(embed=embed)
             logger.info("Successfully sent AI response")
 
+        except asyncio.TimeoutError:
+            logger.error("AI request timed out")
+            await interaction.followup.send(
+                embed=create_error_embed("Error", "The AI is taking too long to respond. Please try again."),
+                ephemeral=True
+            )
         except Exception as e:
             logger.error(f"Error generating AI response: {str(e)}")
             await interaction.followup.send(
@@ -64,16 +74,19 @@ class AIChat(commands.Cog):
             logger.info(f"Processing casual AI chat from {interaction.user}: {message}")
 
             # Generate response using g4f
-            response = await self.bot.loop.run_in_executor(
-                None,
-                lambda: g4f.ChatCompletion.create(
-                    model=g4f.models.gpt_35_turbo,
-                    messages=[
-                        {"role": "system", "content": "You are a friendly and helpful chat bot. Keep responses concise and engaging."},
-                        {"role": "user", "content": message}
-                    ],
-                    provider=g4f.Provider.DeepAi
-                )
+            response = await asyncio.wait_for(
+                self.bot.loop.run_in_executor(
+                    None,
+                    lambda: g4f.ChatCompletion.create(
+                        model="gpt-3.5-turbo",
+                        messages=[
+                            {"role": "system", "content": "You are a friendly and helpful chat bot. Keep responses concise and engaging."},
+                            {"role": "user", "content": message}
+                        ],
+                        provider=g4f.Provider.DeepAi
+                    )
+                ),
+                timeout=30.0  # 30 second timeout
             )
 
             if not response:
@@ -90,6 +103,12 @@ class AIChat(commands.Cog):
             await interaction.followup.send(embed=embed)
             logger.info("Successfully sent casual AI response")
 
+        except asyncio.TimeoutError:
+            logger.error("AI chat request timed out")
+            await interaction.followup.send(
+                embed=create_error_embed("Error", "The AI is taking too long to respond. Please try again."),
+                ephemeral=True
+            )
         except Exception as e:
             logger.error(f"Error in AI chat: {str(e)}")
             await interaction.followup.send(
