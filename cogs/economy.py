@@ -6,7 +6,7 @@ from discord.ext import commands
 from datetime import datetime, timedelta
 from utils.embed_helpers import create_embed, create_error_embed
 from models.economy import UserEconomy, Item, Inventory, Transaction
-from database import session
+from database import db
 from typing import Literal
 
 logger = logging.getLogger('discord')
@@ -17,12 +17,14 @@ class Economy(commands.Cog):
 
     async def get_user_economy(self, user_id: str) -> UserEconomy:
         """Get or create user economy profile"""
-        user = session.query(UserEconomy).filter_by(user_id=str(user_id)).first()
-        if not user:
-            user = UserEconomy(user_id=str(user_id))
-            session.add(user)
-            session.commit()
-        return user
+        from dashboard.app import app
+        with app.app_context():
+            user = UserEconomy.query.filter_by(user_id=str(user_id)).first()
+            if not user:
+                user = UserEconomy(user_id=str(user_id))
+                db.session.add(user)
+                db.session.commit()
+            return user
 
     @app_commands.command(name="rob", description="Attempt to steal coins from another user")
     @app_commands.describe(target="The user you want to rob")
@@ -43,7 +45,7 @@ class Economy(commands.Cog):
         # Check cooldown (1 hour)
         now = datetime.utcnow()
         cooldown = timedelta(hours=1)
-        if robber.last_rob and now - robber.last_rob < cooldown:
+        if hasattr(robber, 'last_rob') and robber.last_rob and now - robber.last_rob < cooldown:
             time_left = cooldown - (now - robber.last_rob)
             minutes, seconds = divmod(time_left.seconds, 60)
             await interaction.response.send_message(
@@ -91,8 +93,8 @@ class Economy(commands.Cog):
                 amount=-amount,
                 description=f"Got robbed by {interaction.user.name}"
             )
-            session.add(transaction1)
-            session.add(transaction2)
+            db.session.add(transaction1)
+            db.session.add(transaction2)
 
             embed = create_embed(
                 "🦹 Successful Heist!",
@@ -110,7 +112,7 @@ class Economy(commands.Cog):
                 amount=-fine,
                 description="Fine for failed robbery attempt"
             )
-            session.add(transaction)
+            db.session.add(transaction)
 
             embed = create_embed(
                 "👮 Caught in the Act!",
@@ -118,7 +120,7 @@ class Economy(commands.Cog):
                 color=0xF04747
             )
 
-        session.commit()
+        db.session.commit()
         await interaction.response.send_message(embed=embed)
 
     @app_commands.command(name="balance", description="Check your current balance")
@@ -158,8 +160,8 @@ class Economy(commands.Cog):
             amount=reward,
             description="Daily reward"
         )
-        session.add(transaction)
-        session.commit()
+        db.session.add(transaction)
+        db.session.commit()
 
         embed = create_embed(
             "📅 Daily Reward",
@@ -194,8 +196,8 @@ class Economy(commands.Cog):
             amount=earnings,
             description="Work earnings"
         )
-        session.add(transaction)
-        session.commit()
+        db.session.add(transaction)
+        db.session.commit()
 
         embed = create_embed(
             "💼 Work",
@@ -233,7 +235,7 @@ class Economy(commands.Cog):
 
         user.wallet -= amount
         user.bank += amount
-        session.commit()
+        db.session.commit()
 
         embed = create_embed(
             "🏦 Deposit",
@@ -263,7 +265,7 @@ class Economy(commands.Cog):
 
         user.bank -= amount
         user.wallet += amount
-        session.commit()
+        db.session.commit()
 
         embed = create_embed(
             "🏦 Withdraw",
@@ -319,8 +321,8 @@ class Economy(commands.Cog):
             amount=amount if won else -amount,
             description=f"Coinflip: {'won' if won else 'lost'}"
         )
-        session.add(transaction)
-        session.commit()
+        db.session.add(transaction)
+        db.session.commit()
 
         embed = create_embed(title, description, color=color)
         await interaction.response.send_message(embed=embed)
@@ -388,8 +390,8 @@ class Economy(commands.Cog):
             amount=winnings - amount,
             description="Slots game"
         )
-        session.add(transaction)
-        session.commit()
+        db.session.add(transaction)
+        db.session.commit()
 
         embed = create_embed(title, description, color=color)
         await interaction.response.send_message(embed=embed)
@@ -397,7 +399,7 @@ class Economy(commands.Cog):
     @app_commands.command(name="shop", description="View the item shop")
     async def shop(self, interaction: discord.Interaction):
         """View available items in the shop"""
-        items = session.query(Item).filter_by(is_buyable=True).all()
+        items = Item.query.filter_by(is_buyable=True).all()
 
         if not items:
             await interaction.response.send_message(
@@ -425,7 +427,7 @@ class Economy(commands.Cog):
     @app_commands.describe(item_name="Name of the item to buy")
     async def buy(self, interaction: discord.Interaction, item_name: str):
         """Buy an item from the shop"""
-        item = session.query(Item).filter_by(name=item_name, is_buyable=True).first()
+        item = Item.query.filter_by(name=item_name, is_buyable=True).first()
         if not item:
             await interaction.response.send_message(
                 embed=create_error_embed("Error", "That item doesn't exist or isn't available"),
@@ -442,7 +444,7 @@ class Economy(commands.Cog):
             return
 
         # Add item to inventory
-        inventory = session.query(Inventory).filter_by(
+        inventory = Inventory.query.filter_by(
             user_id=str(interaction.user.id),
             item_id=item.id
         ).first()
@@ -455,7 +457,7 @@ class Economy(commands.Cog):
                 item_id=item.id,
                 quantity=1
             )
-            session.add(inventory)
+            db.session.add(inventory)
 
         # Deduct coins
         user.wallet -= item.price
@@ -466,8 +468,8 @@ class Economy(commands.Cog):
             amount=-item.price,
             description=f"Bought {item.name}"
         )
-        session.add(transaction)
-        session.commit()
+        db.session.add(transaction)
+        db.session.commit()
 
         embed = create_embed(
             "✅ Purchase Successful",
@@ -479,7 +481,7 @@ class Economy(commands.Cog):
     @app_commands.command(name="inventory", description="View your inventory")
     async def inventory(self, interaction: discord.Interaction):
         """View your inventory"""
-        inventory_items = session.query(Inventory).filter_by(
+        inventory_items = Inventory.query.filter_by(
             user_id=str(interaction.user.id)
         ).all()
 

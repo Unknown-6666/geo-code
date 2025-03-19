@@ -1,14 +1,12 @@
-from database import Base
-from sqlalchemy import Column, Integer, String
+from database import db
+from flask_login import UserMixin
 from datetime import datetime
 
-class User(Base):
-    __tablename__ = 'users'
-
-    id = Column(Integer, primary_key=True)
-    discord_id = Column(String(20), unique=True, nullable=False)
-    username = Column(String(100), nullable=False)
-    avatar_url = Column(String(200))
-    currency = Column(Integer, default=0)
-    xp = Column(Integer, default=0)
-    level = Column(Integer, default=1)
+class User(UserMixin, db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    discord_id = db.Column(db.String(20), unique=True, nullable=False)
+    username = db.Column(db.String(100), nullable=False)
+    avatar_url = db.Column(db.String(200))
+    currency = db.Column(db.Integer, default=0)
+    xp = db.Column(db.Integer, default=0)
+    level = db.Column(db.Integer, default=1)

@@ -9,13 +9,27 @@ from werkzeug.security import generate_password_hash, check_password_hash
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-# Initialize Flask app first
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.secret_key = os.environ.get("SESSION_SECRET")
+app.secret_key = os.getenv('SESSION_SECRET', 'your-secret-key')
 
-# Import database after app configuration
+# Discord OAuth2 configuration
+DISCORD_CLIENT_ID = os.getenv('DISCORD_CLIENT_ID')
+DISCORD_CLIENT_SECRET = os.getenv('DISCORD_CLIENT_SECRET')
+DISCORD_API_BASE_URL = 'https://discord.com/api'
+DISCORD_AUTHORIZATION_BASE_URL = DISCORD_API_BASE_URL + '/oauth2/authorize'
+DISCORD_TOKEN_URL = DISCORD_API_BASE_URL + '/oauth2/token'
+
+# Determine the correct redirect URI based on environment
+if os.getenv('REPL_SLUG') and os.getenv('REPL_OWNER'):
+    DISCORD_REDIRECT_URI = f'https://{os.getenv("REPL_SLUG")}.{os.getenv("REPL_OWNER")}.repl.co/callback'
+    logger.info(f"Using Replit redirect URI: {DISCORD_REDIRECT_URI}")
+else:
+    DISCORD_REDIRECT_URI = 'http://localhost:5000/callback'
+    logger.info("Using localhost redirect URI")
+
+# Import db after app configuration
 from database import db
 db.init_app(app)
 
@@ -32,21 +46,6 @@ def load_user(user_id):
 
 def token_updater(token):
     session['oauth2_token'] = token
-
-# Discord OAuth2 configuration
-DISCORD_CLIENT_ID = os.getenv('DISCORD_CLIENT_ID')
-DISCORD_CLIENT_SECRET = os.getenv('DISCORD_CLIENT_SECRET')
-DISCORD_API_BASE_URL = 'https://discord.com/api'
-DISCORD_AUTHORIZATION_BASE_URL = DISCORD_API_BASE_URL + '/oauth2/authorize'
-DISCORD_TOKEN_URL = DISCORD_API_BASE_URL + '/oauth2/token'
-
-# Determine the correct redirect URI based on environment
-if os.getenv('REPL_SLUG') and os.getenv('REPL_OWNER'):
-    DISCORD_REDIRECT_URI = f'https://{os.getenv("REPL_SLUG")}.{os.getenv("REPL_OWNER")}.repl.co/callback'
-    logger.info(f"Using Replit redirect URI: {DISCORD_REDIRECT_URI}")
-else:
-    DISCORD_REDIRECT_URI = 'http://localhost:5000/callback'
-    logger.info("Using localhost redirect URI")
 
 def make_discord_session(token=None, state=None, scope=None):
     return OAuth2Session(
@@ -138,9 +137,7 @@ def logout():
 def dashboard():
     return render_template('dashboard.html')
 
-# Initialize database tables
-with app.app_context():
-    db.create_all()
-
 if __name__ == '__main__':
+    with app.app_context():
+        db.create_all()
     app.run(host='0.0.0.0', port=5000, debug=True)

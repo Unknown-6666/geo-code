@@ -1,2 +1,4 @@
-# This file is no longer needed since we're not running a web server
-# All bot functionality is handled directly by bot.py
+from dashboard.app import app
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000, debug=True)
