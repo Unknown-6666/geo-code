@@ -8,23 +8,83 @@ from utils.embed_helpers import create_embed, create_error_embed
 from models.economy import UserEconomy, Item, Inventory, Transaction
 from database import db
 from typing import Literal
+from app import app  # Import the Flask app directly
 
 logger = logging.getLogger('discord')
 
 class Economy(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.app = app
+        logger.info("Economy cog initialized")
+        # Initialize shop items on startup
+        with self.app.app_context():
+            self.initialize_shop()
+
+    def initialize_shop(self):
+        """Initialize the shop with default items"""
+        logger.info("Initializing shop items...")
+        try:
+            # Check if items exist
+            if Item.query.count() == 0:
+                default_items = [
+                    {
+                        'name': 'Fishing Rod',
+                        'description': 'Used for fishing. Who knows what you might catch!',
+                        'price': 500,
+                        'emoji': '🎣'
+                    },
+                    {
+                        'name': 'Lucky Coin',
+                        'description': 'Increases your chances in gambling games by a small amount',
+                        'price': 1000,
+                        'emoji': '🪙'
+                    },
+                    {
+                        'name': 'Bank Note',
+                        'description': 'Increases your bank capacity by 1000',
+                        'price': 2500,
+                        'emoji': '📜'
+                    },
+                    {
+                        'name': 'Trophy',
+                        'description': 'A symbol of wealth and success',
+                        'price': 10000,
+                        'emoji': '🏆'
+                    }
+                ]
+
+                for item_data in default_items:
+                    item = Item(**item_data)
+                    db.session.add(item)
+
+                db.session.commit()
+                logger.info("Shop items initialized successfully")
+            else:
+                logger.info("Shop items already exist")
+        except Exception as e:
+            logger.error(f"Error initializing shop items: {str(e)}")
+            db.session.rollback()
 
     async def get_user_economy(self, user_id: str) -> UserEconomy:
         """Get or create user economy profile"""
-        from dashboard.app import app
-        with app.app_context():
-            user = UserEconomy.query.filter_by(user_id=str(user_id)).first()
-            if not user:
-                user = UserEconomy(user_id=str(user_id))
-                db.session.add(user)
-                db.session.commit()
-            return user
+        try:
+            with self.app.app_context():
+                user = UserEconomy.query.filter_by(user_id=str(user_id)).first()
+                if not user:
+                    logger.info(f"Creating new economy profile for user {user_id}")
+                    user = UserEconomy(
+                        user_id=str(user_id),
+                        wallet=0,
+                        bank=0,
+                        bank_capacity=1000
+                    )
+                    db.session.add(user)
+                    db.session.commit()
+                return user
+        except Exception as e:
+            logger.error(f"Error in get_user_economy: {str(e)}")
+            raise
 
     @app_commands.command(name="rob", description="Attempt to steal coins from another user")
     @app_commands.describe(target="The user you want to rob")
