@@ -6,6 +6,7 @@ import logging
 from discord.ext import commands, tasks
 from discord import app_commands
 from config import TOKEN, DEFAULT_PREFIX, STATUS_MESSAGES
+from database import db
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -31,6 +32,7 @@ class Bot(commands.Bot):
         await self.load_extension("cogs.basic_commands")
         await self.load_extension("cogs.member_events")
         await self.load_extension("cogs.youtube_tracker")
+        await self.load_extension("cogs.economy")
         logger.info("Loaded all cogs successfully")
 
         # Sync commands with Discord
@@ -75,9 +77,17 @@ class Bot(commands.Bot):
         """Log when commands are used"""
         logger.info(f'Command "{ctx.command}" used by {ctx.author} in {ctx.guild}')
 
+def init_db():
+    """Initialize database tables"""
+    from dashboard.app import app
+    with app.app_context():
+        db.create_all()
+        logger.info("Database tables created successfully")
+
 async def main():
     """Main function to run the bot"""
     logger.info("Starting bot...")
+    init_db()  # Initialize database tables
     async with Bot() as bot:
         await bot.start(TOKEN)
 
