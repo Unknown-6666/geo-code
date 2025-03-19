@@ -213,18 +213,19 @@ class BasicCommands(commands.Cog):
     async def sync_commands(self, ctx):
         """Sync slash commands across all servers (Bot Owner Only)"""
         try:
+            await ctx.send("Starting global slash command sync... Please wait.")
             logger.info("Starting global slash command sync")
             synced = await self.bot.tree.sync()
             embed = create_embed(
                 "🔄 Commands Synced",
-                f"Successfully synced {len(synced)} commands globally!",
+                f"Successfully synced {len(synced)} commands globally!\nYou can now use the updated slash commands in all servers.",
                 color=COLORS["PRIMARY"]
             )
             await ctx.send(embed=embed)
             logger.info(f"Successfully synced {len(synced)} commands globally")
         except Exception as e:
             logger.error(f"Error syncing commands: {str(e)}")
-            embed = create_error_embed("Error", "Failed to sync commands. Check logs for details.")
+            embed = create_error_embed("Error", f"Failed to sync commands: {str(e)}")
             await ctx.send(embed=embed)
 
     @commands.command(name="sync_guild")
@@ -232,19 +233,20 @@ class BasicCommands(commands.Cog):
     async def sync_guild_commands(self, ctx):
         """Sync slash commands for the current server only (Bot Owner Only)"""
         try:
+            await ctx.send("Starting server slash command sync... Please wait.")
             logger.info(f"Starting slash command sync for guild {ctx.guild.id}")
             self.bot.tree.copy_global_to(guild=ctx.guild)
             synced = await self.bot.tree.sync(guild=ctx.guild)
             embed = create_embed(
                 "🔄 Commands Synced",
-                f"Successfully synced {len(synced)} commands in this server!",
+                f"Successfully synced {len(synced)} commands in this server!\nYou can now use the updated slash commands here.",
                 color=COLORS["PRIMARY"]
             )
             await ctx.send(embed=embed)
             logger.info(f"Successfully synced {len(synced)} commands in guild {ctx.guild.id}")
         except Exception as e:
             logger.error(f"Error syncing guild commands: {str(e)}")
-            embed = create_error_embed("Error", "Failed to sync commands. Check logs for details.")
+            embed = create_error_embed("Error", f"Failed to sync commands: {str(e)}")
             await ctx.send(embed=embed)
 
 
