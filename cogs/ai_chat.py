@@ -1,25 +1,19 @@
 import discord
 import logging
-import random
+import g4f
 from discord import app_commands
 from discord.ext import commands
 from utils.embed_helpers import create_embed, create_error_embed
 
 logger = logging.getLogger('discord')
 
-# Simple responses for demonstration
-RESPONSES = [
-    "That's an interesting question! Let me think about it...",
-    "I understand what you're asking. Here's what I think...",
-    "Based on my knowledge, I would say...",
-    "That's a great point! Here's my perspective...",
-    "Let me break this down for you...",
-]
-
 class AIChat(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         logger.info("AI Chat cog initialized")
+        # Configure g4f settings
+        g4f.debug.logging = False  # Disable debug logging
+        # Use a more reliable provider
 
     @app_commands.command(name="ask", description="Ask the AI a question")
     @app_commands.describe(question="The question or prompt for the AI")
@@ -29,8 +23,15 @@ class AIChat(commands.Cog):
             await interaction.response.defer()  # This might take a while
             logger.info(f"Processing AI request from {interaction.user}: {question}")
 
-            # Generate a simple response
-            response = random.choice(RESPONSES) + "\n" + question.capitalize()
+            # Generate response using g4f
+            response = await self.bot.loop.run_in_executor(
+                None,
+                lambda: g4f.ChatCompletion.create(
+                    model="gpt-3.5-turbo",
+                    messages=[{"role": "user", "content": question}],
+                    stream=False
+                )
+            )
 
             # Create embed with the response
             embed = create_embed(
@@ -46,7 +47,7 @@ class AIChat(commands.Cog):
         except Exception as e:
             logger.error(f"Error generating AI response: {str(e)}")
             await interaction.followup.send(
-                embed=create_error_embed("Error", "An error occurred while generating the response."),
+                embed=create_error_embed("Error", "An error occurred while generating the response. Please try again later."),
                 ephemeral=True
             )
 
@@ -58,15 +59,18 @@ class AIChat(commands.Cog):
             await interaction.response.defer()
             logger.info(f"Processing casual AI chat from {interaction.user}: {message}")
 
-            # Generate a casual response
-            responses = [
-                f"Hey there! {message} is interesting to think about...",
-                f"I hear you! When you say {message}, it makes me think...",
-                f"Let's chat about that! {message} is a fascinating topic...",
-                f"Thanks for sharing! {message} reminds me of...",
-            ]
-
-            response = random.choice(responses)
+            # Generate response using g4f
+            response = await self.bot.loop.run_in_executor(
+                None,
+                lambda: g4f.ChatCompletion.create(
+                    model="gpt-3.5-turbo",
+                    messages=[
+                        {"role": "system", "content": "You are a friendly and helpful chat bot. Keep responses concise and engaging."},
+                        {"role": "user", "content": message}
+                    ],
+                    stream=False
+                )
+            )
 
             embed = create_embed(
                 "💭 AI Chat",
@@ -80,7 +84,7 @@ class AIChat(commands.Cog):
         except Exception as e:
             logger.error(f"Error in AI chat: {str(e)}")
             await interaction.followup.send(
-                embed=create_error_embed("Error", "An error occurred during our conversation."),
+                embed=create_error_embed("Error", "An error occurred during our conversation. Please try again later."),
                 ephemeral=True
             )
 
