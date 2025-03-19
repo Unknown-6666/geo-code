@@ -137,7 +137,7 @@ class Moderation(commands.Cog):
             # Convert user_id to integer
             user_id = int(user_id)
             banned_users = await interaction.guild.bans()
-            
+
             user_to_unban = None
             for ban_entry in banned_users:
                 if ban_entry.user.id == user_id:
@@ -215,7 +215,7 @@ class Moderation(commands.Cog):
             # Convert duration to timedelta (max 28 days)
             duration = min(duration, 40320)  # 40320 minutes = 28 days
             timeout_duration = timedelta(minutes=duration)
-            
+
             await user.timeout(timeout_duration, reason=f"Timed out by {interaction.user}: {reason}")
             logger.info(f"User {user} was timed out by {interaction.user} for {duration} minutes. Reason: {reason}")
 
@@ -237,6 +237,147 @@ class Moderation(commands.Cog):
                 embed=create_error_embed("Error", "An error occurred while trying to timeout the user."),
                 ephemeral=True
             )
+
+    @app_commands.command(name="clear", description="Clear messages from the channel")
+    @app_commands.describe(
+        amount="Number of messages to delete (1-100)",
+        user="Only delete messages from this user"
+    )
+    @app_commands.default_permissions(manage_messages=True)
+    async def clear(self, interaction: discord.Interaction, amount: int, user: discord.Member = None):
+        """Clear messages from the channel"""
+        if not interaction.channel.permissions_for(interaction.guild.me).manage_messages:
+            await interaction.response.send_message(
+                embed=create_error_embed("Error", "I don't have permission to delete messages."),
+                ephemeral=True
+            )
+            return
+
+        # Limit amount to 1-100
+        amount = max(1, min(100, amount))
+
+        try:
+            await interaction.response.defer(ephemeral=True)
+
+            def check_message(message):
+                return user is None or message.author == user
+
+            deleted = await interaction.channel.purge(
+                limit=amount,
+                check=check_message,
+                before=interaction.created_at
+            )
+
+            user_text = f" from {user.mention}" if user else ""
+            embed = create_embed(
+                "🗑️ Messages Cleared",
+                f"Deleted {len(deleted)} messages{user_text}.",
+                color=0x43B581
+            )
+            await interaction.followup.send(embed=embed, ephemeral=True)
+
+        except discord.Forbidden:
+            await interaction.followup.send(
+                embed=create_error_embed("Error", "I don't have permission to delete messages."),
+                ephemeral=True
+            )
+        except Exception as e:
+            logger.error(f"Error clearing messages: {str(e)}")
+            await interaction.followup.send(
+                embed=create_error_embed("Error", "An error occurred while trying to clear messages."),
+                ephemeral=True
+            )
+
+    @app_commands.command(name="slowmode", description="Set the slowmode delay for this channel")
+    @app_commands.describe(
+        delay="Delay in seconds (0 to disable, max 21600)",
+        reason="Reason for changing slowmode"
+    )
+    @app_commands.default_permissions(manage_channels=True)
+    async def slowmode(self, interaction: discord.Interaction, delay: int, reason: str = None):
+        """Set the slowmode delay for the channel"""
+        if not interaction.channel.permissions_for(interaction.guild.me).manage_channels:
+            await interaction.response.send_message(
+                embed=create_error_embed("Error", "I don't have permission to manage channel settings."),
+                ephemeral=True
+            )
+            return
+
+        # Limit delay to 0-21600 (6 hours)
+        delay = max(0, min(21600, delay))
+
+        try:
+            await interaction.channel.edit(
+                slowmode_delay=delay,
+                reason=f"Slowmode changed by {interaction.user}: {reason}"
+            )
+
+            if delay == 0:
+                description = "Slowmode has been disabled."
+            else:
+                description = f"Slowmode set to {delay} seconds."
+                if reason:
+                    description += f"\nReason: {reason}"
+
+            embed = create_embed(
+                "⏱️ Slowmode Updated",
+                description,
+                color=0x43B581
+            )
+            await interaction.response.send_message(embed=embed)
+
+        except discord.Forbidden:
+            await interaction.response.send_message(
+                embed=create_error_embed("Error", "I don't have permission to change slowmode."),
+                ephemeral=True
+            )
+        except Exception as e:
+            logger.error(f"Error setting slowmode: {str(e)}")
+            await interaction.response.send_message(
+                embed=create_error_embed("Error", "An error occurred while trying to set slowmode."),
+                ephemeral=True
+            )
+
+    @app_commands.command(name="serverinfo", description="Show information about the server")
+    @app_commands.default_permissions(moderate_members=True)
+    async def serverinfo(self, interaction: discord.Interaction):
+        """Display server information"""
+        guild = interaction.guild
+
+        # Get role and channel counts
+        text_channels = len(guild.text_channels)
+        voice_channels = len(guild.voice_channels)
+        categories = len(guild.categories)
+        roles = len(guild.roles)
+
+        # Get member counts
+        total_members = guild.member_count
+        online_members = sum(1 for m in guild.members if m.status != discord.Status.offline)
+        bot_count = sum(1 for m in guild.members if m.bot)
+
+        # Create embed
+        embed = create_embed(
+            f"ℹ️ Server Information - {guild.name}",
+            "",
+            color=0x43B581
+        )
+
+        if guild.icon:
+            embed.set_thumbnail(url=guild.icon.url)
+
+        embed.add_field(name="Owner", value=guild.owner.mention, inline=True)
+        embed.add_field(name="Created At", value=guild.created_at.strftime("%Y-%m-%d"), inline=True)
+        embed.add_field(name="Server ID", value=guild.id, inline=True)
+
+        embed.add_field(name="Members", value=f"Total: {total_members}\nOnline: {online_members}\nBots: {bot_count}", inline=True)
+        embed.add_field(name="Channels", value=f"Text: {text_channels}\nVoice: {voice_channels}\nCategories: {categories}", inline=True)
+        embed.add_field(name="Roles", value=str(roles), inline=True)
+
+        if guild.premium_subscription_count:
+            embed.add_field(name="Boost Level", value=str(guild.premium_tier), inline=True)
+            embed.add_field(name="Boosts", value=str(guild.premium_subscription_count), inline=True)
+
+        await interaction.response.send_message(embed=embed)
 
 async def setup(bot):
     await bot.add_cog(Moderation(bot))
