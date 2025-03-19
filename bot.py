@@ -54,8 +54,8 @@ class Bot(commands.Bot):
         print('------')
 
         # Start status rotation after bot is ready
-        if not self.change_status.is_running():
-            self.change_status.start()
+        if not hasattr(self, 'change_status_task'):
+            self.change_status_task = self.change_status.start()
             logger.info("Started status rotation task")
 
     @tasks.loop(minutes=5)
