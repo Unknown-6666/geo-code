@@ -46,6 +46,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
     async def from_url(cls, url, *, loop=None, stream=True):
         loop = loop or asyncio.get_event_loop()
         try:
+            logger.info(f"Attempting to extract info from URL: {url}")
             data = await loop.run_in_executor(None, lambda: ytdl.extract_info(url, download=not stream))
             logger.debug(f"Successfully extracted info for URL: {url}")
 
@@ -54,6 +55,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
                 data = data['entries'][0]
 
             filename = data['url'] if stream else ytdl.prepare_filename(data)
+            logger.info(f"Creating audio source for: {data.get('title', 'Unknown title')}")
             return cls(discord.FFmpegPCMAudio(filename, **ffmpeg_options), data=data)
         except Exception as e:
             logger.error(f"Error extracting info from URL {url}: {str(e)}")
@@ -103,7 +105,7 @@ class Music(commands.Cog):
         except Exception as e:
             logger.error(f"Error joining voice channel: {str(e)}")
             await interaction.response.send_message(
-                embed=create_error_embed("Error", "Failed to join voice channel."),
+                embed=create_error_embed("Error", f"Failed to join voice channel: {str(e)}"),
                 ephemeral=True
             )
 
@@ -130,7 +132,16 @@ class Music(commands.Cog):
 
             # Extract info first to get title for queue message
             loop = asyncio.get_event_loop()
-            data = await loop.run_in_executor(None, lambda: ytdl.extract_info(query, download=False))
+            try:
+                data = await loop.run_in_executor(None, lambda: ytdl.extract_info(query, download=False))
+                logger.info(f"Successfully extracted info for query: {query}")
+            except Exception as e:
+                logger.error(f"Error extracting info for query '{query}': {str(e)}")
+                await interaction.followup.send(
+                    embed=create_error_embed("Error", "Could not find the requested song. Please check your query and try again."),
+                    ephemeral=True
+                )
+                return
 
             if 'entries' in data:
                 data = data['entries'][0]
@@ -154,7 +165,7 @@ class Music(commands.Cog):
         except Exception as e:
             logger.error(f"Error playing music: {str(e)}")
             await interaction.followup.send(
-                embed=create_error_embed("Error", "An error occurred while trying to play the song."),
+                embed=create_error_embed("Error", f"An error occurred while trying to play the song: {str(e)}"),
                 ephemeral=True
             )
 
@@ -168,15 +179,21 @@ class Music(commands.Cog):
 
         try:
             url = queue.popleft()
+            logger.info(f"Attempting to play next song from URL: {url}")
             player = await YTDLSource.from_url(url, loop=self.bot.loop)
             player.volume = self._volume.get(guild.id, 0.5)
 
             self.now_playing[guild.id] = player
             logger.info(f"Playing next song in guild {guild.id}: {player.title}")
 
-            voice_client.play(player, after=lambda e: asyncio.run_coroutine_threadsafe(
-                self.play_next(guild, voice_client), self.bot.loop
-            ))
+            def after_callback(e):
+                if e:
+                    logger.error(f"Error in play_next callback: {str(e)}")
+                asyncio.run_coroutine_threadsafe(
+                    self.play_next(guild, voice_client), self.bot.loop
+                )
+
+            voice_client.play(player, after=after_callback)
         except Exception as e:
             logger.error(f"Error in play_next: {str(e)}")
 
