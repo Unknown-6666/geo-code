@@ -8,7 +8,7 @@ deploymentTarget = "gce"
 run = ["gunicorn", "--bind", "0.0.0.0:5000", "main:app"]
 
 [workflows]
-runButton = "Project"
+runButton = "Run Discord Bot"
 
 [[workflows.workflow]]
 name = "Project"
@@ -51,6 +51,15 @@ task = "packager.installForAll"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "python bot.py"
+
+[[workflows.workflow]]
+name = "Run Discord Bot"
+author = 39706813
+mode = "parallel"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "discord_bot"
 
 [[ports]]
 localPort = 5000
