@@ -16,20 +16,8 @@ import bot
 import asyncio
 
 # Thread to run the Discord bot
-def run_discord_bot():
-    """Run the Discord bot in a separate thread"""
-    logger.info("Starting Discord bot thread...")
-    asyncio.run(bot.main())
-
-def run_both_services():
-    """Start both the web dashboard and Discord bot"""
-    # Start Discord bot in a separate thread
-    discord_thread = threading.Thread(target=run_discord_bot)
-    discord_thread.daemon = True  # Thread will exit when main thread exits
-    discord_thread.start()
-    logger.info("Discord bot thread started")
-    
-    # The Flask app will be run by Gunicorn, so we don't need to call app.run() here
+def get_app():
+    """Get Flask app for Gunicorn"""
     logger.info("Web dashboard is running via Gunicorn")
     return app
 
