@@ -43,14 +43,22 @@ class Bot(commands.Bot):
         # await self.load_extension("cogs.ai_chat")
         logger.info("Loaded all cogs successfully")
         
-        # Only sync commands automatically if SYNC_COMMANDS env var is set
-        # This prevents multiple bot instances from all trying to sync
-        if os.environ.get('SYNC_COMMANDS', 'false').lower() == 'true':
-            logger.info("Syncing commands with Discord...")
-            await self.tree.sync()
-            logger.info("Commands synced successfully")
-        else:
-            logger.info("Automatic command syncing disabled. Use !sync to sync commands manually.")
+        # Always sync commands on startup
+        # For each guild, sync the commands to ensure they are up-to-date
+        logger.info("Syncing commands with Discord...")
+        try:
+            await self.tree.sync()  # Global commands
+            logger.info("Global commands synced successfully")
+            
+            # If already connected to guilds (bot restarting), sync with each guild too
+            if self.is_ready():
+                for guild in self.guilds:
+                    self.tree.copy_global_to(guild=guild)
+                    await self.tree.sync(guild=guild)
+                    logger.info(f"Commands synced for guild: {guild.name} ({guild.id})")
+        except Exception as e:
+            logger.error(f"Error syncing commands: {str(e)}")
+            logger.info("If commands are not updating, use !sync manually as the bot owner.")
 
     async def on_ready(self):
         """Called when the bot is ready"""
@@ -61,6 +69,24 @@ class Bot(commands.Bot):
         print(f'Bot ID: {self.user.id}')
         print('------')
 
+        # Sync commands for each guild to ensure they're up-to-date
+        logger.info("Syncing commands with all guilds...")
+        try:
+            # First sync global commands
+            await self.tree.sync()
+            logger.info("Global commands synced")
+            
+            # Then sync with each guild
+            for guild in self.guilds:
+                try:
+                    self.tree.copy_global_to(guild=guild)
+                    await self.tree.sync(guild=guild)
+                    logger.info(f"Commands synced for guild: {guild.name} ({guild.id})")
+                except Exception as e:
+                    logger.error(f"Error syncing commands for guild {guild.name}: {str(e)}")
+        except Exception as e:
+            logger.error(f"Error syncing commands: {str(e)}")
+        
         # Start status rotation after bot is ready
         if not self.change_status.is_running():
             self.change_status.start()
