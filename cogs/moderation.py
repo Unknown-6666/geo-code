@@ -10,6 +10,7 @@ logger = logging.getLogger('discord')
 class Moderation(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        logger.info("Moderation cog initialized")
 
     @app_commands.command(name="kick", description="Kick a user from the server")
     @app_commands.describe(
