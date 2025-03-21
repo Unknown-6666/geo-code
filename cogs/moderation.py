@@ -346,6 +346,7 @@ class Moderation(commands.Cog):
         reason="Reason for the timeout"
     )
     @app_commands.default_permissions(moderate_members=True)
+    @app_commands.check(PermissionChecks.slash_is_mod())
     async def timeout(self, interaction: discord.Interaction, user: discord.Member, duration: int, reason: str = None):
         """Timeout (mute) a user for a specified duration"""
         # Check if the bot can timeout members
@@ -450,6 +451,7 @@ class Moderation(commands.Cog):
         user="Only delete messages from this user"
     )
     @app_commands.default_permissions(manage_messages=True)
+    @app_commands.check(PermissionChecks.slash_is_mod())
     async def clear(self, interaction: discord.Interaction, amount: int, user: discord.Member = None):
         """Clear messages from the channel"""
         if not interaction.channel.permissions_for(interaction.guild.me).manage_messages:
@@ -540,6 +542,7 @@ class Moderation(commands.Cog):
         reason="Reason for changing slowmode"
     )
     @app_commands.default_permissions(manage_channels=True)
+    @app_commands.check(PermissionChecks.slash_is_mod())
     async def slowmode(self, interaction: discord.Interaction, delay: int, reason: str = None):
         """Set the slowmode delay for the channel"""
         if not interaction.channel.permissions_for(interaction.guild.me).manage_channels:
@@ -629,6 +632,7 @@ class Moderation(commands.Cog):
     
     @app_commands.command(name="serverinfo", description="Show information about the server")
     @app_commands.default_permissions(moderate_members=True)
+    @app_commands.check(PermissionChecks.slash_is_mod())
     async def serverinfo(self, interaction: discord.Interaction):
         """Display server information"""
         guild = interaction.guild
@@ -700,6 +704,7 @@ class Moderation(commands.Cog):
         message="The announcement message"
     )
     @app_commands.default_permissions(manage_messages=True)
+    @app_commands.check(PermissionChecks.slash_is_mod())
     async def announce(self, interaction: discord.Interaction, channel: discord.TextChannel, *, message: str):
         """Send an announcement to a specified channel"""
         try:
@@ -787,6 +792,7 @@ class Moderation(commands.Cog):
         color="The color of the embed (optional, hex code like #FF0000)"
     )
     @app_commands.default_permissions(manage_messages=True)
+    @app_commands.check(PermissionChecks.slash_is_mod())
     async def embedannounce(
         self,
         interaction: discord.Interaction,
