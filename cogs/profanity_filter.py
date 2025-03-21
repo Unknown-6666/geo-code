@@ -31,6 +31,11 @@ class ProfanityFilter(commands.Cog):
                     self.filter_enabled = config.get('filter_enabled', {})
                     self.warning_count = config.get('warning_count', {})
                     logger.info(f"Loaded profanity filter config with {len(self.blocked_words)} blocked words")
+                    
+                    # Add logging for current filter settings
+                    enabled_count = sum(1 for val in self.filter_enabled.values() if val == True)
+                    disabled_count = sum(1 for val in self.filter_enabled.values() if val == False)
+                    logger.info(f"Filter status: {enabled_count} servers explicitly enabled, {disabled_count} servers explicitly disabled")
             except Exception as e:
                 logger.error(f"Error loading profanity filter config: {str(e)}")
                 # Initialize with empty defaults
@@ -40,6 +45,18 @@ class ProfanityFilter(commands.Cog):
         else:
             logger.info("No profanity filter config found, creating new one")
             self.save_config()  # Create initial empty config
+            
+        # Pre-initialize filter enabled status for all current servers if not set
+        if self.bot.is_ready():
+            for guild in self.bot.guilds:
+                guild_id = str(guild.id)
+                if guild_id not in self.filter_enabled:
+                    # Default to True (enabled) for all servers that don't have a setting
+                    logger.info(f"Setting default filter status (enabled) for guild: {guild.name} ({guild_id})")
+                    self.filter_enabled[guild_id] = True
+            
+            # Save any changes we made
+            self.save_config()
 
     def save_config(self):
         """Save current configuration to file"""
@@ -61,7 +78,9 @@ class ProfanityFilter(commands.Cog):
         guild_id = str(guild_id)
         
         # Skip check if filter is explicitly disabled for this guild (default to enabled)
+        # The filter is enabled by default for all servers unless explicitly disabled
         if guild_id in self.filter_enabled and self.filter_enabled[guild_id] == False:
+            logger.info(f"Filter explicitly disabled for guild {guild_id}")
             return False
 
         # No words to filter
