@@ -126,24 +126,37 @@ class ProfanityFilter(commands.Cog):
     @commands.Cog.listener()
     async def on_message(self, message):
         """Check messages for profanity"""
+        # Always log incoming messages for debugging
+        logger.info(f"Message received from {message.author.name}: {message.content}")
+        
         # Ignore messages from bots, including our own
         if message.author.bot:
+            logger.info("Message ignored - from bot")
             return
             
         # Ignore DMs
         if not message.guild:
+            logger.info("Message ignored - from DM")
             return
+        
+        # Debug log - before filter check
+        guild_id = str(message.guild.id)
+        filter_status = "disabled" if guild_id in self.filter_enabled and self.filter_enabled[guild_id] == False else "enabled"
+        logger.info(f"Filter status for guild {message.guild.name} ({guild_id}): {filter_status}")
+        logger.info(f"Number of blocked words: {len(self.blocked_words)}")
             
         # Check if message contains filtered words
         if self.is_filtered_word(message.content, message.guild.id):
-            logger.info(f"Filtered message from {message.author.name} in {message.guild.name}: {message.content}")
+            logger.info(f"MATCH FOUND - Filtered message from {message.author.name} in {message.guild.name}: {message.content}")
             
             try:
                 # Delete the message
                 await message.delete()
+                logger.info(f"Message deleted successfully")
                 
                 # Add warning and get count
                 warning_count = self.add_warning(message.author.id, message.guild.id)
+                logger.info(f"Warning added: user now has {warning_count} warnings")
                 
                 # Send warning DM to user
                 try:
@@ -151,9 +164,12 @@ class ProfanityFilter(commands.Cog):
                         f"⚠️ Your message in **{message.guild.name}** was removed for containing inappropriate language. "
                         f"This is warning #{warning_count}."
                     )
+                    logger.info(f"Warning DM sent to {message.author.name}")
                 except discord.Forbidden:
                     # Can't send DMs to this user
-                    logger.info(f"Could not send DM to {message.author.name}")
+                    logger.info(f"Could not send DM to {message.author.name} - forbidden")
+                except Exception as e:
+                    logger.error(f"Error sending DM: {str(e)}")
                     
                 # If warning count exceeds threshold, take action
                 if warning_count >= 3:
@@ -186,13 +202,19 @@ class ProfanityFilter(commands.Cog):
                             embed.set_footer(text=f"User ID: {message.author.id}")
                             
                             await log_channel.send(embed=embed)
+                            logger.info(f"Notification sent to log channel")
+                        else:
+                            logger.info(f"No log channel found in server")
                     except Exception as e:
                         logger.error(f"Error sending to log channel: {str(e)}")
                         
             except discord.Forbidden:
-                logger.warning(f"No permission to delete message from {message.author.name}")
+                logger.warning(f"PERMISSION ERROR - No permission to delete message from {message.author.name}")
             except Exception as e:
-                logger.error(f"Error processing filtered message: {str(e)}")
+                logger.error(f"GENERAL ERROR - Error processing filtered message: {str(e)}")
+        else:
+            # Debug - why didn't we match?
+            logger.info(f"No filtered words found in message")
 
     @commands.command(name="addfilter")
     @commands.has_permissions(manage_messages=True)
