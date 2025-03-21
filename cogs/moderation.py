@@ -6,7 +6,7 @@ from discord import app_commands
 from discord.ext import commands
 from datetime import timedelta
 from utils.embed_helpers import create_embed, create_error_embed
-from utils.permissions import PermissionChecks
+from utils.permissions import PermissionChecks, is_mod, is_admin, is_bot_owner
 
 logger = logging.getLogger('discord')
 
@@ -57,6 +57,7 @@ class Moderation(commands.Cog):
         reason="Reason for the kick"
     )
     @app_commands.default_permissions(kick_members=True)
+    @app_commands.check(PermissionChecks.slash_is_mod())
     async def kick(self, interaction: discord.Interaction, user: discord.Member, reason: str = None):
         """Kick a user from the server"""
         # Check if the bot can kick members
@@ -153,6 +154,7 @@ class Moderation(commands.Cog):
         delete_days="Number of days of messages to delete (0-7)"
     )
     @app_commands.default_permissions(ban_members=True)
+    @app_commands.check(PermissionChecks.slash_is_mod())
     async def ban(self, interaction: discord.Interaction, user: discord.Member, reason: str = None, delete_days: int = 1):
         """Ban a user from the server"""
         # Check if the bot can ban members
@@ -249,6 +251,7 @@ class Moderation(commands.Cog):
         reason="Reason for the unban"
     )
     @app_commands.default_permissions(ban_members=True)
+    @app_commands.check(PermissionChecks.slash_is_mod())
     async def unban(self, interaction: discord.Interaction, user_id: str, reason: str = None):
         """Unban a user from the server"""
         try:

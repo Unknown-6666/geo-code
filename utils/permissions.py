@@ -47,3 +47,29 @@ class PermissionChecks:
             )
             return has_permission
         return commands.check(predicate)
+        
+    @staticmethod
+    def slash_is_owner():
+        """Check if the slash command user is the bot owner (for app_commands)"""
+        async def predicate(interaction):
+            is_owner = is_bot_owner(interaction.user.id)
+            logger.info(f"Owner slash command attempted by {interaction.user} (ID: {interaction.user.id}): {'✅ Allowed' if is_owner else '❌ Denied'}")
+            return is_owner
+        return predicate
+        
+    @staticmethod
+    def slash_is_mod():
+        """Check if the slash command user is a moderator or higher (for app_commands)"""
+        async def predicate(interaction):
+            is_owner_result = is_bot_owner(interaction.user.id)
+            is_mod_result = is_mod(interaction.user)
+            is_admin_result = is_admin(interaction.user)
+            has_permission = is_owner_result or is_mod_result or is_admin_result
+
+            logger.info(
+                f"Mod slash command attempted by {interaction.user} (ID: {interaction.user.id}): "
+                f"{'✅ Allowed' if has_permission else '❌ Denied'} "
+                f"(Owner: {is_owner_result}, Mod: {is_mod_result}, Admin: {is_admin_result})"
+            )
+            return has_permission
+        return predicate
