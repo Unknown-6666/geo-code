@@ -9,7 +9,7 @@ if not TOKEN:
 # Bot owner and permission configuration
 BOT_OWNER_ID = 1003686821600960582  # Your Discord ID
 MOD_ROLE_IDS = [
-    954166360680837182,  # Moderator role ID
+    954166360680837182, 972579273493872710  # Moderator role ID
 ]
 
 # YouTube channel configuration

@@ -6,6 +6,7 @@ from discord import app_commands
 from discord.ext import commands
 from datetime import timedelta
 from utils.embed_helpers import create_embed, create_error_embed
+from utils.permissions import PermissionChecks
 
 logger = logging.getLogger('discord')
 
@@ -15,7 +16,7 @@ class Moderation(commands.Cog):
         logger.info("Moderation cog initialized")
 
     @commands.command(name="kick")
-    @commands.has_permissions(kick_members=True)
+    @commands.check_any(commands.has_permissions(kick_members=True), PermissionChecks.is_mod())
     async def kick_prefix(self, ctx, user: discord.Member, *, reason: str = None):
         """Kick a user from the server (prefix command)"""
         # Check if the bot can kick members
@@ -106,7 +107,7 @@ class Moderation(commands.Cog):
             )
 
     @commands.command(name="ban")
-    @commands.has_permissions(ban_members=True)
+    @commands.check_any(commands.has_permissions(ban_members=True), PermissionChecks.is_mod())
     async def ban_prefix(self, ctx, user: discord.Member, delete_days: int = 1, *, reason: str = None):
         """Ban a user from the server (prefix command)
         Usage: !ban @user [delete_days] [reason]"""
@@ -205,7 +206,7 @@ class Moderation(commands.Cog):
             )
 
     @commands.command(name="unban")
-    @commands.has_permissions(ban_members=True)
+    @commands.check_any(commands.has_permissions(ban_members=True), PermissionChecks.is_mod()) 
     async def unban_prefix(self, ctx, user_id: str, *, reason: str = None):
         """Unban a user from the server (prefix command)
         Usage: !unban user_id [reason]"""
@@ -296,7 +297,7 @@ class Moderation(commands.Cog):
             )
 
     @commands.command(name="timeout")
-    @commands.has_permissions(moderate_members=True)
+    @commands.check_any(commands.has_permissions(moderate_members=True), commands.is_owner())
     async def timeout_prefix(self, ctx, user: discord.Member, duration: int, *, reason: str = None):
         """Timeout (mute) a user for a specified duration (prefix command)"""
         # Check if the bot can timeout members
@@ -396,7 +397,7 @@ class Moderation(commands.Cog):
             )
 
     @commands.command(name="clear")
-    @commands.has_permissions(manage_messages=True)
+    @commands.check_any(commands.has_permissions(manage_messages=True), PermissionChecks.is_mod())
     async def clear_prefix(self, ctx, amount: int, user: discord.Member = None):
         """Clear messages from the channel (prefix command)
         Usage: !clear amount [@user]"""
@@ -491,7 +492,7 @@ class Moderation(commands.Cog):
             )
 
     @commands.command(name="slowmode")
-    @commands.has_permissions(manage_channels=True)
+    @commands.check_any(commands.has_permissions(manage_channels=True), PermissionChecks.is_mod())
     async def slowmode_prefix(self, ctx, delay: int, *, reason: str = None):
         """Set the slowmode delay for the channel (prefix command)
         Usage: !slowmode delay [reason]"""
