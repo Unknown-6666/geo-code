@@ -1,10 +1,11 @@
 import discord
 import logging
+import asyncio
 from discord import app_commands
 from discord.ext import commands
 from utils.embed_helpers import create_embed, create_error_embed
 from config import COLORS
-from utils.permissions import PermissionChecks
+from utils.permissions import PermissionChecks, is_bot_owner
 
 logger = logging.getLogger('discord')
 
@@ -268,6 +269,142 @@ class BasicCommands(commands.Cog):
             logger.error(f"Error syncing guild commands: {str(e)}")
             embed = create_error_embed("Error", f"Failed to sync commands: {str(e)}")
             await ctx.send(embed=embed)
+
+    @commands.command(name="clear_commands")
+    @PermissionChecks.is_owner()
+    async def clear_commands_prefix(self, ctx):
+        """Clear all slash commands from all servers (Bot Owner Only)"""
+        try:
+            confirmation_embed = create_embed(
+                "⚠️ Confirmation Required", 
+                "Are you sure you want to clear all slash commands from all servers? This will remove all slash commands until a new sync is performed. Reply with `yes` to confirm or `no` to cancel.",
+                color=COLORS["WARNING"]
+            )
+            await ctx.send(embed=confirmation_embed)
+            
+            # Wait for user confirmation
+            def check(m):
+                return m.author.id == ctx.author.id and m.channel.id == ctx.channel.id and m.content.lower() in ['yes', 'no']
+                
+            try:
+                msg = await self.bot.wait_for('message', check=check, timeout=30.0)
+                
+                if msg.content.lower() == 'no':
+                    await ctx.send(embed=create_embed("Cancelled", "Command clearing has been cancelled.", color=COLORS["PRIMARY"]))
+                    return
+                    
+            except asyncio.TimeoutError:
+                await ctx.send(embed=create_embed("Timed Out", "You didn't respond in time. Command clearing has been cancelled.", color=COLORS["WARNING"]))
+                return
+            
+            # User confirmed, proceed with clearing commands
+            logger.warning(f"Command clearing initiated by {ctx.author} (ID: {ctx.author.id})")
+            await ctx.send("Clearing all commands... Please wait.")
+            
+            # Clear all application commands globally
+            await self.bot.tree.sync()
+            self.bot.tree.clear_commands(guild=None)
+            await self.bot.tree.sync()
+            
+            # Log success
+            logger.warning(f"All global commands cleared by {ctx.author} (ID: {ctx.author.id})")
+            
+            # Create success embed
+            embed = create_embed(
+                "🧹 Commands Cleared",
+                "Successfully cleared all slash commands from all servers. Use `!sync_commands` to restore them when needed.",
+                color=COLORS["PRIMARY"]
+            )
+            
+            await ctx.send(embed=embed)
+            
+        except Exception as e:
+            logger.error(f"Error clearing commands: {str(e)}")
+            embed = create_error_embed("Error", f"Failed to clear commands: {str(e)}")
+            await ctx.send(embed=embed)
+
+    @app_commands.command(name="clear_commands", description="Clear all slash commands from all servers (Bot Owner Only)")
+    async def clear_commands_slash(self, interaction: discord.Interaction):
+        """Clear all slash commands from all servers (Bot Owner Only)"""
+        # Check if user is the bot owner
+        if not is_bot_owner(interaction.user.id):
+            await interaction.response.send_message("Only the bot owner can use this command.", ephemeral=True)
+            return
+            
+        try:
+            # Send confirmation
+            confirmation_embed = create_embed(
+                "⚠️ Confirmation Required", 
+                "Are you sure you want to clear all slash commands from all servers? This will remove all slash commands until a new sync is performed.",
+                color=COLORS["WARNING"]
+            )
+            
+            # Create confirm and cancel buttons
+            confirm_button = discord.ui.Button(label="Confirm", style=discord.ButtonStyle.danger)
+            cancel_button = discord.ui.Button(label="Cancel", style=discord.ButtonStyle.secondary)
+            
+            view = discord.ui.View()
+            view.add_item(confirm_button)
+            view.add_item(cancel_button)
+            
+            # Define callbacks for buttons
+            async def confirm_callback(btn_interaction):
+                if btn_interaction.user.id != interaction.user.id:
+                    await btn_interaction.response.send_message("You cannot interact with this confirmation.", ephemeral=True)
+                    return
+                
+                # Disable buttons to prevent further interaction
+                confirm_button.disabled = True
+                cancel_button.disabled = True
+                await btn_interaction.response.edit_message(view=view)
+                
+                # Clear all application commands globally
+                logger.warning(f"Command clearing initiated by {interaction.user} (ID: {interaction.user.id})")
+                
+                # Clear all application commands globally
+                await self.bot.tree.sync()
+                self.bot.tree.clear_commands(guild=None)
+                await self.bot.tree.sync()
+                
+                # Log success
+                logger.warning(f"All global commands cleared by {interaction.user} (ID: {interaction.user.id})")
+                
+                # Create success embed
+                success_embed = create_embed(
+                    "🧹 Commands Cleared",
+                    "Successfully cleared all slash commands from all servers. Use `/sync_commands` to restore them when needed.",
+                    color=COLORS["PRIMARY"]
+                )
+                
+                await btn_interaction.followup.send(embed=success_embed)
+                
+            async def cancel_callback(btn_interaction):
+                if btn_interaction.user.id != interaction.user.id:
+                    await btn_interaction.response.send_message("You cannot interact with this confirmation.", ephemeral=True)
+                    return
+                    
+                # Disable buttons to prevent further interaction
+                confirm_button.disabled = True
+                cancel_button.disabled = True
+                await btn_interaction.response.edit_message(view=view)
+                
+                cancel_embed = create_embed("Cancelled", "Command clearing has been cancelled.", color=COLORS["PRIMARY"])
+                await btn_interaction.followup.send(embed=cancel_embed)
+            
+            # Assign callbacks to buttons
+            confirm_button.callback = confirm_callback
+            cancel_button.callback = cancel_callback
+            
+            # Send the message with buttons
+            await interaction.response.send_message(embed=confirmation_embed, view=view, ephemeral=True)
+            
+        except Exception as e:
+            logger.error(f"Error clearing commands: {str(e)}")
+            embed = create_error_embed("Error", f"Failed to clear commands: {str(e)}")
+            if not interaction.response.is_done():
+                await interaction.response.send_message(embed=embed, ephemeral=True)
+            else:
+                await interaction.followup.send(embed=embed, ephemeral=True)
 
 
 async def setup(bot):
