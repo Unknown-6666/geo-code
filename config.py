@@ -25,6 +25,7 @@ COLORS = {
     "SECONDARY": 0x99AAB5,  # Discord Grey
     "SUCCESS": 0x43B581,    # Discord Green
     "ERROR": 0xF04747,      # Discord Red
+    "WARNING": 0xFAA61A,    # Warning/Orange
     "WHITE": 0xFFFFFF       # White
 }
 

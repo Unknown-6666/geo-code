@@ -30,30 +30,30 @@ class Bot(commands.Bot):
     async def setup_hook(self):
         """Load cogs and start tasks"""
         logger.info("Setting up bot...")
-        # Load all cogs
-        await self.load_extension("cogs.basic_commands")
-        await self.load_extension("cogs.member_events")
-        await self.load_extension("cogs.youtube_tracker")
-        await self.load_extension("cogs.economy")
-        await self.load_extension("cogs.memes")
-        await self.load_extension("cogs.moderation")
-        await self.load_extension("cogs.music")  
-        await self.load_extension("cogs.profanity_filter")
-        # AI chat temporarily disabled due to provider issues
-        # await self.load_extension("cogs.ai_chat")
-        logger.info("Loaded all cogs successfully")
-        
-        # Sync commands on startup - only global commands to prevent duplication
-        # Specific guild syncing will be handled in on_ready if needed
+        # First load all cogs - this is where commands are added to the command tree
+        try:
+            await self.load_extension("cogs.basic_commands")
+            await self.load_extension("cogs.member_events")
+            await self.load_extension("cogs.youtube_tracker")
+            await self.load_extension("cogs.economy")
+            await self.load_extension("cogs.memes")
+            await self.load_extension("cogs.moderation")
+            await self.load_extension("cogs.music")  
+            await self.load_extension("cogs.profanity_filter")
+            # AI chat temporarily disabled due to provider issues
+            # await self.load_extension("cogs.ai_chat")
+            logger.info("Loaded all cogs successfully")
+        except Exception as e:
+            logger.error(f"Error loading cogs: {str(e)}")
+            
+        # Now that all cogs are loaded, sync commands - this is a new approach:
+        # We don't clear commands first because that removes all registered commands
+        # Instead we sync directly which will update all command registrations
         logger.info("Syncing global commands with Discord...")
         try:
-            # First clear any existing commands to prevent duplication
-            self.tree.clear_commands(guild=None)  # Clear global commands
-            logger.info("Cleared existing global commands")
-            
-            # Then sync the cleared tree which will register all commands
-            await self.tree.sync()  # Global commands
-            logger.info("Global commands synced successfully")
+            # Sync application commands with Discord
+            synced = await self.tree.sync()
+            logger.info(f"Global commands synced successfully - registered {len(synced)} commands")
         except Exception as e:
             logger.error(f"Error syncing commands: {str(e)}")
             logger.info("If commands are not updating, use !sync manually as the bot owner.")
