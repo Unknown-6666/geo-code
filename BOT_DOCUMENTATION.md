@@ -10,7 +10,7 @@
      - [Adding List Warnings Command](#adding-a-list-warnings-command)
      - [Enhanced Timeout Notifications](#enhancing-the-timeout-notifications)
      - [Improved Warning Reset Logging](#improving-warning-reset-logging)
-3. [Bot Configuration](#bot-configuration)
+3. [Bot Configuration](#bot- configuration)
 4. [Troubleshooting](#troubleshooting)
 5. [Common Tasks](#common-tasks)
 6. [Command Quick Reference](#command-quick-reference)
@@ -95,6 +95,15 @@ After adding new commands, you need to sync them with Discord:
 
 1. Use the `/sync_commands` command in Discord (bot owner only)
 2. Or run `!sync_guild` in a specific server to sync only to that server
+
+### Clearing Commands
+
+If you need to clear all slash commands from all servers (for maintenance or troubleshooting):
+
+1. Use the `/clear_commands` command in Discord (bot owner only)
+2. Or run `!clear_commands` as a traditional prefix command
+
+Both commands will ask for confirmation before proceeding, as this action will remove all slash commands until you sync them again. After clearing commands, use `!sync_commands` or `/sync_commands` to restore them.
 
 ---
 
@@ -367,6 +376,14 @@ If you need to add new Python packages:
 ---
 
 ## Command Quick Reference
+
+### Administrative Commands (Bot Owner Only)
+- `/sync_commands` - Sync slash commands to all servers
+- `!sync_commands` - Traditional version of sync_commands
+- `/sync_guild` - Sync commands to the current server only
+- `!sync_guild` - Traditional version of sync_guild
+- `/clear_commands` - Clear all slash commands from all servers
+- `!clear_commands` - Traditional version of clear_commands
 
 ### Moderation Commands
 - `/kick user:@username reason:optional_reason` - Kick a user
