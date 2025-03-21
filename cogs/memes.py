@@ -2,6 +2,7 @@ import discord
 import logging
 import random
 import aiohttp
+import asyncio
 from collections import deque
 from discord import app_commands
 from discord.ext import commands
@@ -156,57 +157,87 @@ class Memes(commands.Cog):
     async def meme(self, interaction: discord.Interaction):
         """Fetch and send a random meme"""
         logger.info(f"Meme command invoked by {interaction.user.name} (ID: {interaction.user.id})")
-        await interaction.response.defer()  # Defer the response as API call might take time
+        
+        # Immediately tell Discord we're processing the command
+        # This sets a 15-minute window to respond instead of 3 seconds
+        try:
+            await interaction.response.defer()
+            logger.info("Successfully deferred interaction response")
+        except Exception as defer_error:
+            logger.error(f"Failed to defer response: {str(defer_error)}")
+            # If we can't defer, we'll try to respond directly
+            try:
+                await interaction.response.send_message("Getting a meme for you...", ephemeral=True)
+                logger.info("Sent immediate response instead of deferring")
+                return  # Exit early since we can't properly handle this interaction
+            except Exception:
+                logger.error("Could not respond to interaction at all, it may have timed out")
+                return
 
         try:
             logger.info("Attempting to fetch a unique meme...")
-            data = await self.get_unique_meme()
             
-            if data:
-                logger.info(f"Meme found successfully - Title: {data.get('title', 'No title')}")
-                
-                # Check if all required fields are present
-                required_fields = ['title', 'url', 'subreddit', 'author']
-                missing_fields = [field for field in required_fields if field not in data or not data[field]]
-                
-                if missing_fields:
-                    logger.error(f"Meme data missing required fields: {missing_fields}")
-                    await interaction.followup.send(
-                        embed=create_error_embed("Error", f"The meme data is incomplete. Missing: {', '.join(missing_fields)}"),
-                        ephemeral=True
-                    )
-                    return
-                
-                # Create and send the embed
-                try:
-                    embed = create_embed(
-                        title=data['title'],
-                        description=f"👍 {data.get('ups', 0)} | From r/{data['subreddit']}"
-                    )
-                    embed.set_image(url=data['url'])
-                    embed.set_footer(text=f"Posted by u/{data['author']}")
-                    
-                    logger.info(f"Sending meme embed with image URL: {data['url']}")
-                    await interaction.followup.send(embed=embed)
-                    logger.info("Meme sent successfully")
-                except Exception as embed_error:
-                    logger.error(f"Error creating or sending embed: {str(embed_error)}")
-                    await interaction.followup.send(
-                        embed=create_error_embed("Error", f"Error displaying the meme: {str(embed_error)}"),
-                        ephemeral=True
-                    )
-            else:
+            # Pre-construct an error embed in case we need it
+            error_embed = create_error_embed("Meme Error", "Something went wrong while fetching a meme. Try again in a moment.")
+            
+            # Fetch the meme with a short timeout to prevent hanging
+            try:
+                data = await asyncio.wait_for(self.get_unique_meme(), timeout=8.0)
+            except asyncio.TimeoutError:
+                logger.error("Timeout while fetching meme")
+                await interaction.followup.send(embed=error_embed, ephemeral=True)
+                return
+            
+            if not data:
                 logger.warning("No unique meme found after all attempts")
                 await interaction.followup.send(
                     embed=create_error_embed("Error", "Couldn't find a unique meme. Try again later."),
                     ephemeral=True
                 )
+                return
+                
+            logger.info(f"Meme found successfully - Title: {data.get('title', 'No title')}")
+            
+            # Check if all required fields are present
+            required_fields = ['title', 'url', 'subreddit', 'author']
+            missing_fields = [field for field in required_fields if field not in data or not data[field]]
+            
+            if missing_fields:
+                logger.error(f"Meme data missing required fields: {missing_fields}")
+                await interaction.followup.send(
+                    embed=create_error_embed("Error", f"The meme data is incomplete. Missing: {', '.join(missing_fields)}"),
+                    ephemeral=True
+                )
+                return
+            
+            # Create and send the embed
+            try:
+                embed = create_embed(
+                    title=data['title'],
+                    description=f"👍 {data.get('ups', 0)} | From r/{data['subreddit']}"
+                )
+                embed.set_image(url=data['url'])
+                embed.set_footer(text=f"Posted by u/{data['author']}")
+                
+                logger.info(f"Sending meme embed with image URL: {data['url']}")
+                await interaction.followup.send(embed=embed)
+                logger.info("Meme sent successfully")
+            except Exception as embed_error:
+                logger.error(f"Error creating or sending embed: {str(embed_error)}")
+                await interaction.followup.send(
+                    embed=create_error_embed("Error", f"Error displaying the meme: {str(embed_error)}"),
+                    ephemeral=True
+                )
         except Exception as e:
             logger.error(f"Error fetching meme: {str(e)}", exc_info=True)
-            await interaction.followup.send(
-                embed=create_error_embed("Error", f"An error occurred while fetching the meme: {str(e)}"),
-                ephemeral=True
-            )
+            try:
+                await interaction.followup.send(
+                    embed=create_error_embed("Error", "An error occurred while fetching the meme."),
+                    ephemeral=True
+                )
+            except Exception:
+                logger.error("Failed to send error message")
+                # At this point we can't do anything else
 
     @app_commands.command(name="memedump", description="Get multiple random memes")
     @app_commands.describe(count="Number of memes to fetch (max 5)")
