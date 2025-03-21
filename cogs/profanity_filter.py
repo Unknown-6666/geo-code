@@ -60,8 +60,8 @@ class ProfanityFilter(commands.Cog):
         # Convert guild_id to string for JSON compatibility
         guild_id = str(guild_id)
         
-        # Skip check if filter is disabled for this guild
-        if not self.filter_enabled.get(guild_id, False):
+        # Skip check if filter is explicitly disabled for this guild (default to enabled)
+        if guild_id in self.filter_enabled and self.filter_enabled[guild_id] == False:
             return False
 
         # No words to filter
@@ -405,8 +405,8 @@ class ProfanityFilter(commands.Cog):
         # Convert guild ID to string for JSON compatibility
         guild_id = str(ctx.guild.id)
         
-        # Get status
-        status = "enabled" if self.filter_enabled.get(guild_id, False) else "disabled"
+        # Get status - now defaulting to enabled if not explicitly set to False
+        status = "disabled" if guild_id in self.filter_enabled and self.filter_enabled[guild_id] == False else "enabled"
         
         await ctx.send(f"The profanity filter is currently {status} for this server.")
         
@@ -416,8 +416,8 @@ class ProfanityFilter(commands.Cog):
         # Convert guild ID to string for JSON compatibility
         guild_id = str(interaction.guild.id)
         
-        # Get status
-        status = "enabled" if self.filter_enabled.get(guild_id, False) else "disabled"
+        # Get status - now defaulting to enabled if not explicitly set to False
+        status = "disabled" if guild_id in self.filter_enabled and self.filter_enabled[guild_id] == False else "enabled"
         
         await interaction.response.send_message(f"The profanity filter is currently {status} for this server.", ephemeral=True)
 
