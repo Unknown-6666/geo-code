@@ -112,15 +112,22 @@ if __name__ == "__main__":
             import psutil
             current_pid = os.getpid()
             python_processes = [p for p in psutil.process_iter(['name', 'cmdline', 'pid']) 
-                              if p.info['name'] == 'python' and p.info['pid'] != current_pid]
+                              if p.info['name'] in ['python', 'python3'] and p.info['pid'] != current_pid]
             
+            # Look for main.py or gunicorn as indicators of the main application
             for proc in python_processes:
-                if proc.info['cmdline'] and 'main.py' in ' '.join(proc.info['cmdline']):
-                    logger.warning("Main application already running the Discord bot. Exiting to avoid duplicate instances.")
-                    sys.exit(0)
+                if proc.info['cmdline']:
+                    cmdline = ' '.join(proc.info['cmdline'])
+                    if 'main.py' in cmdline or 'gunicorn' in cmdline:
+                        logger.warning(f"Main application already running the Discord bot (PID: {proc.info['pid']}). Exiting to avoid duplicate instances.")
+                        logger.warning(f"Found running process: {cmdline}")
+                        sys.exit(0)
         except ImportError:
             # If psutil isn't available, we'll try to run anyway
             logger.warning("Unable to check for existing bot instances. Proceeding with caution.")
+        except Exception as e:
+            logger.error(f"Error checking for existing bot instances: {str(e)}")
     
     # If we get here, it's safe to run the bot
+    logger.info("No other bot instances detected, proceeding with startup.")
     asyncio.run(main())
