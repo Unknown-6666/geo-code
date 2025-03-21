@@ -211,20 +211,26 @@ class BasicCommands(commands.Cog):
             await ctx.send("Starting global slash command sync... Please wait.")
             logger.info("Starting global slash command sync")
             
-            # First clear all commands to prevent duplication
-            logger.info("Clearing existing global commands...")
-            self.bot.tree.clear_commands(guild=None)
-            logger.info("Existing global commands cleared")
-            
-            # Then sync to register commands again
+            # Directly sync the command tree - no clearing first
+            # This will update existing commands and add new ones
             synced = await self.bot.tree.sync()
-            embed = create_embed(
-                "🔄 Commands Synced",
-                f"Successfully synced {len(synced)} commands globally!\nYou can now use the updated slash commands in all servers.",
-                color=COLORS["PRIMARY"]
-            )
+            
+            if len(synced) > 0:
+                embed = create_embed(
+                    "🔄 Commands Synced",
+                    f"Successfully synced {len(synced)} commands globally!\nYou can now use the updated slash commands in all servers.",
+                    color=COLORS["PRIMARY"]
+                )
+                logger.info(f"Successfully synced {len(synced)} commands globally")
+            else:
+                embed = create_embed(
+                    "⚠️ Command Sync Issue",
+                    "No commands were registered. This might indicate a problem with command registration in the cogs.",
+                    color=COLORS["WARNING"]
+                )
+                logger.warning("Command sync returned 0 commands - possible issue with command registration")
+                
             await ctx.send(embed=embed)
-            logger.info(f"Successfully synced {len(synced)} commands globally")
         except Exception as e:
             logger.error(f"Error syncing commands: {str(e)}")
             embed = create_error_embed("Error", f"Failed to sync commands: {str(e)}")
@@ -238,23 +244,26 @@ class BasicCommands(commands.Cog):
             await ctx.send("Starting server slash command sync... Please wait.")
             logger.info(f"Starting slash command sync for guild {ctx.guild.id}")
             
-            # First clear any existing guild commands to prevent duplication
-            logger.info(f"Clearing existing commands for guild {ctx.guild.id}...")
-            self.bot.tree.clear_commands(guild=ctx.guild)
-            await self.bot.tree.sync(guild=ctx.guild)  # Sync the empty command list
-            logger.info(f"Existing commands cleared for guild {ctx.guild.id}")
-            
-            # Copy global commands to the guild and sync
+            # Copy global commands to this guild and sync
             self.bot.tree.copy_global_to(guild=ctx.guild)
             synced = await self.bot.tree.sync(guild=ctx.guild)
             
-            embed = create_embed(
-                "🔄 Commands Synced",
-                f"Successfully synced {len(synced)} commands in this server!\nYou can now use the updated slash commands here.",
-                color=COLORS["PRIMARY"]
-            )
+            if len(synced) > 0:
+                embed = create_embed(
+                    "🔄 Commands Synced",
+                    f"Successfully synced {len(synced)} commands in this server!\nYou can now use the updated slash commands here.",
+                    color=COLORS["PRIMARY"]
+                )
+                logger.info(f"Successfully synced {len(synced)} commands in guild {ctx.guild.id}")
+            else:
+                embed = create_embed(
+                    "⚠️ Command Sync Issue",
+                    "No commands were registered in this server. This might indicate a problem with command registration.",
+                    color=COLORS["WARNING"]
+                )
+                logger.warning(f"Guild command sync returned 0 commands for guild {ctx.guild.id}")
+                
             await ctx.send(embed=embed)
-            logger.info(f"Successfully synced {len(synced)} commands in guild {ctx.guild.id}")
         except Exception as e:
             logger.error(f"Error syncing guild commands: {str(e)}")
             embed = create_error_embed("Error", f"Failed to sync commands: {str(e)}")
