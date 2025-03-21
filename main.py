@@ -25,12 +25,24 @@ def run_discord_bot():
     """Run the Discord bot in a separate thread"""
     logger.info("Starting Discord bot thread...")
     try:
+        # Create a main app lock file to signal that we're running the bot
+        # This helps the discord_bot workflow detect that it shouldn't run
+        with open(".main_discord_bot.lock", "w") as f:
+            f.write(str(os.getpid()))
+            logger.info(f"Created main application lock file with PID {os.getpid()}")
+        
         # Set environment variable to enable command syncing
         # This prevents multiple instances from all trying to sync
         os.environ['SYNC_COMMANDS'] = 'true'
         asyncio.run(bot.main())
     except Exception as e:
         logger.error(f"Error in Discord bot thread: {e}")
+        # Clean up lock file on error
+        try:
+            if os.path.exists(".main_discord_bot.lock"):
+                os.remove(".main_discord_bot.lock")
+        except:
+            pass
 
 def signal_handler(sig, frame):
     """Handle termination signals gracefully"""
