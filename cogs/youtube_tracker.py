@@ -94,6 +94,7 @@ class YouTubeTracker(commands.Cog):
         videos_found = False
         
         try:
+            global YOUTUBE_CHANNELS
             for channel_id in YOUTUBE_CHANNELS:
                 # Fetch latest video from each channel
                 request = self.youtube.search().list(
@@ -177,6 +178,7 @@ class YouTubeTracker(commands.Cog):
             return
 
         try:
+            global YOUTUBE_CHANNELS
             for channel_id in YOUTUBE_CHANNELS:
                 # Fetch latest video from each channel
                 request = self.youtube.search().list(
@@ -340,6 +342,7 @@ class YouTubeTracker(commands.Cog):
             channel_title = response['items'][0]['snippet']['title']
             
             # Check if already in the list
+            global YOUTUBE_CHANNELS
             if channel_id in YOUTUBE_CHANNELS:
                 return create_error_embed(
                     "Already Tracked",
@@ -347,7 +350,6 @@ class YouTubeTracker(commands.Cog):
                 )
                 
             # Add to global YOUTUBE_CHANNELS list in memory
-            global YOUTUBE_CHANNELS
             YOUTUBE_CHANNELS.append(channel_id)
             
             # Add to last_video_ids dictionary
@@ -404,6 +406,7 @@ class YouTubeTracker(commands.Cog):
             
         try:
             # Check if channel exists in our list
+            global YOUTUBE_CHANNELS
             if channel_id not in YOUTUBE_CHANNELS:
                 return create_error_embed(
                     "Not Found",
@@ -425,7 +428,6 @@ class YouTubeTracker(commands.Cog):
                 pass  # If we can't get the name, just use the ID
             
             # Remove from tracking list
-            global YOUTUBE_CHANNELS
             YOUTUBE_CHANNELS.remove(channel_id)
             
             # Remove from last_video_ids dictionary if present
