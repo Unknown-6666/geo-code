@@ -135,12 +135,15 @@ class ProfanityFilter(commands.Cog):
         # Initialize the guild dict if it doesn't exist
         if guild_id not in self.warning_count:
             self.warning_count[guild_id] = {}
+            logger.info(f"No warnings to reset for guild ID {guild_id} - guild not in warning registry")
             return
             
         # Reset the warning count
+        previous_warnings = self.warning_count[guild_id].get(user_id, 0)
         if user_id in self.warning_count[guild_id]:
             self.warning_count[guild_id][user_id] = 0
             self.save_config()
+            logger.info(f"Reset warnings for user ID {user_id} in guild ID {guild_id} from {previous_warnings} to 0")
 
     @commands.Cog.listener()
     async def on_message(self, message):
@@ -197,9 +200,9 @@ class ProfanityFilter(commands.Cog):
                         # 600 seconds = 10 minutes
                         await message.author.timeout(discord.utils.utcnow() + datetime.timedelta(seconds=600), 
                                                 reason="Automatic timeout for repeated use of inappropriate language")
-                        logger.info(f"User {message.author.name} timed out for 10 minutes due to repeated profanity")
+                        logger.info(f"User {message.author.name} ({message.author.id}) timed out for 10 minutes due to repeated profanity in server '{message.guild.name}'")
                     except discord.Forbidden:
-                        logger.warning(f"No permission to timeout {message.author.name}")
+                        logger.warning(f"No permission to timeout {message.author.name} ({message.author.id}) in server '{message.guild.name}'")
                     except Exception as e:
                         logger.error(f"Error timing out user: {str(e)}")
                         
@@ -216,12 +219,14 @@ class ProfanityFilter(commands.Cog):
                                 description=f"User {message.author.mention} has been timed out for 10 minutes.",
                                 color=discord.Color.red()
                             )
-                            embed.add_field(name="Reason", value="Repeated use of inappropriate language")
-                            embed.add_field(name="Warning Count", value=str(warning_count))
-                            embed.set_footer(text=f"User ID: {message.author.id}")
+                            embed.add_field(name="User", value=f"{message.author.name} ({message.author.id})", inline=True)
+                            embed.add_field(name="Server", value=message.guild.name, inline=True)
+                            embed.add_field(name="Reason", value="Repeated use of inappropriate language", inline=False)
+                            embed.add_field(name="Warning Count", value=str(warning_count), inline=True)
+                            embed.set_footer(text=f"Triggered: {datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC")
                             
                             await log_channel.send(embed=embed)
-                            logger.info(f"Notification sent to log channel")
+                            logger.info(f"Notification sent to log channel in server '{message.guild.name}'")
                         else:
                             logger.info(f"No log channel found in server")
                     except Exception as e:
@@ -525,7 +530,8 @@ class ProfanityFilter(commands.Cog):
         )
         
         embed.add_field(name="Users", value="\n".join(warning_list))
-        embed.set_footer(text=f"Total Users with Warnings: {len(warning_list)}")
+        embed.set_footer(text=f"Total Users with Warnings: {len(warning_list)} | Server ID: {guild_id}")
+        embed.timestamp = datetime.datetime.utcnow()
         
         await ctx.send(embed=embed)
         
@@ -570,7 +576,8 @@ class ProfanityFilter(commands.Cog):
         )
         
         embed.add_field(name="Users", value="\n".join(warning_list))
-        embed.set_footer(text=f"Total Users with Warnings: {len(warning_list)}")
+        embed.set_footer(text=f"Total Users with Warnings: {len(warning_list)} | Server ID: {guild_id}")
+        embed.timestamp = datetime.datetime.utcnow()
         
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
