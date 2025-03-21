@@ -38,6 +38,7 @@ class Bot(commands.Bot):
         await self.load_extension("cogs.memes")
         await self.load_extension("cogs.moderation")
         await self.load_extension("cogs.music")  
+        await self.load_extension("cogs.profanity_filter")
         # AI chat temporarily disabled due to provider issues
         # await self.load_extension("cogs.ai_chat")
         logger.info("Loaded all cogs successfully")

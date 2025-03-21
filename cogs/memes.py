@@ -24,29 +24,63 @@ class Memes(commands.Cog):
 
     async def get_unique_meme(self):
         """Fetch a meme that hasn't been shown in the last 10 memes"""
-        max_attempts = 5  # Prevent infinite loops
+        max_attempts = 8  # Increased max attempts
         attempts = 0
+
+        # Clear history if it's full (this helps when all recent memes are already in history)
+        if len(self.meme_history) >= 9:  # Almost full
+            logger.info("Meme history nearly full, clearing half to allow new memes")
+            # Clear half the history to allow for new memes
+            for _ in range(5):
+                if self.meme_history:
+                    self.meme_history.popleft()
 
         while attempts < max_attempts:
             try:
-                # Try to get a meme using the primary API
+                # Alternate between APIs to increase chances of success
+                if attempts % 2 == 0:
+                    # Try to get a meme using the primary API
+                    logger.info(f"Attempt {attempts+1}/{max_attempts}: Trying primary meme API")
+                    meme_data = await self._get_meme_from_meme_api()
+                    
+                    if meme_data:
+                        logger.info("Successfully retrieved meme from primary API")
+                        return meme_data
+                else:
+                    # Try the backup API on alternate attempts
+                    logger.info(f"Attempt {attempts+1}/{max_attempts}: Trying backup Reddit JSON API")
+                    meme_data = await self._get_meme_from_reddit_json()
+                    
+                    if meme_data:
+                        logger.info("Successfully retrieved meme from backup API")
+                        return meme_data
+                    
+            except Exception as e:
+                logger.error(f"Exception in get_unique_meme (attempt {attempts+1}): {str(e)}")
+                
+            attempts += 1
+            
+            if attempts < max_attempts:
+                # Add a small delay between attempts
+                await asyncio.sleep(0.5)
+                logger.info(f"Attempt {attempts}/{max_attempts} failed, trying again...")
+
+        # Emergency fallback: if everything failed, clear history completely and try one last time
+        if self.meme_history:
+            logger.warning("All attempts failed, clearing history and trying one final time")
+            self.meme_history.clear()
+            
+            try:
+                # Try both APIs one last time
                 meme_data = await self._get_meme_from_meme_api()
-                
-                if meme_data:
-                    return meme_data
-                
-                # If primary API fails, try the backup API
-                logger.info("Primary API failed, trying backup Reddit JSON API...")
-                meme_data = await self._get_meme_from_reddit_json()
-                
                 if meme_data:
                     return meme_data
                     
+                meme_data = await self._get_meme_from_reddit_json()
+                if meme_data:
+                    return meme_data
             except Exception as e:
-                logger.error(f"Exception in get_unique_meme: {str(e)}")
-                
-            attempts += 1
-            logger.info(f"Attempt {attempts}/{max_attempts} failed, trying again...")
+                logger.error(f"Final attempt exception: {str(e)}")
 
         # If we couldn't get a unique meme, return None
         logger.warning("Could not find a unique meme after maximum attempts")
@@ -91,63 +125,114 @@ class Memes(commands.Cog):
     async def _get_meme_from_reddit_json(self):
         """Try to get a meme directly from Reddit JSON API"""
         try:
-            subreddit = random.choice(self.meme_subreddits)
-            logger.info(f"Fetching meme from Reddit JSON API, subreddit: {subreddit}")
+            # Try different subreddits if needed
+            subreddits_to_try = random.sample(self.meme_subreddits, min(3, len(self.meme_subreddits)))
             
-            async with aiohttp.ClientSession() as session:
-                # Using Reddit's JSON API directly
-                request_url = f'https://www.reddit.com/r/{subreddit}/hot.json?limit=20'
-                headers = {
-                    'User-Agent': 'discord-bot:v1.0 (by /u/DiscordBot)'
-                }
+            for subreddit in subreddits_to_try:
+                logger.info(f"Fetching meme from Reddit JSON API, subreddit: {subreddit}")
                 
-                logger.info(f"Making request to Reddit API: {request_url}")
-                async with session.get(request_url, headers=headers, timeout=5) as response:
-                    logger.info(f"Reddit API response status: {response.status}")
-                    
-                    if response.status == 200:
-                        data = await response.json()
-                        posts = data['data']['children']
+                try:
+                    async with aiohttp.ClientSession() as session:
+                        # Try different Reddit sort methods (hot, top, rising)
+                        sort_methods = ['hot', 'top', 'rising']
+                        sort_method = random.choice(sort_methods)
                         
-                        # Filter out pinned posts, non-image posts, etc.
-                        valid_posts = [
-                            post['data'] for post in posts 
-                            if not post['data'].get('stickied', False)
-                            and not post['data'].get('is_self', True)
-                            and post['data'].get('post_hint', '') == 'image'
-                        ]
-                        
-                        if not valid_posts:
-                            logger.warning(f"No valid image posts found in r/{subreddit}")
-                            return None
-                            
-                        # Select a random post
-                        post = random.choice(valid_posts)
-                        
-                        # Create a response in the same format as meme-api
-                        meme_id = post['permalink']
-                        
-                        if meme_id in self.meme_history:
-                            logger.info(f"Skipping duplicate Reddit meme: {meme_id}")
-                            return None
-                            
-                        # Add to history
-                        self.meme_history.append(meme_id)
-                        
-                        formatted_data = {
-                            'title': post['title'],
-                            'url': post['url'],
-                            'subreddit': subreddit,
-                            'postLink': f"https://reddit.com{post['permalink']}",
-                            'author': post['author'],
-                            'ups': post['ups']
+                        # Using Reddit's JSON API directly
+                        request_url = f'https://www.reddit.com/r/{subreddit}/{sort_method}.json?limit=20'
+                        headers = {
+                            'User-Agent': 'discord-bot:v1.0 (by /u/DiscordBot)'
                         }
                         
-                        logger.info(f"Successfully retrieved Reddit meme: {formatted_data['title']}")
-                        return formatted_data
-                    else:
-                        error_text = await response.text()
-                        logger.error(f"Error from Reddit API: Status {response.status}, Response: {error_text}")
+                        logger.info(f"Making request to Reddit API: {request_url}")
+                        async with session.get(request_url, headers=headers, timeout=5) as response:
+                            logger.info(f"Reddit API response status: {response.status}")
+                            
+                            if response.status == 200:
+                                data = await response.json()
+                                
+                                if 'data' not in data or 'children' not in data['data']:
+                                    logger.warning(f"Unexpected Reddit API response format for r/{subreddit}")
+                                    continue
+                                    
+                                posts = data['data']['children']
+                                
+                                if not posts:
+                                    logger.warning(f"No posts found in r/{subreddit}")
+                                    continue
+                                
+                                # Filter out pinned posts, non-image posts, etc.
+                                # More flexible filtering to accept more post types
+                                valid_posts = []
+                                
+                                for post in posts:
+                                    post_data = post.get('data', {})
+                                    
+                                    # Skip stickied or self posts
+                                    if post_data.get('stickied', False) or post_data.get('is_self', True):
+                                        continue
+                                    
+                                    # Check if it's an image
+                                    is_image = False
+                                    
+                                    # Method 1: Check post_hint
+                                    if post_data.get('post_hint', '') == 'image':
+                                        is_image = True
+                                    # Method 2: Check URL extension
+                                    elif 'url' in post_data:
+                                        url = post_data['url'].lower()
+                                        if url.endswith(('.jpg', '.jpeg', '.png', '.gif', '.webp')):
+                                            is_image = True
+                                    # Method 3: Check domain
+                                    elif 'domain' in post_data:
+                                        domain = post_data['domain'].lower()
+                                        if 'imgur' in domain or 'redd.it' in domain:
+                                            is_image = True
+                                    
+                                    if is_image:
+                                        valid_posts.append(post_data)
+                                
+                                if not valid_posts:
+                                    logger.warning(f"No valid image posts found in r/{subreddit}")
+                                    continue
+                                    
+                                # Shuffle and try posts until we find one not in history
+                                random.shuffle(valid_posts)
+                                
+                                for post in valid_posts:
+                                    # Create a response in the same format as meme-api
+                                    if 'permalink' not in post or 'title' not in post or 'url' not in post:
+                                        logger.warning(f"Post missing required fields: {post.keys()}")
+                                        continue
+                                        
+                                    meme_id = post['permalink']
+                                    
+                                    if meme_id in self.meme_history:
+                                        logger.info(f"Skipping duplicate Reddit meme: {meme_id}")
+                                        continue
+                                        
+                                    # Add to history
+                                    self.meme_history.append(meme_id)
+                                    
+                                    formatted_data = {
+                                        'title': post['title'],
+                                        'url': post['url'],
+                                        'subreddit': subreddit,
+                                        'postLink': f"https://reddit.com{post['permalink']}",
+                                        'author': post.get('author', 'unknown'),
+                                        'ups': post.get('ups', 0)
+                                    }
+                                    
+                                    logger.info(f"Successfully retrieved Reddit meme: {formatted_data['title']}")
+                                    return formatted_data
+                            else:
+                                error_text = await response.text()
+                                logger.error(f"Error from Reddit API: Status {response.status}, Response: {error_text}")
+                except Exception as inner_e:
+                    logger.error(f"Error fetching from subreddit {subreddit}: {str(inner_e)}")
+                    # Continue to next subreddit
+                    
+            logger.warning("All subreddit attempts failed")
+            
         except Exception as e:
             logger.error(f"Error in backup Reddit API: {str(e)}")
             
