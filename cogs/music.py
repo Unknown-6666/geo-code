@@ -178,24 +178,73 @@ class Music(commands.Cog):
         voice_client = interaction.guild.voice_client
 
         try:
+            # Attempt to reconnect if there's an existing but disconnected voice client
             if voice_client:
-                if voice_client.channel == channel:
+                if not voice_client.is_connected():
+                    logger.info(f"Voice client exists but is disconnected, cleaning up")
+                    await voice_client.disconnect(force=True)
+                    voice_client = None
+                elif voice_client.channel == channel:
                     await interaction.response.send_message("I'm already in your voice channel!", ephemeral=True)
                     return
+            
+            # Connect or move to the specified channel
+            if voice_client:
                 await voice_client.move_to(channel)
             else:
-                await channel.connect()
+                # Use explicit timeout for connection
+                try:
+                    voice_client = await channel.connect(timeout=10.0, reconnect=True)
+                except asyncio.TimeoutError:
+                    logger.error(f"Timed out connecting to voice channel {channel.id}")
+                    # Use followup if response is already used
+                    try:
+                        await interaction.response.send_message(
+                            embed=create_error_embed("Connection Error", "Timed out connecting to voice channel. Please try again or use a different channel."),
+                            ephemeral=True
+                        )
+                    except discord.errors.InteractionResponded:
+                        await interaction.followup.send(
+                            embed=create_error_embed("Connection Error", "Timed out connecting to voice channel. Please try again or use a different channel."),
+                            ephemeral=True
+                        )
+                    return
 
-            logger.info(f"Joined voice channel {channel.id} in guild {interaction.guild_id}")
-            await interaction.response.send_message(
-                embed=create_embed("🎵 Joined Voice", f"Connected to {channel.mention}")
-            )
+            # Verify connection was successful
+            if voice_client and voice_client.is_connected():
+                logger.info(f"Successfully joined voice channel {channel.id} in guild {interaction.guild_id}")
+                try:
+                    await interaction.response.send_message(
+                        embed=create_embed("🎵 Joined Voice", f"Connected to {channel.mention}")
+                    )
+                except discord.errors.InteractionResponded:
+                    await interaction.followup.send(
+                        embed=create_embed("🎵 Joined Voice", f"Connected to {channel.mention}")
+                    )
+            else:
+                logger.error(f"Failed to connect to voice channel {channel.id}")
+                try:
+                    await interaction.response.send_message(
+                        embed=create_error_embed("Connection Error", "Could not establish voice connection. This may be due to network restrictions or Discord limitations."),
+                        ephemeral=True
+                    )
+                except discord.errors.InteractionResponded:
+                    await interaction.followup.send(
+                        embed=create_error_embed("Connection Error", "Could not establish voice connection. This may be due to network restrictions or Discord limitations."),
+                        ephemeral=True
+                    )
         except Exception as e:
             logger.error(f"Error joining voice channel: {str(e)}")
-            await interaction.response.send_message(
-                embed=create_error_embed("Error", f"Failed to join voice channel: {str(e)}"),
-                ephemeral=True
-            )
+            try:
+                await interaction.response.send_message(
+                    embed=create_error_embed("Error", f"Failed to join voice channel: {str(e)}"),
+                    ephemeral=True
+                )
+            except discord.errors.InteractionResponded:
+                await interaction.followup.send(
+                    embed=create_error_embed("Error", f"Failed to join voice channel: {str(e)}"),
+                    ephemeral=True
+                )
 
     @app_commands.command(name="play", description="Play a song from YouTube, SoundCloud, or Spotify")
     @app_commands.describe(query="URL or search query (prepend with 'soundcloud:' or 'spotify:' to search specific platforms)")
@@ -222,7 +271,32 @@ class Music(commands.Cog):
         try:
             voice_client = interaction.guild.voice_client
             if not voice_client:
-                voice_client = await interaction.user.voice.channel.connect()
+                try:
+                    # Use explicit timeout for connection
+                    voice_client = await interaction.user.voice.channel.connect(timeout=10.0, reconnect=True)
+                except asyncio.TimeoutError:
+                    logger.error(f"Timed out connecting to voice channel in /play command")
+                    await interaction.followup.send(
+                        embed=create_error_embed("Connection Error", "Timed out connecting to voice channel. Please try again or use the /join command first."),
+                        ephemeral=True
+                    )
+                    return
+                except Exception as connect_error:
+                    logger.error(f"Error connecting to voice channel in /play command: {str(connect_error)}")
+                    await interaction.followup.send(
+                        embed=create_error_embed("Connection Error", f"Could not connect to voice channel: {str(connect_error)}"),
+                        ephemeral=True
+                    )
+                    return
+                    
+            # Verify we have a valid voice connection
+            if not voice_client or not voice_client.is_connected():
+                logger.error("Voice client failed to connect properly in /play command")
+                await interaction.followup.send(
+                    embed=create_error_embed("Connection Error", "Could not establish a stable voice connection. Please try again or use a different voice channel."),
+                    ephemeral=True
+                )
+                return
 
             queue = self.get_queue(interaction.guild_id)
 
@@ -336,10 +410,16 @@ class Music(commands.Cog):
         """Stop playing and clear the queue"""
         voice_client = interaction.guild.voice_client
         if not voice_client:
-            await interaction.response.send_message(
-                embed=create_error_embed("Error", "I'm not playing anything right now."),
-                ephemeral=True
-            )
+            try:
+                await interaction.response.send_message(
+                    embed=create_error_embed("Error", "I'm not playing anything right now."),
+                    ephemeral=True
+                )
+            except discord.errors.InteractionResponded:
+                await interaction.followup.send(
+                    embed=create_error_embed("Error", "I'm not playing anything right now."),
+                    ephemeral=True
+                )
             return
 
         queue = self.get_queue(interaction.guild_id)
@@ -347,26 +427,42 @@ class Music(commands.Cog):
         voice_client.stop()
         logger.info(f"Stopped playback and cleared queue in guild {interaction.guild_id}")
 
-        await interaction.response.send_message(
-            embed=create_embed("⏹️ Stopped", "Music playback stopped and queue cleared.")
-        )
+        try:
+            await interaction.response.send_message(
+                embed=create_embed("⏹️ Stopped", "Music playback stopped and queue cleared.")
+            )
+        except discord.errors.InteractionResponded:
+            await interaction.followup.send(
+                embed=create_embed("⏹️ Stopped", "Music playback stopped and queue cleared.")
+            )
 
     @app_commands.command(name="skip", description="Skip the current song")
     async def skip(self, interaction: discord.Interaction):
         """Skip the current song"""
         voice_client = interaction.guild.voice_client
         if not voice_client or not voice_client.is_playing():
-            await interaction.response.send_message(
-                embed=create_error_embed("Error", "Nothing is playing right now."),
-                ephemeral=True
-            )
+            try:
+                await interaction.response.send_message(
+                    embed=create_error_embed("Error", "Nothing is playing right now."),
+                    ephemeral=True
+                )
+            except discord.errors.InteractionResponded:
+                await interaction.followup.send(
+                    embed=create_error_embed("Error", "Nothing is playing right now."),
+                    ephemeral=True
+                )
             return
 
         voice_client.stop()  # This will trigger play_next automatically
         logger.info(f"Skipped song in guild {interaction.guild_id}")
-        await interaction.response.send_message(
-            embed=create_embed("⏭️ Skipped", "Skipped the current song.")
-        )
+        try:
+            await interaction.response.send_message(
+                embed=create_embed("⏭️ Skipped", "Skipped the current song.")
+            )
+        except discord.errors.InteractionResponded:
+            await interaction.followup.send(
+                embed=create_embed("⏭️ Skipped", "Skipped the current song.")
+            )
 
     @app_commands.command(name="queue", description="Show the current queue")
     async def queue(self, interaction: discord.Interaction):
@@ -374,13 +470,23 @@ class Music(commands.Cog):
         queue = self.get_queue(interaction.guild_id)
 
         if not queue and not self.now_playing.get(interaction.guild_id):
-            await interaction.response.send_message(
-                embed=create_embed("📋 Queue", "The queue is empty and nothing is playing.")
-            )
+            try:
+                await interaction.response.send_message(
+                    embed=create_embed("📋 Queue", "The queue is empty and nothing is playing.")
+                )
+            except discord.errors.InteractionResponded:
+                await interaction.followup.send(
+                    embed=create_embed("📋 Queue", "The queue is empty and nothing is playing.")
+                )
             return
 
         # Using defer as this might take a moment to process all queue items
-        await interaction.response.defer()
+        try:
+            await interaction.response.defer()
+        except discord.errors.InteractionResponded:
+            # Already responded, continue with followup messages
+            pass
+            
         embed = create_embed("📋 Queue", "")
 
         # Add now playing
@@ -442,10 +548,16 @@ class Music(commands.Cog):
     async def volume(self, interaction: discord.Interaction, volume: int):
         """Set the volume"""
         if not 0 <= volume <= 100:
-            await interaction.response.send_message(
-                embed=create_error_embed("Error", "Volume must be between 0 and 100."),
-                ephemeral=True
-            )
+            try:
+                await interaction.response.send_message(
+                    embed=create_error_embed("Error", "Volume must be between 0 and 100."),
+                    ephemeral=True
+                )
+            except discord.errors.InteractionResponded:
+                await interaction.followup.send(
+                    embed=create_error_embed("Error", "Volume must be between 0 and 100."),
+                    ephemeral=True
+                )
             return
 
         self._volume[interaction.guild_id] = volume / 100
@@ -456,9 +568,14 @@ class Music(commands.Cog):
             voice_client.source.volume = volume / 100
 
         logger.info(f"Set volume to {volume}% in guild {interaction.guild_id}")
-        await interaction.response.send_message(
-            embed=create_embed("🔊 Volume", f"Set volume to {volume}%")
-        )
+        try:
+            await interaction.response.send_message(
+                embed=create_embed("🔊 Volume", f"Set volume to {volume}%")
+            )
+        except discord.errors.InteractionResponded:
+            await interaction.followup.send(
+                embed=create_embed("🔊 Volume", f"Set volume to {volume}%")
+            )
 
     @app_commands.command(name="search", description="Search for music from different platforms")
     @app_commands.describe(
@@ -547,10 +664,16 @@ class Music(commands.Cog):
         """Leave the voice channel"""
         voice_client = interaction.guild.voice_client
         if not voice_client:
-            await interaction.response.send_message(
-                embed=create_error_embed("Error", "I'm not in a voice channel."),
-                ephemeral=True
-            )
+            try:
+                await interaction.response.send_message(
+                    embed=create_error_embed("Error", "I'm not in a voice channel."),
+                    ephemeral=True
+                )
+            except discord.errors.InteractionResponded:
+                await interaction.followup.send(
+                    embed=create_error_embed("Error", "I'm not in a voice channel."),
+                    ephemeral=True
+                )
             return
 
         await voice_client.disconnect()
@@ -559,9 +682,14 @@ class Music(commands.Cog):
         self.now_playing.pop(interaction.guild_id, None)
         logger.info(f"Left voice channel in guild {interaction.guild_id}")
 
-        await interaction.response.send_message(
-            embed=create_embed("👋 Left Voice", "Disconnected from voice channel.")
-        )
+        try:
+            await interaction.response.send_message(
+                embed=create_embed("👋 Left Voice", "Disconnected from voice channel.")
+            )
+        except discord.errors.InteractionResponded:
+            await interaction.followup.send(
+                embed=create_embed("👋 Left Voice", "Disconnected from voice channel.")
+            )
 
 async def setup(bot):
     logger.info("Setting up Music cog")
