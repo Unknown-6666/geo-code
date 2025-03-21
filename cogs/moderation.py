@@ -584,7 +584,7 @@ class Moderation(commands.Cog):
             )
 
     @commands.command(name="serverinfo")
-    @commands.has_permissions(manage_messages=True)
+    @commands.check_any(commands.has_permissions(manage_messages=True), PermissionChecks.is_mod())
     async def serverinfo_prefix(self, ctx):
         """Display server information (prefix command)"""
         guild = ctx.guild
@@ -666,7 +666,7 @@ class Moderation(commands.Cog):
         await interaction.response.send_message(embed=embed)
 
     @commands.command(name="announce")
-    @commands.has_permissions(manage_messages=True)
+    @commands.check_any(commands.has_permissions(manage_messages=True), PermissionChecks.is_mod())
     async def announce_prefix(self, ctx, channel: discord.TextChannel, *, message: str):
         """Send an announcement to a channel (prefix command)
         Usage: !announce #channel Your announcement message"""
@@ -730,7 +730,7 @@ class Moderation(commands.Cog):
             )
 
     @commands.command(name="embedannounce")
-    @commands.has_permissions(manage_messages=True)
+    @commands.check_any(commands.has_permissions(manage_messages=True), PermissionChecks.is_mod())
     async def embedannounce_prefix(self, ctx, channel: discord.TextChannel, title: str, *, content: str):
         """Send a formatted embed announcement (prefix command)
         Usage: !embedannounce #channel "Title" Content of the announcement
