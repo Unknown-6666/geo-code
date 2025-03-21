@@ -3,6 +3,7 @@ import sys
 import threading
 import importlib
 import logging
+import signal
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -15,14 +16,30 @@ from dashboard.app import app
 import bot
 import asyncio
 
+# Global flag to track if we're in deployment mode
+is_deployment = os.environ.get('DEPLOYMENT', 'false').lower() == 'true'
+logger.info(f"Deployment mode: {is_deployment}")
+
 # Thread to run the Discord bot
 def run_discord_bot():
     """Run the Discord bot in a separate thread"""
     logger.info("Starting Discord bot thread...")
-    asyncio.run(bot.main())
+    try:
+        asyncio.run(bot.main())
+    except Exception as e:
+        logger.error(f"Error in Discord bot thread: {e}")
+
+def signal_handler(sig, frame):
+    """Handle termination signals gracefully"""
+    logger.info("Termination signal received, shutting down...")
+    sys.exit(0)
 
 def run_both_services():
     """Start both the web dashboard and Discord bot"""
+    # Register signal handlers for graceful shutdown
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+    
     # Start Discord bot in a separate thread
     discord_thread = threading.Thread(target=run_discord_bot)
     discord_thread.daemon = True  # Thread will exit when main thread exits
@@ -39,32 +56,42 @@ def main():
     2. Just the Discord bot
     3. Or run them together (default)
     """
-    if len(sys.argv) > 1:
-        if sys.argv[1] == "bot":
-            # Run just the Discord bot
-            logger.info("Starting Discord bot only...")
-            asyncio.run(bot.main())
-            
-        elif sys.argv[1] == "web":
-            # Run just the web dashboard
-            logger.info("Starting web dashboard only...")
-            app.run(host="0.0.0.0", port=5000, debug=True)
-    else:
-        # Default: Run both services using run_all.py if available, otherwise just start them here
+    # When running as a deployment or without arguments, run both services
+    if len(sys.argv) <= 1 or is_deployment:
         logger.info("Starting both the web dashboard and Discord bot...")
-        try:
-            import run_all
-            run_all_cmd = ["python", "run_all.py"]
-            import subprocess
-            subprocess.call(run_all_cmd)
-        except ImportError:
-            # If run_all.py is not available, start both services here
+        if is_deployment:
+            # In deployment, we need to start the services directly
             run_both_services()
-            app.run(host="0.0.0.0", port=5000, debug=True)
+            # If in deployment with no Gunicorn, run Flask directly
+            if 'gunicorn' not in sys.modules:
+                app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=False)
+        else:
+            # For local development when run directly
+            try:
+                # First try to use run_all.py which handles process monitoring
+                import run_all
+                run_all_cmd = ["python", "run_all.py"]
+                import subprocess
+                subprocess.call(run_all_cmd)
+            except ImportError:
+                # Fall back to running with threads
+                run_both_services()
+                app.run(host="0.0.0.0", port=5000, debug=True)
+    elif sys.argv[1] == "bot":
+        # Run just the Discord bot
+        logger.info("Starting Discord bot only...")
+        asyncio.run(bot.main())
+    elif sys.argv[1] == "web":
+        # Run just the web dashboard
+        logger.info("Starting web dashboard only...")
+        app.run(host="0.0.0.0", port=5000, debug=True)
 
-# Initialize both services when imported by Gunicorn
-# This ensures the Discord bot runs alongside the web dashboard
-run_both_services()
+# When imported by Gunicorn or run directly in deployment, 
+# initialize both services so the bot always starts
+if 'gunicorn' in sys.modules or is_deployment:
+    run_both_services()
 
 if __name__ == "__main__":
+    # Set the deployment flag when running as main script
+    os.environ['DEPLOYMENT'] = 'true'
     main()

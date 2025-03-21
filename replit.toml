@@ -1,0 +1,9 @@
+# This file configures the behavior of Replit deployments
+
+[deployment]
+run = ["python", "deploy.py"]
+deploymentTarget = "cloudrun"
+
+[env]
+PYTHON_VERSION = "3.11"
+DEPLOYMENT = "true"
