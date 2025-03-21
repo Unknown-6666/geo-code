@@ -1,9 +1,14 @@
+
 # This file configures the behavior of Replit deployments
 
 [deployment]
-run = ["python", "deploy.py"]
-deploymentTarget = "cloudrun"
+run = ["gunicorn", "--bind", "0.0.0.0:5000", "main:app"]
+deploymentTarget = "gce"
 
 [env]
 PYTHON_VERSION = "3.11"
 DEPLOYMENT = "true"
+
+[http]
+port = 5000
+externalPort = 80
