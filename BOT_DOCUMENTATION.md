@@ -3,9 +3,17 @@
 ## Table of Contents
 1. [Adding New Commands](#adding-new-commands)
 2. [Managing the Profanity Filter](#managing-the-profanity-filter)
+   - [How the Filter Works](#how-the-filter-works)
+   - [Updating the Filter](#updating-the-filter)
+   - [Enhancing the Warning System](#enhancing-the-warning-system)
+     - [Showing Usernames and Server Names](#showing-usernames-and-server-names-with-warnings)
+     - [Adding List Warnings Command](#adding-a-list-warnings-command)
+     - [Enhanced Timeout Notifications](#enhancing-the-timeout-notifications)
+     - [Improved Warning Reset Logging](#improving-warning-reset-logging)
 3. [Bot Configuration](#bot-configuration)
 4. [Troubleshooting](#troubleshooting)
 5. [Common Tasks](#common-tasks)
+6. [Command Quick Reference](#command-quick-reference)
 
 ---
 
@@ -156,31 +164,136 @@ or
 
 ### Enhancing the Warning System
 
-The warning system currently stores user IDs and counts. To show usernames and server names with warnings, you would need to make the following change in `cogs/profanity_filter.py`:
+#### Showing Usernames and Server Names With Warnings
+
+The warning system has been enhanced to show usernames and server names alongside user IDs. Here's how to implement this feature in the `cogs/profanity_filter.py` file:
 
 ```python
-# Find the check_user_warnings method and modify to show usernames
-@app_commands.command(name="check_warnings", description="Check how many profanity warnings a user has")
+@app_commands.command(name="checkwarnings", description="Check warnings for a user")
+@app_commands.default_permissions(manage_messages=True)
 async def check_user_warnings(self, interaction: discord.Interaction, user: discord.Member):
     """Check how many profanity warnings a user has"""
+    # Check if user has appropriate permissions
+    if not interaction.user.guild_permissions.manage_messages:
+        await interaction.response.send_message("You need 'Manage Messages' permission to use this command.", ephemeral=True)
+        return
+        
+    # Get warning count and server details
     guild_id = str(interaction.guild_id)
     user_id = str(user.id)
-    
-    if guild_id not in self.warnings:
-        await interaction.response.send_message(f"No warnings have been issued in this server.", ephemeral=True)
-        return
-    
-    if user_id not in self.warnings[guild_id]:
-        await interaction.response.send_message(f"User {user.display_name} has no warnings.", ephemeral=True)
-        return
-    
-    warning_count = self.warnings[guild_id][user_id]
     server_name = interaction.guild.name
     
+    if guild_id not in self.warning_count:
+        await interaction.response.send_message(f"No warnings have been issued in server '{server_name}'.", ephemeral=True)
+        return
+        
+    if user_id not in self.warning_count[guild_id]:
+        await interaction.response.send_message(f"User **{user.display_name}** has no warnings in server '{server_name}'.", ephemeral=True)
+        return
+        
+    count = self.warning_count[guild_id][user_id]
+    
     await interaction.response.send_message(
-        f"User {user.display_name} has {warning_count} warning(s) in server '{server_name}'.", 
+        f"User **{user.display_name}** has {count} profanity warning(s) in server '{server_name}'.", 
         ephemeral=True
     )
+```
+
+#### Adding a List Warnings Command
+
+To add a command that lists all users with warnings, implement this:
+
+```python
+@app_commands.command(name="listwarnings", description="List all users with warnings")
+@app_commands.default_permissions(manage_messages=True)
+async def list_warnings(self, interaction: discord.Interaction):
+    """List all users with warnings in this server"""
+    # Check if user has appropriate permissions
+    if not interaction.user.guild_permissions.manage_messages:
+        await interaction.response.send_message("You need 'Manage Messages' permission to use this command.", ephemeral=True)
+        return
+        
+    guild_id = str(interaction.guild_id)
+    server_name = interaction.guild.name
+    
+    if guild_id not in self.warning_count or not self.warning_count[guild_id]:
+        await interaction.response.send_message(f"No warnings have been issued in server '{server_name}'.", ephemeral=True)
+        return
+        
+    # Create a list of users with warnings
+    warning_list = []
+    for user_id, count in self.warning_count[guild_id].items():
+        if count > 0:  # Only include users with active warnings
+            # Try to resolve user
+            try:
+                member = await interaction.guild.fetch_member(int(user_id))
+                user_name = member.display_name if member else f"Unknown User ({user_id})"
+            except:
+                user_name = f"Unknown User ({user_id})"
+                
+            warning_list.append(f"**{user_name}** - {count} warning(s)")
+    
+    if not warning_list:
+        await interaction.response.send_message(f"No active warnings in server '{server_name}'.", ephemeral=True)
+        return
+        
+    # Create embed for better formatting
+    embed = discord.Embed(
+        title=f"Warning List for {server_name}",
+        description="Users with active warnings:",
+        color=discord.Color.orange()
+    )
+    
+    embed.add_field(name="Users", value="\n".join(warning_list))
+    embed.set_footer(text=f"Total Users with Warnings: {len(warning_list)} | Server ID: {guild_id}")
+    embed.timestamp = datetime.datetime.utcnow()
+    
+    await interaction.response.send_message(embed=embed, ephemeral=True)
+```
+
+#### Enhancing the Timeout Notifications
+
+To improve the timeout notification embeds with more context:
+
+```python
+embed = discord.Embed(
+    title="User Timed Out",
+    description=f"User {message.author.mention} has been timed out for 10 minutes.",
+    color=discord.Color.red()
+)
+embed.add_field(name="User", value=f"{message.author.name} ({message.author.id})", inline=True)
+embed.add_field(name="Server", value=message.guild.name, inline=True)
+embed.add_field(name="Reason", value="Repeated use of inappropriate language", inline=False)
+embed.add_field(name="Warning Count", value=str(warning_count), inline=True)
+embed.set_footer(text=f"Triggered: {datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC")
+
+await log_channel.send(embed=embed)
+logger.info(f"Notification sent to log channel in server '{message.guild.name}'")
+```
+
+#### Improving Warning Reset Logging
+
+Improve the reset_warnings method to include better logging:
+
+```python
+def reset_warnings(self, user_id, guild_id):
+    """Reset warnings for a user"""
+    # Convert IDs to strings for JSON compatibility
+    user_id = str(user_id)
+    guild_id = str(guild_id)
+    
+    # Initialize the guild dict if it doesn't exist
+    if guild_id not in self.warning_count:
+        self.warning_count[guild_id] = {}
+        logger.info(f"No warnings to reset for guild ID {guild_id} - guild not in warning registry")
+        return
+        
+    # Reset the warning count
+    previous_warnings = self.warning_count[guild_id].get(user_id, 0)
+    if user_id in self.warning_count[guild_id]:
+        self.warning_count[guild_id][user_id] = 0
+        self.save_config()
+        logger.info(f"Reset warnings for user ID {user_id} in guild ID {guild_id} from {previous_warnings} to 0")
 ```
 
 ---
@@ -273,12 +386,25 @@ If you need to add new Python packages:
 - `/leave` - Leave the voice channel
 
 ### Profanity Filter Commands
-- `/add_filtered_word word:word_to_add` - Add a word to filter
-- `/remove_filtered_word word:word_to_remove` - Remove a word from filter
-- `/list_filtered_words` - Show all filtered words
-- `/toggle_filter enabled:True` - Enable/disable the filter
-- `/reset_user_warnings user:@username` - Reset warnings for a user
-- `/check_warnings user:@username` - Check warning count
+#### Slash Commands
+- `/addfilter word:word_to_add` - Add a word to filter
+- `/removefilter word:word_to_remove` - Remove a word from filter
+- `/listfilters` - Show all filtered words
+- `/togglefilter enabled:True` - Enable/disable the filter
+- `/resetwarnings user:@username` - Reset warnings for a user
+- `/checkwarnings user:@username` - Check warning count for a specific user
+- `/listwarnings` - List all users with warnings and their counts
+- `/filterstatus` - Check if the profanity filter is enabled for this server
+
+#### Traditional Prefix Commands
+- `!addfilter word_to_add` - Add a word to filter
+- `!removefilter word_to_remove` - Remove a word from filter
+- `!listfilters` - Show all filtered words
+- `!togglefilter True/False` - Enable/disable the filter
+- `!resetwarnings @username` - Reset warnings for a user
+- `!checkwarnings @username` - Check warning count for a specific user
+- `!listwarnings` - List all users with warnings and their counts
+- `!filterstatus` - Check if the profanity filter is enabled for this server
 
 ### Economy Commands
 - `/balance` - Check your wallet and bank balance
