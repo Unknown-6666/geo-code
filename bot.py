@@ -105,17 +105,54 @@ async def main():
         await bot.start(TOKEN)
 
 if __name__ == "__main__":
-    # Use a lock file to ensure only one bot instance runs at a time
+    import os
+    import sys
+    import time
+    import glob
+    import traceback
+    
+    # Define lock files
     LOCK_FILE = ".discord_bot.lock"
     MAIN_APP_LOCK_FILE = ".main_discord_bot.lock"
     
-    # Check if we're running directly from the "discord_bot" workflow
-    # If the main application is running, we'll exit to avoid duplicate instances
-    bot_workflow = os.environ.get('DISCORD_BOT_WORKFLOW', 'false').lower() == 'true'
+    # Simple process detection
+    # Check for gunicorn running main:app - that's the main application
+    try:
+        import psutil
+        current_pid = os.getpid()
+        main_app_running = False
+        
+        for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
+            try:
+                if proc.info['pid'] != current_pid and proc.info['cmdline']:
+                    cmdline = ' '.join(proc.info['cmdline'])
+                    if 'gunicorn' in cmdline and 'main:app' in cmdline:
+                        logger.warning(f"Main application detected running (PID: {proc.info['pid']}). Will exit if in discord_bot workflow.")
+                        main_app_running = True
+                        break
+            except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                pass
+                
+        # If main app is running and we're likely in the standalone workflow, exit
+        if main_app_running:
+            # Get a list of lock files for logging
+            try:
+                lock_files = glob.glob(".*.lock")
+                logger.warning(f"Lock files found: {', '.join(lock_files)}")
+            except Exception:
+                pass
+            
+            # Exit to avoid duplicate bot instances
+            logger.warning("Exiting to avoid duplicate bot instances with main application.")
+            sys.exit(0)
+    except ImportError:
+        logger.warning("psutil not available for process detection")
+    except Exception as e:
+        logger.error(f"Error during process detection: {str(e)}")
     
     # Try to create a lock file
     try:
-        # First check if the main application is running the bot
+        # For normal operation, still check main app lock as a safeguard
         if os.path.exists(MAIN_APP_LOCK_FILE):
             # Check if the lock file is stale (older than 60 seconds)
             lock_time = os.path.getmtime(MAIN_APP_LOCK_FILE)
@@ -125,10 +162,9 @@ if __name__ == "__main__":
                     pid = f.read().strip()
                     logger.warning(f"Main application lock file exists. Main app is running the bot (PID: {pid}).")
                     
-                    # If we're in the discord_bot workflow, exit to avoid duplicates
-                    if bot_workflow:
-                        logger.warning("Running in discord_bot workflow but main app is running the bot. Exiting.")
-                        sys.exit(0)
+                    # Always exit if main app is running the bot
+                    logger.warning("Main app is running the bot. Exiting if this is a separate process.")
+                    sys.exit(0)
         
         # Check for our own instance lock file
         if os.path.exists(LOCK_FILE):
