@@ -210,6 +210,13 @@ class BasicCommands(commands.Cog):
         try:
             await ctx.send("Starting global slash command sync... Please wait.")
             logger.info("Starting global slash command sync")
+            
+            # First clear all commands to prevent duplication
+            logger.info("Clearing existing global commands...")
+            self.bot.tree.clear_commands(guild=None)
+            logger.info("Existing global commands cleared")
+            
+            # Then sync to register commands again
             synced = await self.bot.tree.sync()
             embed = create_embed(
                 "🔄 Commands Synced",
@@ -230,8 +237,17 @@ class BasicCommands(commands.Cog):
         try:
             await ctx.send("Starting server slash command sync... Please wait.")
             logger.info(f"Starting slash command sync for guild {ctx.guild.id}")
+            
+            # First clear any existing guild commands to prevent duplication
+            logger.info(f"Clearing existing commands for guild {ctx.guild.id}...")
+            self.bot.tree.clear_commands(guild=ctx.guild)
+            await self.bot.tree.sync(guild=ctx.guild)  # Sync the empty command list
+            logger.info(f"Existing commands cleared for guild {ctx.guild.id}")
+            
+            # Copy global commands to the guild and sync
             self.bot.tree.copy_global_to(guild=ctx.guild)
             synced = await self.bot.tree.sync(guild=ctx.guild)
+            
             embed = create_embed(
                 "🔄 Commands Synced",
                 f"Successfully synced {len(synced)} commands in this server!\nYou can now use the updated slash commands here.",
