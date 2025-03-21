@@ -30,7 +30,5 @@ COLORS = {
 
 # Bot status messages
 STATUS_MESSAGES = [
-    "Helping users!",
-    "Type !help for commands",
-    "Serving your server"
+    "Ranked Gooning"
 ]
