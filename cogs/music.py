@@ -113,11 +113,40 @@ class YTDLSource(discord.PCMVolumeTransformer):
             data = await cls.search(url, loop=loop, stream=stream)
             logger.debug(f"Successfully extracted info: {data.get('title', 'Unknown title')}")
 
+            # Verify we have a URL to play
+            if 'url' not in data:
+                logger.error(f"No playable URL found in data for: {data.get('title', 'Unknown title')}")
+                if 'webpage_url' in data:
+                    logger.info(f"Retrying extraction with webpage_url: {data['webpage_url']}")
+                    # Try one more time with the webpage_url
+                    data = await loop.run_in_executor(None, lambda: ytdl.extract_info(data['webpage_url'], download=not stream))
+                    if 'entries' in data:
+                        data = data['entries'][0]
+                else:
+                    raise ValueError("No playable URL found and no webpage_url to retry")
+                
+            # Check again if we have a valid URL
+            if 'url' not in data:
+                raise ValueError(f"Could not find a playable URL for {data.get('title', 'Unknown')}")
+                
             filename = data['url'] if stream else ytdl.prepare_filename(data)
             logger.info(f"Creating audio source for: {data.get('title', 'Unknown title')} from {data.get('extractor', 'Unknown source')}")
-            return cls(discord.FFmpegPCMAudio(filename, **ffmpeg_options), data=data)
+            try:
+                audio_source = discord.FFmpegPCMAudio(filename, **ffmpeg_options)
+                return cls(audio_source, data=data)
+            except Exception as audio_error:
+                logger.error(f"Error creating FFmpeg audio source: {str(audio_error)}")
+                # Try with different options if first attempt fails
+                simplified_options = {'options': '-vn'}
+                logger.info("Retrying with simplified FFmpeg options")
+                audio_source = discord.FFmpegPCMAudio(filename, **simplified_options)
+                return cls(audio_source, data=data)
         except Exception as e:
             logger.error(f"Error extracting info from URL {url}: {str(e)}")
+            # Include more detailed error info
+            if hasattr(e, "__dict__"):
+                for key, value in e.__dict__.items():
+                    logger.error(f"Error detail - {key}: {value}")
             raise
 
 class Music(commands.Cog):
@@ -255,26 +284,52 @@ class Music(commands.Cog):
         if not queue:
             self.now_playing[guild.id] = None
             return
+            
+        if not voice_client or not voice_client.is_connected():
+            logger.warning(f"Voice client disconnected for guild {guild.id}, clearing queue")
+            queue.clear()
+            self.now_playing[guild.id] = None
+            return
 
         try:
             url = queue.popleft()
             logger.info(f"Attempting to play next song from URL: {url}")
-            player = await YTDLSource.from_url(url, loop=self.bot.loop)
-            player.volume = self._volume.get(guild.id, 0.5)
-
-            self.now_playing[guild.id] = player
-            logger.info(f"Playing next song in guild {guild.id}: {player.title}")
-
-            def after_callback(e):
-                if e:
-                    logger.error(f"Error in play_next callback: {str(e)}")
-                asyncio.run_coroutine_threadsafe(
-                    self.play_next(guild, voice_client), self.bot.loop
-                )
-
-            voice_client.play(player, after=after_callback)
+            
+            try:
+                player = await YTDLSource.from_url(url, loop=self.bot.loop)
+                player.volume = self._volume.get(guild.id, 0.5)
+                
+                self.now_playing[guild.id] = player
+                logger.info(f"Playing next song in guild {guild.id}: {player.title}")
+                
+                def after_callback(e):
+                    if e:
+                        logger.error(f"Error in play_next callback: {str(e)}")
+                    asyncio.run_coroutine_threadsafe(
+                        self.play_next(guild, voice_client), self.bot.loop
+                    )
+                
+                # Check if the voice client is still connected before playing
+                if voice_client.is_connected():
+                    voice_client.play(player, after=after_callback)
+                else:
+                    logger.warning(f"Voice client disconnected before playing in guild {guild.id}")
+                    self.now_playing[guild.id] = None
+                    queue.clear()
+            except Exception as e:
+                logger.error(f"Error getting audio source: {str(e)}")
+                # Try to play the next song in the queue
+                asyncio.create_task(self.play_next(guild, voice_client))
+                
         except Exception as e:
             logger.error(f"Error in play_next: {str(e)}")
+            # Try to safely clear up and disconnect if there's a major error
+            try:
+                self.now_playing[guild.id] = None
+                if voice_client and voice_client.is_connected():
+                    voice_client.stop()
+            except:
+                pass
 
     @app_commands.command(name="stop", description="Stop playing and clear the queue")
     async def stop(self, interaction: discord.Interaction):
