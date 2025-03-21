@@ -4,6 +4,7 @@ import asyncio
 import yt_dlp
 from discord import app_commands
 from discord.ext import commands
+from typing import Literal
 from utils.embed_helpers import create_embed, create_error_embed
 from collections import deque
 
@@ -22,8 +23,18 @@ ytdl_format_options = {
     'logtostderr': False,
     'quiet': True,
     'no_warnings': True,
-    'default_search': 'auto',
+    'default_search': 'ytsearch',  # Use YouTube search by default
     'source_address': '0.0.0.0',
+    # Support for SoundCloud and other platforms
+    'extractors': 'soundcloud,youtube,youtubewebarchive,spotify,spotifypodcast',
+    'extractor_args': {
+        'spotify': {
+            'username': None,
+            'password': None,
+            'client_id': None,
+            'client_secret': None,
+        },
+    },
 }
 
 ffmpeg_options = {
@@ -41,21 +52,69 @@ class YTDLSource(discord.PCMVolumeTransformer):
         self.url = data.get('url')
         self.duration = data.get('duration')
         self.thumbnail = data.get('thumbnail')
+        self.webpage_url = data.get('webpage_url')
+        self.platform = data.get('extractor', 'Unknown')
+        
+    @classmethod
+    async def search(cls, query, *, loop=None, stream=True):
+        """Search for a song and return the first result"""
+        loop = loop or asyncio.get_event_loop()
+        try:
+            # Determine if this is a direct URL or a search query
+            is_url = query.startswith(('http://', 'https://', 'www.', 'spotify:', 'soundcloud:'))
+            
+            if is_url:
+                logger.info(f"Processing direct URL: {query}")
+                search_query = query
+            else:
+                # Detect platform hints in the query (e.g., "soundcloud: artist name")
+                if query.lower().startswith('soundcloud:'):
+                    platform = 'scsearch'
+                    search_query = query[11:].strip()  # Remove "soundcloud: " prefix
+                    logger.info(f"Searching SoundCloud for: {search_query}")
+                elif query.lower().startswith('spotify:'):
+                    # For Spotify, we'll still use the direct URL handling
+                    platform = ''
+                    search_query = query
+                    logger.info(f"Processing Spotify URL: {search_query}")
+                else:
+                    # Default to YouTube search
+                    platform = 'ytsearch'
+                    search_query = query
+                    logger.info(f"Searching YouTube for: {search_query}")
+                
+                # Add platform prefix for search if not a direct URL and not already specified
+                if not is_url and platform:
+                    search_query = f"{platform}:{search_query}"
+                    
+            logger.info(f"Final search query: {search_query}")
+            
+            # Use yt-dlp to extract info
+            data = await loop.run_in_executor(None, lambda: ytdl.extract_info(search_query, download=not stream))
+            
+            # If we got a playlist or search results, take the first item
+            if 'entries' in data:
+                logger.info(f"Found {len(data['entries'])} results, using first match")
+                data = data['entries'][0]
+                
+            return data
+            
+        except Exception as e:
+            logger.error(f"Error searching for query '{query}': {str(e)}")
+            raise
 
     @classmethod
     async def from_url(cls, url, *, loop=None, stream=True):
         loop = loop or asyncio.get_event_loop()
         try:
             logger.info(f"Attempting to extract info from URL: {url}")
-            data = await loop.run_in_executor(None, lambda: ytdl.extract_info(url, download=not stream))
-            logger.debug(f"Successfully extracted info for URL: {url}")
-
-            if 'entries' in data:
-                # Take first item from a playlist
-                data = data['entries'][0]
+            
+            # Use search function to handle both URLs and search queries
+            data = await cls.search(url, loop=loop, stream=stream)
+            logger.debug(f"Successfully extracted info: {data.get('title', 'Unknown title')}")
 
             filename = data['url'] if stream else ytdl.prepare_filename(data)
-            logger.info(f"Creating audio source for: {data.get('title', 'Unknown title')}")
+            logger.info(f"Creating audio source for: {data.get('title', 'Unknown title')} from {data.get('extractor', 'Unknown source')}")
             return cls(discord.FFmpegPCMAudio(filename, **ffmpeg_options), data=data)
         except Exception as e:
             logger.error(f"Error extracting info from URL {url}: {str(e)}")
@@ -109,10 +168,18 @@ class Music(commands.Cog):
                 ephemeral=True
             )
 
-    @app_commands.command(name="play", description="Play a song from YouTube")
-    @app_commands.describe(query="YouTube URL or search query")
+    @app_commands.command(name="play", description="Play a song from YouTube, SoundCloud, or Spotify")
+    @app_commands.describe(query="URL or search query (prepend with 'soundcloud:' or 'spotify:' to search specific platforms)")
     async def play(self, interaction: discord.Interaction, *, query: str):
-        """Play a song from YouTube"""
+        """Play music from various sources including YouTube, SoundCloud, and Spotify
+        
+        Examples:
+        - /play despacito (searches YouTube)
+        - /play soundcloud: electronic music (searches SoundCloud)
+        - /play https://www.youtube.com/watch?v=dQw4w9WgXcQ (direct YouTube URL)
+        - /play https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT (Spotify URL)
+        - /play https://soundcloud.com/artist/song-name (SoundCloud URL)
+        """
         if not interaction.user.voice:
             await interaction.response.send_message(
                 embed=create_error_embed("Error", "You must be in a voice channel to use this command."),
@@ -130,36 +197,48 @@ class Music(commands.Cog):
 
             queue = self.get_queue(interaction.guild_id)
 
-            # Extract info first to get title for queue message
-            loop = asyncio.get_event_loop()
+            # Use our new search method to handle the query
             try:
-                data = await loop.run_in_executor(None, lambda: ytdl.extract_info(query, download=False))
-                logger.info(f"Successfully extracted info for query: {query}")
+                data = await YTDLSource.search(query, loop=self.bot.loop)
+                logger.info(f"Successfully found music: {data['title']} from {data.get('extractor', 'unknown source')}")
             except Exception as e:
-                logger.error(f"Error extracting info for query '{query}': {str(e)}")
+                logger.error(f"Error searching for query '{query}': {str(e)}")
                 await interaction.followup.send(
                     embed=create_error_embed("Error", "Could not find the requested song. Please check your query and try again."),
                     ephemeral=True
                 )
                 return
 
-            if 'entries' in data:
-                data = data['entries'][0]
+            # Get source info for display
+            source_type = data.get('extractor', 'Unknown')
+            if 'youtube' in source_type.lower():
+                platform_emoji = "▶️ YouTube"
+            elif 'soundcloud' in source_type.lower():
+                platform_emoji = "☁️ SoundCloud"
+            elif 'spotify' in source_type.lower():
+                platform_emoji = "🎧 Spotify"
+            else:
+                platform_emoji = "🎵 Music"
 
-            # Add to queue
-            queue.append(query)
-            logger.info(f"Added song to queue: {data['title']}")
+            # Add to queue - store the original query if it's a URL, otherwise store the specific resource URL
+            if query.startswith(('http://', 'https://', 'www.', 'spotify:', 'soundcloud:')):
+                queue.append(query)
+            else:
+                # For search queries, store the actual URL we found
+                queue.append(data['webpage_url'])
+                
+            logger.info(f"Added song to queue: {data['title']} from {source_type}")
 
             if not voice_client.is_playing():
                 # If nothing is playing, start playing
                 await self.play_next(interaction.guild, voice_client)
                 await interaction.followup.send(
-                    embed=create_embed("🎵 Now Playing", f"[{data['title']}]({data['webpage_url']})")
+                    embed=create_embed(f"{platform_emoji} Now Playing", f"[{data['title']}]({data['webpage_url']})")
                 )
             else:
                 # Add to queue
                 await interaction.followup.send(
-                    embed=create_embed("📋 Added to Queue", f"[{data['title']}]({data['webpage_url']})")
+                    embed=create_embed(f"{platform_emoji} Added to Queue", f"[{data['title']}]({data['webpage_url']})")
                 )
 
         except Exception as e:
@@ -245,14 +324,27 @@ class Music(commands.Cog):
             )
             return
 
+        # Using defer as this might take a moment to process all queue items
+        await interaction.response.defer()
         embed = create_embed("📋 Queue", "")
 
         # Add now playing
         current = self.now_playing.get(interaction.guild_id)
         if current:
+            # Get platform icon
+            platform = current.platform
+            if 'youtube' in platform.lower():
+                platform_icon = "▶️"
+            elif 'soundcloud' in platform.lower():
+                platform_icon = "☁️"
+            elif 'spotify' in platform.lower():
+                platform_icon = "🎧"
+            else:
+                platform_icon = "🎵"
+                
             embed.add_field(
-                name="Now Playing",
-                value=f"[{current.title}]({current.url})",
+                name=f"{platform_icon} Now Playing",
+                value=f"[{current.title}]({current.webpage_url or current.url})",
                 inline=False
             )
 
@@ -260,12 +352,27 @@ class Music(commands.Cog):
         if queue:
             # Get info for first 5 items
             queue_list = []
+            
             for i, url in enumerate(list(queue)[:5], 1):
                 try:
-                    info = ytdl.extract_info(url, download=False)
-                    queue_list.append(f"{i}. [{info['title']}]({info['webpage_url']})")
-                except:
-                    queue_list.append(f"{i}. [Unable to fetch title]({url})")
+                    # Use our search method for better handling
+                    data = await YTDLSource.search(url, loop=self.bot.loop)
+                    
+                    # Get platform icon
+                    source_type = data.get('extractor', 'Unknown')
+                    if 'youtube' in source_type.lower():
+                        platform_icon = "▶️"
+                    elif 'soundcloud' in source_type.lower():
+                        platform_icon = "☁️"
+                    elif 'spotify' in source_type.lower():
+                        platform_icon = "🎧"
+                    else:
+                        platform_icon = "🎵"
+                        
+                    queue_list.append(f"{i}. {platform_icon} [{data['title']}]({data['webpage_url']})")
+                except Exception as e:
+                    logger.error(f"Error fetching queue item info: {str(e)}")
+                    queue_list.append(f"{i}. 🎵 [Unable to fetch title]({url})")
 
             embed.add_field(
                 name="Up Next",
@@ -273,7 +380,7 @@ class Music(commands.Cog):
                 inline=False
             )
 
-        await interaction.response.send_message(embed=embed)
+        await interaction.followup.send(embed=embed)
 
     @app_commands.command(name="volume", description="Set the volume (0-100)")
     @app_commands.describe(volume="Volume level (0-100)")
@@ -297,6 +404,88 @@ class Music(commands.Cog):
         await interaction.response.send_message(
             embed=create_embed("🔊 Volume", f"Set volume to {volume}%")
         )
+
+    @app_commands.command(name="search", description="Search for music from different platforms")
+    @app_commands.describe(
+        query="What to search for",
+        platform="Which platform to search on (default: YouTube)"
+    )
+    async def search(
+        self, 
+        interaction: discord.Interaction, 
+        query: str, 
+        platform: Literal["youtube", "soundcloud"] = "youtube"
+    ):
+        """Search for music and display the results
+        
+        Examples:
+        - /search query:despacito platform:youtube
+        - /search query:electronic music platform:soundcloud
+        """
+        await interaction.response.defer()  # This might take a while
+        logger.info(f"Searching for '{query}' on {platform}")
+        
+        # Prepare search query with platform prefix
+        if platform == "soundcloud":
+            search_query = f"scsearch5:{query}"  # Get top 5 SoundCloud results
+            platform_name = "SoundCloud"
+            platform_emoji = "☁️"
+        else:  # Default to YouTube
+            search_query = f"ytsearch5:{query}"  # Get top 5 YouTube results
+            platform_name = "YouTube"
+            platform_emoji = "▶️"
+            
+        try:
+            # Get search results directly from ytdl
+            loop = asyncio.get_event_loop()
+            data = await loop.run_in_executor(None, lambda: ytdl.extract_info(search_query, download=False))
+            
+            if not data or 'entries' not in data or len(data['entries']) == 0:
+                await interaction.followup.send(
+                    embed=create_error_embed("No Results", f"No results found for '{query}' on {platform_name}."),
+                    ephemeral=True
+                )
+                return
+                
+            # Create embed with results
+            embed = create_embed(
+                f"{platform_emoji} {platform_name} Search Results", 
+                f"Search results for: **{query}**\nUse `/play` with the number or URL to play a song."
+            )
+            
+            for i, entry in enumerate(data['entries'], 1):
+                if not entry:
+                    continue  # Skip empty entries
+                    
+                title = entry.get('title', 'Unknown title')
+                url = entry.get('webpage_url', '')
+                duration = entry.get('duration')
+                uploader = entry.get('uploader', 'Unknown uploader')
+                
+                # Format duration if available
+                duration_str = ""
+                if duration:
+                    minutes, seconds = divmod(int(duration), 60)
+                    hours, minutes = divmod(minutes, 60)
+                    if hours > 0:
+                        duration_str = f" • {hours}:{minutes:02d}:{seconds:02d}"
+                    else:
+                        duration_str = f" • {minutes}:{seconds:02d}"
+                
+                embed.add_field(
+                    name=f"{i}. {title}",
+                    value=f"By: {uploader}{duration_str}\n[Link]({url})",
+                    inline=False
+                )
+            
+            await interaction.followup.send(embed=embed)
+            
+        except Exception as e:
+            logger.error(f"Error searching for music: {str(e)}")
+            await interaction.followup.send(
+                embed=create_error_embed("Error", f"An error occurred while searching: {str(e)}"),
+                ephemeral=True
+            )
 
     @app_commands.command(name="leave", description="Leave the voice channel")
     async def leave(self, interaction: discord.Interaction):
