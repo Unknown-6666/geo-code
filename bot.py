@@ -1,4 +1,5 @@
 import os
+import sys
 import random
 import asyncio
 import discord
@@ -39,11 +40,15 @@ class Bot(commands.Bot):
         # AI chat temporarily disabled due to provider issues
         # await self.load_extension("cogs.ai_chat")
         logger.info("Loaded all cogs successfully")
-
-        # Sync commands with Discord
-        logger.info("Syncing commands with Discord...")
-        await self.tree.sync()
-        logger.info("Commands synced successfully")
+        
+        # Only sync commands automatically if SYNC_COMMANDS env var is set
+        # This prevents multiple bot instances from all trying to sync
+        if os.environ.get('SYNC_COMMANDS', 'false').lower() == 'true':
+            logger.info("Syncing commands with Discord...")
+            await self.tree.sync()
+            logger.info("Commands synced successfully")
+        else:
+            logger.info("Automatic command syncing disabled. Use !sync to sync commands manually.")
 
     async def on_ready(self):
         """Called when the bot is ready"""
@@ -99,4 +104,23 @@ async def main():
         await bot.start(TOKEN)
 
 if __name__ == "__main__":
+    # Check if we're running directly from the "discord_bot" workflow
+    # If the main application is running, we'll exit to avoid duplicate instances
+    if os.environ.get('DISCORD_BOT_WORKFLOW', 'false').lower() == 'true':
+        # First check if there's already a bot instance running
+        try:
+            import psutil
+            current_pid = os.getpid()
+            python_processes = [p for p in psutil.process_iter(['name', 'cmdline', 'pid']) 
+                              if p.info['name'] == 'python' and p.info['pid'] != current_pid]
+            
+            for proc in python_processes:
+                if proc.info['cmdline'] and 'main.py' in ' '.join(proc.info['cmdline']):
+                    logger.warning("Main application already running the Discord bot. Exiting to avoid duplicate instances.")
+                    sys.exit(0)
+        except ImportError:
+            # If psutil isn't available, we'll try to run anyway
+            logger.warning("Unable to check for existing bot instances. Proceeding with caution.")
+    
+    # If we get here, it's safe to run the bot
     asyncio.run(main())

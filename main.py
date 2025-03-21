@@ -25,6 +25,9 @@ def run_discord_bot():
     """Run the Discord bot in a separate thread"""
     logger.info("Starting Discord bot thread...")
     try:
+        # Set environment variable to enable command syncing
+        # This prevents multiple instances from all trying to sync
+        os.environ['SYNC_COMMANDS'] = 'true'
         asyncio.run(bot.main())
     except Exception as e:
         logger.error(f"Error in Discord bot thread: {e}")
