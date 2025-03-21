@@ -194,6 +194,25 @@ class ProfanityFilter(commands.Cog):
             except Exception as e:
                 logger.error(f"Error processing filtered message: {str(e)}")
 
+    @commands.command(name="addfilter")
+    @commands.has_permissions(manage_messages=True)
+    async def add_filtered_word_prefix(self, ctx, word: str):
+        """Add a word to the profanity filter (prefix command)"""
+        # Convert to lowercase for case-insensitive filtering
+        word = word.lower()
+        
+        # Check if word already exists
+        if word in self.blocked_words:
+            await ctx.send(f"The word '{word}' is already in the filter.")
+            return
+            
+        # Add word to filter
+        self.blocked_words.append(word)
+        self.save_config()
+        
+        await ctx.send(f"Added '{word}' to the profanity filter.")
+        logger.info(f"User {ctx.author.name} added '{word}' to profanity filter")
+            
     @app_commands.command(name="addfilter", description="Add a word to the profanity filter")
     @app_commands.default_permissions(manage_messages=True)
     async def add_filtered_word(self, interaction: discord.Interaction, word: str):
@@ -218,6 +237,25 @@ class ProfanityFilter(commands.Cog):
         await interaction.response.send_message(f"Added '{word}' to the profanity filter.", ephemeral=True)
         logger.info(f"User {interaction.user.name} added '{word}' to profanity filter")
 
+    @commands.command(name="removefilter")
+    @commands.has_permissions(manage_messages=True)
+    async def remove_filtered_word_prefix(self, ctx, word: str):
+        """Remove a word from the profanity filter (prefix command)"""
+        # Convert to lowercase for case-insensitive matching
+        word = word.lower()
+        
+        # Check if word exists
+        if word not in self.blocked_words:
+            await ctx.send(f"The word '{word}' is not in the filter.")
+            return
+            
+        # Remove word from filter
+        self.blocked_words.remove(word)
+        self.save_config()
+        
+        await ctx.send(f"Removed '{word}' from the profanity filter.")
+        logger.info(f"User {ctx.author.name} removed '{word}' from profanity filter")
+    
     @app_commands.command(name="removefilter", description="Remove a word from the profanity filter")
     @app_commands.default_permissions(manage_messages=True)
     async def remove_filtered_word(self, interaction: discord.Interaction, word: str):
@@ -242,6 +280,21 @@ class ProfanityFilter(commands.Cog):
         await interaction.response.send_message(f"Removed '{word}' from the profanity filter.", ephemeral=True)
         logger.info(f"User {interaction.user.name} removed '{word}' from profanity filter")
 
+    @commands.command(name="listfilters")
+    @commands.has_permissions(manage_messages=True)
+    async def list_filtered_words_prefix(self, ctx):
+        """List all words in the profanity filter (prefix command)"""
+        # No words in filter
+        if not self.blocked_words:
+            await ctx.send("There are no words in the profanity filter.")
+            return
+            
+        # Format the list of words
+        word_list = ", ".join([f"`{word}`" for word in sorted(self.blocked_words)])
+        
+        # Send list privately
+        await ctx.send(f"**Filtered Words:**\n{word_list}")
+        
     @app_commands.command(name="listfilters", description="List all filtered words")
     @app_commands.default_permissions(manage_messages=True)
     async def list_filtered_words(self, interaction: discord.Interaction):
@@ -262,6 +315,22 @@ class ProfanityFilter(commands.Cog):
         # Send list privately
         await interaction.response.send_message(f"**Filtered Words:**\n{word_list}", ephemeral=True)
 
+    @commands.command(name="togglefilter")
+    @commands.has_permissions(manage_messages=True)
+    async def toggle_filter_prefix(self, ctx, enabled: bool):
+        """Enable or disable the profanity filter (prefix command)
+        Usage: !togglefilter True/False"""
+        # Convert guild ID to string for JSON compatibility
+        guild_id = str(ctx.guild.id)
+        
+        # Update setting
+        self.filter_enabled[guild_id] = enabled
+        self.save_config()
+        
+        status = "enabled" if enabled else "disabled"
+        await ctx.send(f"Profanity filter {status} for this server.")
+        logger.info(f"User {ctx.author.name} {status} profanity filter for {ctx.guild.name}")
+    
     @app_commands.command(name="togglefilter", description="Enable or disable the profanity filter")
     @app_commands.default_permissions(manage_messages=True)
     async def toggle_filter(self, interaction: discord.Interaction, enabled: bool):
@@ -282,6 +351,16 @@ class ProfanityFilter(commands.Cog):
         await interaction.response.send_message(f"Profanity filter {status} for this server.", ephemeral=False)
         logger.info(f"User {interaction.user.name} {status} profanity filter for {interaction.guild.name}")
 
+    @commands.command(name="resetwarnings")
+    @commands.has_permissions(manage_messages=True)
+    async def reset_user_warnings_prefix(self, ctx, user: discord.Member):
+        """Reset profanity warnings for a specific user (prefix command)"""
+        # Reset warnings
+        self.reset_warnings(user.id, ctx.guild.id)
+        
+        await ctx.send(f"Reset profanity warnings for {user.mention}.")
+        logger.info(f"User {ctx.author.name} reset warnings for {user.name} in {ctx.guild.name}")
+    
     @app_commands.command(name="resetwarnings", description="Reset warnings for a user")
     @app_commands.default_permissions(manage_messages=True)
     async def reset_user_warnings(self, interaction: discord.Interaction, user: discord.Member):
@@ -297,6 +376,15 @@ class ProfanityFilter(commands.Cog):
         await interaction.response.send_message(f"Reset profanity warnings for {user.mention}.", ephemeral=False)
         logger.info(f"User {interaction.user.name} reset warnings for {user.name} in {interaction.guild.name}")
 
+    @commands.command(name="checkwarnings")
+    @commands.has_permissions(manage_messages=True)
+    async def check_user_warnings_prefix(self, ctx, user: discord.Member):
+        """Check how many profanity warnings a user has (prefix command)"""
+        # Get warning count
+        count = self.get_warning_count(user.id, ctx.guild.id)
+        
+        await ctx.send(f"{user.mention} has {count} profanity warning(s).")
+    
     @app_commands.command(name="checkwarnings", description="Check warnings for a user")
     @app_commands.default_permissions(manage_messages=True)
     async def check_user_warnings(self, interaction: discord.Interaction, user: discord.Member):
@@ -311,6 +399,17 @@ class ProfanityFilter(commands.Cog):
         
         await interaction.response.send_message(f"{user.mention} has {count} profanity warning(s).", ephemeral=True)
 
+    @commands.command(name="filterstatus")
+    async def check_filter_status_prefix(self, ctx):
+        """Check if the profanity filter is enabled for this server (prefix command)"""
+        # Convert guild ID to string for JSON compatibility
+        guild_id = str(ctx.guild.id)
+        
+        # Get status
+        status = "enabled" if self.filter_enabled.get(guild_id, False) else "disabled"
+        
+        await ctx.send(f"The profanity filter is currently {status} for this server.")
+        
     @app_commands.command(name="filterstatus", description="Check if the profanity filter is enabled")
     async def check_filter_status(self, interaction: discord.Interaction):
         """Check if the profanity filter is enabled for this server"""
