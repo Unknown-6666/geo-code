@@ -175,7 +175,7 @@ class ProfanityFilter(commands.Cog):
                 
                 # Add warning and get count
                 warning_count = self.add_warning(message.author.id, message.guild.id)
-                logger.info(f"Warning added: user now has {warning_count} warnings")
+                logger.info(f"Warning added: user {message.author.name} ({message.author.id}) now has {warning_count} warnings in server '{message.guild.name}'")
                 
                 # Send warning DM to user
                 try:
@@ -422,9 +422,21 @@ class ProfanityFilter(commands.Cog):
     async def check_user_warnings_prefix(self, ctx, user: discord.Member):
         """Check how many profanity warnings a user has (prefix command)"""
         # Get warning count
-        count = self.get_warning_count(user.id, ctx.guild.id)
+        guild_id = str(ctx.guild.id)
+        user_id = str(user.id)
+        server_name = ctx.guild.name
         
-        await ctx.send(f"{user.mention} has {count} profanity warning(s).")
+        if guild_id not in self.warning_count:
+            await ctx.send(f"No warnings have been issued in server '{server_name}'.")
+            return
+            
+        if user_id not in self.warning_count[guild_id]:
+            await ctx.send(f"User **{user.display_name}** has no warnings in server '{server_name}'.")
+            return
+            
+        count = self.warning_count[guild_id][user_id]
+        
+        await ctx.send(f"User **{user.display_name}** has {count} profanity warning(s) in server '{server_name}'.")
     
     @app_commands.command(name="checkwarnings", description="Check warnings for a user")
     @app_commands.default_permissions(manage_messages=True)
@@ -435,10 +447,25 @@ class ProfanityFilter(commands.Cog):
             await interaction.response.send_message("You need 'Manage Messages' permission to use this command.", ephemeral=True)
             return
             
-        # Get warning count
-        count = self.get_warning_count(user.id, interaction.guild.id)
+        # Get warning count and server details
+        guild_id = str(interaction.guild_id)
+        user_id = str(user.id)
+        server_name = interaction.guild.name
         
-        await interaction.response.send_message(f"{user.mention} has {count} profanity warning(s).", ephemeral=True)
+        if guild_id not in self.warning_count:
+            await interaction.response.send_message(f"No warnings have been issued in server '{server_name}'.", ephemeral=True)
+            return
+            
+        if user_id not in self.warning_count[guild_id]:
+            await interaction.response.send_message(f"User **{user.display_name}** has no warnings in server '{server_name}'.", ephemeral=True)
+            return
+            
+        count = self.warning_count[guild_id][user_id]
+        
+        await interaction.response.send_message(
+            f"User **{user.display_name}** has {count} profanity warning(s) in server '{server_name}'.", 
+            ephemeral=True
+        )
 
     @commands.command(name="filterstatus")
     async def check_filter_status_prefix(self, ctx):
@@ -461,6 +488,91 @@ class ProfanityFilter(commands.Cog):
         status = "disabled" if guild_id in self.filter_enabled and self.filter_enabled[guild_id] == False else "enabled"
         
         await interaction.response.send_message(f"The profanity filter is currently {status} for this server.", ephemeral=True)
+
+    @commands.command(name="listwarnings")
+    @commands.has_permissions(manage_messages=True)
+    async def list_warnings_prefix(self, ctx):
+        """List all users with warnings in this server (prefix command)"""
+        guild_id = str(ctx.guild.id)
+        server_name = ctx.guild.name
+        
+        if guild_id not in self.warning_count or not self.warning_count[guild_id]:
+            await ctx.send(f"No warnings have been issued in server '{server_name}'.")
+            return
+            
+        # Create a list of users with warnings
+        warning_list = []
+        for user_id, count in self.warning_count[guild_id].items():
+            if count > 0:  # Only include users with active warnings
+                # Try to resolve user
+                try:
+                    member = await ctx.guild.fetch_member(int(user_id))
+                    user_name = member.display_name if member else f"Unknown User ({user_id})"
+                except:
+                    user_name = f"Unknown User ({user_id})"
+                    
+                warning_list.append(f"**{user_name}** - {count} warning(s)")
+        
+        if not warning_list:
+            await ctx.send(f"No active warnings in server '{server_name}'.")
+            return
+            
+        # Create embed for better formatting
+        embed = discord.Embed(
+            title=f"Warning List for {server_name}",
+            description="Users with active warnings:",
+            color=discord.Color.orange()
+        )
+        
+        embed.add_field(name="Users", value="\n".join(warning_list))
+        embed.set_footer(text=f"Total Users with Warnings: {len(warning_list)}")
+        
+        await ctx.send(embed=embed)
+        
+    @app_commands.command(name="listwarnings", description="List all users with warnings")
+    @app_commands.default_permissions(manage_messages=True)
+    async def list_warnings(self, interaction: discord.Interaction):
+        """List all users with warnings in this server"""
+        # Check if user has appropriate permissions
+        if not interaction.user.guild_permissions.manage_messages:
+            await interaction.response.send_message("You need 'Manage Messages' permission to use this command.", ephemeral=True)
+            return
+            
+        guild_id = str(interaction.guild_id)
+        server_name = interaction.guild.name
+        
+        if guild_id not in self.warning_count or not self.warning_count[guild_id]:
+            await interaction.response.send_message(f"No warnings have been issued in server '{server_name}'.", ephemeral=True)
+            return
+            
+        # Create a list of users with warnings
+        warning_list = []
+        for user_id, count in self.warning_count[guild_id].items():
+            if count > 0:  # Only include users with active warnings
+                # Try to resolve user
+                try:
+                    member = await interaction.guild.fetch_member(int(user_id))
+                    user_name = member.display_name if member else f"Unknown User ({user_id})"
+                except:
+                    user_name = f"Unknown User ({user_id})"
+                    
+                warning_list.append(f"**{user_name}** - {count} warning(s)")
+        
+        if not warning_list:
+            await interaction.response.send_message(f"No active warnings in server '{server_name}'.", ephemeral=True)
+            return
+            
+        # Create embed for better formatting
+        embed = discord.Embed(
+            title=f"Warning List for {server_name}",
+            description="Users with active warnings:",
+            color=discord.Color.orange()
+        )
+        
+        embed.add_field(name="Users", value="\n".join(warning_list))
+        embed.set_footer(text=f"Total Users with Warnings: {len(warning_list)}")
+        
+        await interaction.response.send_message(embed=embed, ephemeral=True)
 
 async def setup(bot):
     # Create an instance of the cog
