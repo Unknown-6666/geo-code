@@ -292,74 +292,96 @@ class Economy(commands.Cog):
     @app_commands.command(name="deposit", description="Deposit coins into your bank")
     async def deposit(self, interaction: discord.Interaction, amount: int):
         """Deposit money into bank"""
-        if amount <= 0:
-            await interaction.response.send_message(
-                embed=create_error_embed("Error", "Amount must be positive"),
-                ephemeral=True
+        try:
+            # First acknowledge the interaction to prevent timeouts
+            await interaction.response.defer()
+            
+            if amount <= 0:
+                await interaction.followup.send(
+                    embed=create_error_embed("Error", "Amount must be positive"),
+                    ephemeral=True
+                )
+                return
+
+            user = await self.get_user_economy(interaction.user.id)
+
+            if amount > user.wallet:
+                await interaction.followup.send(
+                    embed=create_error_embed("Error", "You don't have enough coins in your wallet"),
+                    ephemeral=True
+                )
+                return
+
+            space_available = user.bank_capacity - user.bank
+            if amount > space_available:
+                await interaction.followup.send(
+                    embed=create_error_embed("Error", f"Your bank can only hold {space_available} more coins"),
+                    ephemeral=True
+                )
+                return
+
+            # Use app context for database operations
+            with self.app.app_context():
+                user.wallet -= amount
+                user.bank += amount
+                db.session.commit()
+
+            embed = create_embed(
+                "🏦 Deposit",
+                f"Deposited {amount} coins into your bank",
+                color=0x43B581
             )
-            return
-
-        user = await self.get_user_economy(interaction.user.id)
-
-        if amount > user.wallet:
-            await interaction.response.send_message(
-                embed=create_error_embed("Error", "You don't have enough coins in your wallet"),
-                ephemeral=True
-            )
-            return
-
-        space_available = user.bank_capacity - user.bank
-        if amount > space_available:
-            await interaction.response.send_message(
-                embed=create_error_embed("Error", f"Your bank can only hold {space_available} more coins"),
-                ephemeral=True
-            )
-            return
-
-        # Use app context for database operations
-        with self.app.app_context():
-            user.wallet -= amount
-            user.bank += amount
-            db.session.commit()
-
-        embed = create_embed(
-            "🏦 Deposit",
-            f"Deposited {amount} coins into your bank",
-            color=0x43B581
-        )
-        await interaction.response.send_message(embed=embed)
+            await interaction.followup.send(embed=embed)
+        except Exception as e:
+            logger.error(f"Error in deposit command: {str(e)}")
+            # If we haven't responded yet, respond with the error
+            if not interaction.response.is_done():
+                await interaction.response.send_message(f"An error occurred: {str(e)}", ephemeral=True)
+            else:
+                await interaction.followup.send(f"An error occurred: {str(e)}", ephemeral=True)
 
     @app_commands.command(name="withdraw", description="Withdraw coins from your bank")
     async def withdraw(self, interaction: discord.Interaction, amount: int):
         """Withdraw money from bank"""
-        if amount <= 0:
-            await interaction.response.send_message(
-                embed=create_error_embed("Error", "Amount must be positive"),
-                ephemeral=True
+        try:
+            # First acknowledge the interaction to prevent timeouts
+            await interaction.response.defer()
+            
+            if amount <= 0:
+                await interaction.followup.send(
+                    embed=create_error_embed("Error", "Amount must be positive"),
+                    ephemeral=True
+                )
+                return
+
+            user = await self.get_user_economy(interaction.user.id)
+
+            if amount > user.bank:
+                await interaction.followup.send(
+                    embed=create_error_embed("Error", "You don't have enough coins in your bank"),
+                    ephemeral=True
+                )
+                return
+
+            # Use app context for database operations
+            with self.app.app_context():
+                user.bank -= amount
+                user.wallet += amount
+                db.session.commit()
+
+            embed = create_embed(
+                "🏦 Withdraw",
+                f"Withdrew {amount} coins from your bank",
+                color=0x43B581
             )
-            return
-
-        user = await self.get_user_economy(interaction.user.id)
-
-        if amount > user.bank:
-            await interaction.response.send_message(
-                embed=create_error_embed("Error", "You don't have enough coins in your bank"),
-                ephemeral=True
-            )
-            return
-
-        # Use app context for database operations
-        with self.app.app_context():
-            user.bank -= amount
-            user.wallet += amount
-            db.session.commit()
-
-        embed = create_embed(
-            "🏦 Withdraw",
-            f"Withdrew {amount} coins from your bank",
-            color=0x43B581
-        )
-        await interaction.response.send_message(embed=embed)
+            await interaction.followup.send(embed=embed)
+        except Exception as e:
+            logger.error(f"Error in withdraw command: {str(e)}")
+            # If we haven't responded yet, respond with the error
+            if not interaction.response.is_done():
+                await interaction.response.send_message(f"An error occurred: {str(e)}", ephemeral=True)
+            else:
+                await interaction.followup.send(f"An error occurred: {str(e)}", ephemeral=True)
 
     @app_commands.command(name="coinflip", description="Bet your coins on a coin flip")
     @app_commands.describe(
@@ -373,48 +395,59 @@ class Economy(commands.Cog):
         choice: Literal["heads", "tails"]
     ):
         """Gamble coins on a coin flip"""
-        if amount <= 0:
-            await interaction.response.send_message(
-                embed=create_error_embed("Error", "Bet amount must be positive"),
-                ephemeral=True
-            )
-            return
+        try:
+            # First acknowledge the interaction to prevent timeouts
+            await interaction.response.defer()
+            
+            if amount <= 0:
+                await interaction.followup.send(
+                    embed=create_error_embed("Error", "Bet amount must be positive"),
+                    ephemeral=True
+                )
+                return
 
-        user = await self.get_user_economy(interaction.user.id)
-        if amount > user.wallet:
-            await interaction.response.send_message(
-                embed=create_error_embed("Error", "You don't have enough coins in your wallet"),
-                ephemeral=True
-            )
-            return
+            user = await self.get_user_economy(interaction.user.id)
+            if amount > user.wallet:
+                await interaction.followup.send(
+                    embed=create_error_embed("Error", "You don't have enough coins in your wallet"),
+                    ephemeral=True
+                )
+                return
 
-        result = random.choice(["heads", "tails"])
-        won = choice == result
+            result = random.choice(["heads", "tails"])
+            won = choice == result
 
-        # Use app context for database operations
-        with self.app.app_context():
-            if won:
-                user.wallet += amount
-                color = 0x43B581
-                title = "🎉 You won!"
-                description = f"The coin landed on {result}!\nYou won {amount} coins!"
+            # Use app context for database operations
+            with self.app.app_context():
+                if won:
+                    user.wallet += amount
+                    color = 0x43B581
+                    title = "🎉 You won!"
+                    description = f"The coin landed on {result}!\nYou won {amount} coins!"
+                else:
+                    user.wallet -= amount
+                    color = 0xF04747
+                    title = "😢 You lost!"
+                    description = f"The coin landed on {result}!\nYou lost {amount} coins!"
+
+                # Record transaction
+                transaction = Transaction(
+                    user_id=str(interaction.user.id),
+                    amount=amount if won else -amount,
+                    description=f"Coinflip: {'won' if won else 'lost'}"
+                )
+                db.session.add(transaction)
+                db.session.commit()
+
+            embed = create_embed(title, description, color=color)
+            await interaction.followup.send(embed=embed)
+        except Exception as e:
+            logger.error(f"Error in coinflip command: {str(e)}")
+            # If we haven't responded yet, respond with the error
+            if not interaction.response.is_done():
+                await interaction.response.send_message(f"An error occurred: {str(e)}", ephemeral=True)
             else:
-                user.wallet -= amount
-                color = 0xF04747
-                title = "😢 You lost!"
-                description = f"The coin landed on {result}!\nYou lost {amount} coins!"
-
-            # Record transaction
-            transaction = Transaction(
-                user_id=str(interaction.user.id),
-                amount=amount if won else -amount,
-                description=f"Coinflip: {'won' if won else 'lost'}"
-            )
-            db.session.add(transaction)
-            db.session.commit()
-
-        embed = create_embed(title, description, color=color)
-        await interaction.response.send_message(embed=embed)
+                await interaction.followup.send(f"An error occurred: {str(e)}", ephemeral=True)
 
     @app_commands.command(name="slots", description="Play the slot machine")
     @app_commands.describe(amount="Amount of coins to bet")
@@ -490,119 +523,152 @@ class Economy(commands.Cog):
     @app_commands.command(name="shop", description="View the item shop")
     async def shop(self, interaction: discord.Interaction):
         """View available items in the shop"""
-        # Use app context for database operations
-        with self.app.app_context():
-            items = Item.query.filter_by(is_buyable=True).all()
+        try:
+            # First acknowledge the interaction to prevent timeouts
+            await interaction.response.defer()
+            
+            # Use app context for database operations
+            with self.app.app_context():
+                items = Item.query.filter_by(is_buyable=True).all()
 
-            if not items:
-                await interaction.response.send_message(
-                    embed=create_error_embed("Shop", "No items available in the shop right now"),
-                    ephemeral=True
-                )
-                return
+                if not items:
+                    await interaction.followup.send(
+                        embed=create_error_embed("Shop", "No items available in the shop right now"),
+                        ephemeral=True
+                    )
+                    return
 
-            embed = create_embed(
-                "🛍️ Item Shop",
-                "Here are the items available for purchase:"
-            )
-
-            for item in items:
-                embed.add_field(
-                    name=f"{item.emoji} {item.name} - {item.price} coins",
-                    value=item.description,
-                    inline=False
+                embed = create_embed(
+                    "🛍️ Item Shop",
+                    "Here are the items available for purchase:"
                 )
 
-        embed.set_footer(text="Use /buy <item> to purchase an item")
-        await interaction.response.send_message(embed=embed)
+                for item in items:
+                    embed.add_field(
+                        name=f"{item.emoji} {item.name} - {item.price} coins",
+                        value=item.description,
+                        inline=False
+                    )
+
+                embed.set_footer(text="Use /buy <item> to purchase an item")
+                await interaction.followup.send(embed=embed)
+        except Exception as e:
+            logger.error(f"Error in shop command: {str(e)}")
+            # If we haven't responded yet, respond with the error
+            if not interaction.response.is_done():
+                await interaction.response.send_message(f"An error occurred: {str(e)}", ephemeral=True)
+            else:
+                await interaction.followup.send(f"An error occurred: {str(e)}", ephemeral=True)
 
     @app_commands.command(name="buy", description="Buy an item from the shop")
     @app_commands.describe(item_name="Name of the item to buy")
     async def buy(self, interaction: discord.Interaction, item_name: str):
         """Buy an item from the shop"""
-        # Use app context for database operations
-        with self.app.app_context():
-            item = Item.query.filter_by(name=item_name, is_buyable=True).first()
-            if not item:
-                await interaction.response.send_message(
-                    embed=create_error_embed("Error", "That item doesn't exist or isn't available"),
-                    ephemeral=True
-                )
-                return
-
-            user = await self.get_user_economy(interaction.user.id)
-            if user.wallet < item.price:
-                await interaction.response.send_message(
-                    embed=create_error_embed("Error", "You don't have enough coins to buy this item"),
-                    ephemeral=True
-                )
-                return
-
-            # Add item to inventory
-            inventory = Inventory.query.filter_by(
-                user_id=str(interaction.user.id),
-                item_id=item.id
-            ).first()
-
-            if inventory:
-                inventory.quantity += 1
-            else:
-                inventory = Inventory(
-                    user_id=str(interaction.user.id),
-                    item_id=item.id,
-                    quantity=1
-                )
-                db.session.add(inventory)
-
-            # Deduct coins
-            user.wallet -= item.price
-
-            # Record transaction
-            transaction = Transaction(
-                user_id=str(interaction.user.id),
-                amount=-item.price,
-                description=f"Bought {item.name}"
-            )
-            db.session.add(transaction)
-            db.session.commit()
-
-            embed = create_embed(
-                "✅ Purchase Successful",
-                f"You bought {item.emoji} {item.name} for {item.price} coins!",
-                color=0x43B581
-            )
+        try:
+            # First acknowledge the interaction to prevent timeouts
+            await interaction.response.defer()
             
-        await interaction.response.send_message(embed=embed)
+            # Use app context for database operations
+            with self.app.app_context():
+                item = Item.query.filter_by(name=item_name, is_buyable=True).first()
+                if not item:
+                    await interaction.followup.send(
+                        embed=create_error_embed("Error", "That item doesn't exist or isn't available"),
+                        ephemeral=True
+                    )
+                    return
+
+                user = await self.get_user_economy(interaction.user.id)
+                if user.wallet < item.price:
+                    await interaction.followup.send(
+                        embed=create_error_embed("Error", "You don't have enough coins to buy this item"),
+                        ephemeral=True
+                    )
+                    return
+
+                # Add item to inventory
+                inventory = Inventory.query.filter_by(
+                    user_id=str(interaction.user.id),
+                    item_id=item.id
+                ).first()
+
+                if inventory:
+                    inventory.quantity += 1
+                else:
+                    inventory = Inventory(
+                        user_id=str(interaction.user.id),
+                        item_id=item.id,
+                        quantity=1
+                    )
+                    db.session.add(inventory)
+
+                # Deduct coins
+                user.wallet -= item.price
+
+                # Record transaction
+                transaction = Transaction(
+                    user_id=str(interaction.user.id),
+                    amount=-item.price,
+                    description=f"Bought {item.name}"
+                )
+                db.session.add(transaction)
+                db.session.commit()
+
+                embed = create_embed(
+                    "✅ Purchase Successful",
+                    f"You bought {item.emoji} {item.name} for {item.price} coins!",
+                    color=0x43B581
+                )
+                
+                await interaction.followup.send(embed=embed)
+        except Exception as e:
+            logger.error(f"Error in buy command: {str(e)}")
+            # If we haven't responded yet, respond with the error
+            if not interaction.response.is_done():
+                await interaction.response.send_message(f"An error occurred: {str(e)}", ephemeral=True)
+            else:
+                await interaction.followup.send(f"An error occurred: {str(e)}", ephemeral=True)
 
     @app_commands.command(name="inventory", description="View your inventory")
     async def inventory(self, interaction: discord.Interaction):
         """View your inventory"""
-        # Use app context for database operations
-        with self.app.app_context():
-            inventory_items = Inventory.query.filter_by(
-                user_id=str(interaction.user.id)
-            ).all()
+        try:
+            # First acknowledge the interaction to prevent timeouts
+            await interaction.response.defer()
+            
+            # Use app context for database operations
+            with self.app.app_context():
+                inventory_items = Inventory.query.filter_by(
+                    user_id=str(interaction.user.id)
+                ).all()
 
-            if not inventory_items:
-                await interaction.response.send_message(
-                    embed=create_error_embed("Inventory", "Your inventory is empty"),
-                    ephemeral=True
-                )
-                return
+                if not inventory_items:
+                    await interaction.followup.send(
+                        embed=create_error_embed("Inventory", "Your inventory is empty"),
+                        ephemeral=True
+                    )
+                    return
 
-            embed = create_embed(
-                "🎒 Your Inventory",
-                "Here are your items:"
-            )
-
-            for inv in inventory_items:
-                embed.add_field(
-                    name=f"{inv.item.emoji} {inv.item.name} x{inv.quantity}",
-                    value=inv.item.description,
-                    inline=False
+                embed = create_embed(
+                    "🎒 Your Inventory",
+                    "Here are your items:"
                 )
 
-        await interaction.response.send_message(embed=embed)
+                for inv in inventory_items:
+                    embed.add_field(
+                        name=f"{inv.item.emoji} {inv.item.name} x{inv.quantity}",
+                        value=inv.item.description,
+                        inline=False
+                    )
+
+                await interaction.followup.send(embed=embed)
+        except Exception as e:
+            logger.error(f"Error in inventory command: {str(e)}")
+            # If we haven't responded yet, respond with the error
+            if not interaction.response.is_done():
+                await interaction.response.send_message(f"An error occurred: {str(e)}", ephemeral=True)
+            else:
+                await interaction.followup.send(f"An error occurred: {str(e)}", ephemeral=True)
 
 async def setup(bot):
     await bot.add_cog(Economy(bot))
