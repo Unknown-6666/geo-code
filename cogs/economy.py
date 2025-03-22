@@ -132,55 +132,59 @@ class Economy(commands.Cog):
 
         # 40% success rate
         success = random.random() < 0.4
-        robber.last_rob = now
+        
+        # Use app context for all database operations
+        with self.app.app_context():
+            robber.last_rob = now
 
-        if success:
-            # Steal 20-50% of victim's wallet
-            steal_percentage = random.uniform(0.2, 0.5)
-            amount = int(victim.wallet * steal_percentage)
+            if success:
+                # Steal 20-50% of victim's wallet
+                steal_percentage = random.uniform(0.2, 0.5)
+                amount = int(victim.wallet * steal_percentage)
 
-            victim.wallet -= amount
-            robber.wallet += amount
+                victim.wallet -= amount
+                robber.wallet += amount
 
-            # Record transactions
-            transaction1 = Transaction(
-                user_id=str(interaction.user.id),
-                amount=amount,
-                description=f"Stole {amount} coins from {target.name}"
-            )
-            transaction2 = Transaction(
-                user_id=str(target.id),
-                amount=-amount,
-                description=f"Got robbed by {interaction.user.name}"
-            )
-            db.session.add(transaction1)
-            db.session.add(transaction2)
+                # Record transactions
+                transaction1 = Transaction(
+                    user_id=str(interaction.user.id),
+                    amount=amount,
+                    description=f"Stole {amount} coins from {target.name}"
+                )
+                transaction2 = Transaction(
+                    user_id=str(target.id),
+                    amount=-amount,
+                    description=f"Got robbed by {interaction.user.name}"
+                )
+                db.session.add(transaction1)
+                db.session.add(transaction2)
 
-            embed = create_embed(
-                "🦹 Successful Heist!",
-                f"You stole {amount} coins from {target.name}!",
-                color=0x43B581
-            )
-        else:
-            # Fine for failed robbery (100 coins)
-            fine = 100
-            robber.wallet -= fine
+                embed = create_embed(
+                    "🦹 Successful Heist!",
+                    f"You stole {amount} coins from {target.name}!",
+                    color=0x43B581
+                )
+            else:
+                # Fine for failed robbery (100 coins)
+                fine = 100
+                robber.wallet -= fine
 
-            # Record transaction
-            transaction = Transaction(
-                user_id=str(interaction.user.id),
-                amount=-fine,
-                description="Fine for failed robbery attempt"
-            )
-            db.session.add(transaction)
+                # Record transaction
+                transaction = Transaction(
+                    user_id=str(interaction.user.id),
+                    amount=-fine,
+                    description="Fine for failed robbery attempt"
+                )
+                db.session.add(transaction)
 
-            embed = create_embed(
-                "👮 Caught in the Act!",
-                f"You got caught trying to rob {target.name} and had to pay a fine of {fine} coins!",
-                color=0xF04747
-            )
+                embed = create_embed(
+                    "👮 Caught in the Act!",
+                    f"You got caught trying to rob {target.name} and had to pay a fine of {fine} coins!",
+                    color=0xF04747
+                )
 
-        db.session.commit()
+            db.session.commit()
+        
         await interaction.response.send_message(embed=embed)
 
     @app_commands.command(name="balance", description="Check your current balance")
