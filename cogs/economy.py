@@ -186,12 +186,27 @@ class Economy(commands.Cog):
     @app_commands.command(name="balance", description="Check your current balance")
     async def balance(self, interaction: discord.Interaction):
         """Check your wallet and bank balance"""
-        user = await self.get_user_economy(interaction.user.id)
-        embed = create_embed(
-            "💰 Balance",
-            f"Wallet: {user.wallet} coins\nBank: {user.bank}/{user.bank_capacity} coins"
-        )
-        await interaction.response.send_message(embed=embed)
+        try:
+            user = await self.get_user_economy(interaction.user.id)
+            embed = create_embed(
+                "💰 Balance",
+                f"Wallet: {user.wallet} coins\nBank: {user.bank}/{user.bank_capacity} coins"
+            )
+            if not interaction.response.is_done():
+                await interaction.response.send_message(embed=embed)
+            else:
+                await interaction.followup.send(embed=embed)
+        except Exception as e:
+            if not interaction.response.is_done():
+                await interaction.response.send_message(
+                    f"Error checking balance: {str(e)}", 
+                    ephemeral=True
+                )
+            else:
+                await interaction.followup.send(
+                    f"Error checking balance: {str(e)}", 
+                    ephemeral=True
+                )
 
     @app_commands.command(name="daily", description="Collect your daily reward")
     async def daily(self, interaction: discord.Interaction):
