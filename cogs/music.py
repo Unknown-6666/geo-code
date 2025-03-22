@@ -136,8 +136,23 @@ class YTDLSource(discord.PCMVolumeTransformer):
             filename = data['url'] if stream else ytdl.prepare_filename(data)
             logger.info(f"Creating audio source for: {data.get('title', 'Unknown title')} from {data.get('extractor', 'Unknown source')}")
             try:
-                # Use more reliable ffmpeg options
-                audio_source = discord.FFmpegPCMAudio(filename, **ffmpeg_options)
+                # Kill any existing FFmpeg processes first
+                import psutil
+                for proc in psutil.process_iter(['pid', 'name']):
+                    try:
+                        if 'ffmpeg' in proc.info['name'].lower():
+                            proc.kill()
+                    except (psutil.NoSuchProcess, psutil.AccessDenied):
+                        pass
+                
+                # Wait a moment for processes to clean up
+                await asyncio.sleep(1)
+                
+                # Use more reliable ffmpeg options with explicit timeout
+                audio_source = discord.FFmpegPCMAudio(filename, **{
+                    'options': '-vn -b:a 128k',
+                    'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5'
+                })
                 logger.info(f"Created FFmpeg audio source for: {data.get('title', 'Unknown')}")
                 # Return the audio source transformer
                 return cls(audio_source, data=data)
