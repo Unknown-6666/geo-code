@@ -229,18 +229,20 @@ class Economy(commands.Cog):
             await interaction.response.send_message(embed=embed)
             return
 
-        reward = random.randint(100, 200)
-        user.wallet += reward
-        user.last_daily = now
+        # Use app context for database operations
+        with self.app.app_context():
+            reward = random.randint(100, 200)
+            user.wallet += reward
+            user.last_daily = now
 
-        # Record transaction
-        transaction = Transaction(
-            user_id=str(interaction.user.id),
-            amount=reward,
-            description="Daily reward"
-        )
-        db.session.add(transaction)
-        db.session.commit()
+            # Record transaction
+            transaction = Transaction(
+                user_id=str(interaction.user.id),
+                amount=reward,
+                description="Daily reward"
+            )
+            db.session.add(transaction)
+            db.session.commit()
 
         embed = create_embed(
             "📅 Daily Reward",
@@ -265,18 +267,20 @@ class Economy(commands.Cog):
             await interaction.response.send_message(embed=embed)
             return
 
-        earnings = random.randint(10, 50)
-        user.wallet += earnings
-        user.last_work = now
+        # Use app context for database operations
+        with self.app.app_context():
+            earnings = random.randint(10, 50)
+            user.wallet += earnings
+            user.last_work = now
 
-        # Record transaction
-        transaction = Transaction(
-            user_id=str(interaction.user.id),
-            amount=earnings,
-            description="Work earnings"
-        )
-        db.session.add(transaction)
-        db.session.commit()
+            # Record transaction
+            transaction = Transaction(
+                user_id=str(interaction.user.id),
+                amount=earnings,
+                description="Work earnings"
+            )
+            db.session.add(transaction)
+            db.session.commit()
 
         embed = create_embed(
             "💼 Work",
@@ -312,9 +316,11 @@ class Economy(commands.Cog):
             )
             return
 
-        user.wallet -= amount
-        user.bank += amount
-        db.session.commit()
+        # Use app context for database operations
+        with self.app.app_context():
+            user.wallet -= amount
+            user.bank += amount
+            db.session.commit()
 
         embed = create_embed(
             "🏦 Deposit",
@@ -342,9 +348,11 @@ class Economy(commands.Cog):
             )
             return
 
-        user.bank -= amount
-        user.wallet += amount
-        db.session.commit()
+        # Use app context for database operations
+        with self.app.app_context():
+            user.bank -= amount
+            user.wallet += amount
+            db.session.commit()
 
         embed = create_embed(
             "🏦 Withdraw",
@@ -383,25 +391,27 @@ class Economy(commands.Cog):
         result = random.choice(["heads", "tails"])
         won = choice == result
 
-        if won:
-            user.wallet += amount
-            color = 0x43B581
-            title = "🎉 You won!"
-            description = f"The coin landed on {result}!\nYou won {amount} coins!"
-        else:
-            user.wallet -= amount
-            color = 0xF04747
-            title = "😢 You lost!"
-            description = f"The coin landed on {result}!\nYou lost {amount} coins!"
+        # Use app context for database operations
+        with self.app.app_context():
+            if won:
+                user.wallet += amount
+                color = 0x43B581
+                title = "🎉 You won!"
+                description = f"The coin landed on {result}!\nYou won {amount} coins!"
+            else:
+                user.wallet -= amount
+                color = 0xF04747
+                title = "😢 You lost!"
+                description = f"The coin landed on {result}!\nYou lost {amount} coins!"
 
-        # Record transaction
-        transaction = Transaction(
-            user_id=str(interaction.user.id),
-            amount=amount if won else -amount,
-            description=f"Coinflip: {'won' if won else 'lost'}"
-        )
-        db.session.add(transaction)
-        db.session.commit()
+            # Record transaction
+            transaction = Transaction(
+                user_id=str(interaction.user.id),
+                amount=amount if won else -amount,
+                description=f"Coinflip: {'won' if won else 'lost'}"
+            )
+            db.session.add(transaction)
+            db.session.commit()
 
         embed = create_embed(title, description, color=color)
         await interaction.response.send_message(embed=embed)
@@ -447,10 +457,21 @@ class Economy(commands.Cog):
         # Round winnings to integer
         winnings = int(winnings)
 
-        # Update user's wallet
-        user.wallet -= amount
-        if winnings > 0:
-            user.wallet += winnings
+        # Use app context for database operations
+        with self.app.app_context():
+            # Update user's wallet
+            user.wallet -= amount
+            if winnings > 0:
+                user.wallet += winnings
+
+            # Record transaction
+            transaction = Transaction(
+                user_id=str(interaction.user.id),
+                amount=winnings - amount,
+                description="Slots game"
+            )
+            db.session.add(transaction)
+            db.session.commit()
 
         # Create result message
         display = " ".join(result)
@@ -463,41 +484,34 @@ class Economy(commands.Cog):
             description = f"{display}\nBet: {amount} coins\nBetter luck next time!"
             color = 0xF04747
 
-        # Record transaction
-        transaction = Transaction(
-            user_id=str(interaction.user.id),
-            amount=winnings - amount,
-            description="Slots game"
-        )
-        db.session.add(transaction)
-        db.session.commit()
-
         embed = create_embed(title, description, color=color)
         await interaction.response.send_message(embed=embed)
 
     @app_commands.command(name="shop", description="View the item shop")
     async def shop(self, interaction: discord.Interaction):
         """View available items in the shop"""
-        items = Item.query.filter_by(is_buyable=True).all()
+        # Use app context for database operations
+        with self.app.app_context():
+            items = Item.query.filter_by(is_buyable=True).all()
 
-        if not items:
-            await interaction.response.send_message(
-                embed=create_error_embed("Shop", "No items available in the shop right now"),
-                ephemeral=True
+            if not items:
+                await interaction.response.send_message(
+                    embed=create_error_embed("Shop", "No items available in the shop right now"),
+                    ephemeral=True
+                )
+                return
+
+            embed = create_embed(
+                "🛍️ Item Shop",
+                "Here are the items available for purchase:"
             )
-            return
 
-        embed = create_embed(
-            "🛍️ Item Shop",
-            "Here are the items available for purchase:"
-        )
-
-        for item in items:
-            embed.add_field(
-                name=f"{item.emoji} {item.name} - {item.price} coins",
-                value=item.description,
-                inline=False
-            )
+            for item in items:
+                embed.add_field(
+                    name=f"{item.emoji} {item.name} - {item.price} coins",
+                    value=item.description,
+                    inline=False
+                )
 
         embed.set_footer(text="Use /buy <item> to purchase an item")
         await interaction.response.send_message(embed=embed)
@@ -506,82 +520,87 @@ class Economy(commands.Cog):
     @app_commands.describe(item_name="Name of the item to buy")
     async def buy(self, interaction: discord.Interaction, item_name: str):
         """Buy an item from the shop"""
-        item = Item.query.filter_by(name=item_name, is_buyable=True).first()
-        if not item:
-            await interaction.response.send_message(
-                embed=create_error_embed("Error", "That item doesn't exist or isn't available"),
-                ephemeral=True
-            )
-            return
+        # Use app context for database operations
+        with self.app.app_context():
+            item = Item.query.filter_by(name=item_name, is_buyable=True).first()
+            if not item:
+                await interaction.response.send_message(
+                    embed=create_error_embed("Error", "That item doesn't exist or isn't available"),
+                    ephemeral=True
+                )
+                return
 
-        user = await self.get_user_economy(interaction.user.id)
-        if user.wallet < item.price:
-            await interaction.response.send_message(
-                embed=create_error_embed("Error", "You don't have enough coins to buy this item"),
-                ephemeral=True
-            )
-            return
+            user = await self.get_user_economy(interaction.user.id)
+            if user.wallet < item.price:
+                await interaction.response.send_message(
+                    embed=create_error_embed("Error", "You don't have enough coins to buy this item"),
+                    ephemeral=True
+                )
+                return
 
-        # Add item to inventory
-        inventory = Inventory.query.filter_by(
-            user_id=str(interaction.user.id),
-            item_id=item.id
-        ).first()
-
-        if inventory:
-            inventory.quantity += 1
-        else:
-            inventory = Inventory(
+            # Add item to inventory
+            inventory = Inventory.query.filter_by(
                 user_id=str(interaction.user.id),
-                item_id=item.id,
-                quantity=1
+                item_id=item.id
+            ).first()
+
+            if inventory:
+                inventory.quantity += 1
+            else:
+                inventory = Inventory(
+                    user_id=str(interaction.user.id),
+                    item_id=item.id,
+                    quantity=1
+                )
+                db.session.add(inventory)
+
+            # Deduct coins
+            user.wallet -= item.price
+
+            # Record transaction
+            transaction = Transaction(
+                user_id=str(interaction.user.id),
+                amount=-item.price,
+                description=f"Bought {item.name}"
             )
-            db.session.add(inventory)
+            db.session.add(transaction)
+            db.session.commit()
 
-        # Deduct coins
-        user.wallet -= item.price
-
-        # Record transaction
-        transaction = Transaction(
-            user_id=str(interaction.user.id),
-            amount=-item.price,
-            description=f"Bought {item.name}"
-        )
-        db.session.add(transaction)
-        db.session.commit()
-
-        embed = create_embed(
-            "✅ Purchase Successful",
-            f"You bought {item.emoji} {item.name} for {item.price} coins!",
-            color=0x43B581
-        )
+            embed = create_embed(
+                "✅ Purchase Successful",
+                f"You bought {item.emoji} {item.name} for {item.price} coins!",
+                color=0x43B581
+            )
+            
         await interaction.response.send_message(embed=embed)
 
     @app_commands.command(name="inventory", description="View your inventory")
     async def inventory(self, interaction: discord.Interaction):
         """View your inventory"""
-        inventory_items = Inventory.query.filter_by(
-            user_id=str(interaction.user.id)
-        ).all()
+        # Use app context for database operations
+        with self.app.app_context():
+            inventory_items = Inventory.query.filter_by(
+                user_id=str(interaction.user.id)
+            ).all()
 
-        if not inventory_items:
-            await interaction.response.send_message(
-                embed=create_error_embed("Inventory", "Your inventory is empty"),
-                ephemeral=True
+            if not inventory_items:
+                await interaction.response.send_message(
+                    embed=create_error_embed("Inventory", "Your inventory is empty"),
+                    ephemeral=True
+                )
+                return
+
+            embed = create_embed(
+                "🎒 Your Inventory",
+                "Here are your items:"
             )
-            return
 
-        embed = create_embed(
-            "🎒 Your Inventory",
-            "Here are your items:"
-        )
-
-        for inv in inventory_items:
-            embed.add_field(
-                name=f"{inv.item.emoji} {inv.item.name} x{inv.quantity}",
-                value=inv.item.description,
-                inline=False
-            )
+            for inv in inventory_items:
+                embed.add_field(
+                    name=f"{inv.item.emoji} {inv.item.name} x{inv.quantity}",
+                    value=inv.item.description,
+                    inline=False
+                )
 
         await interaction.response.send_message(embed=embed)
 
