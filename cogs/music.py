@@ -162,14 +162,17 @@ class YTDLSource(discord.PCMVolumeTransformer):
                 # Wait briefly for cleanup
                 await asyncio.sleep(0.5)
                 
-                # Use more reliable ffmpeg options
-                audio_source = discord.FFmpegPCMAudio(filename, **{
-                    'options': '-vn -b:a 128k -loglevel error',
-                    'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5 -nostdin'
-                })
+                # Use more reliable ffmpeg options with lower bitrate and explicit format
+                ffmpeg_options = {
+                    'options': '-vn -b:a 64k -bufsize 64k -ar 48000 -ac 2 -f s16le -loglevel warning',
+                    'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5 -nostdin -analyzeduration 0'
+                }
+                
+                audio_source = discord.FFmpegPCMAudio(filename, **ffmpeg_options)
                 logger.info(f"Created FFmpeg audio source for: {data.get('title', 'Unknown')}")
-                # Return the audio source transformer
-                return cls(audio_source, data=data)
+                
+                # Return the audio source transformer with lower initial volume
+                return cls(audio_source, data=data, volume=0.3)
             except Exception as audio_error:
                 logger.error(f"Error creating FFmpeg audio source: {str(audio_error)}")
                 try:
