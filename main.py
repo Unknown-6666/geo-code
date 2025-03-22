@@ -35,17 +35,8 @@ def run_discord_bot():
         # This prevents multiple instances from all trying to sync
         os.environ['SYNC_COMMANDS'] = 'true'
         
-        # If we're in deployment mode, create a flag file to signal the bot
-        # to clear commands first (prevents duplication)
-        if is_deployment:
-            logger.info("Creating deployment flag file for bot...")
-            try:
-                with open('deploy.flag', 'w') as f:
-                    import time
-                    f.write(str(time.time()))
-                logger.info("Deployment flag file created")
-            except Exception as e:
-                logger.error(f"Failed to create deployment flag file: {e}")
+        # No need for deployment flags anymore - the bot now clears commands
+        # on every startup to prevent duplication issues
                 
         # Run the bot
         asyncio.run(bot.main())
