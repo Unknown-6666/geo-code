@@ -231,6 +231,9 @@ class Music(commands.Cog):
         channel = interaction.user.voice.channel
         voice_client = interaction.guild.voice_client
 
+        # Defer the response immediately
+        await interaction.response.defer()
+
         try:
             # Attempt to reconnect if there's an existing but disconnected voice client
             if voice_client:
@@ -239,7 +242,7 @@ class Music(commands.Cog):
                     await voice_client.disconnect(force=True)
                     voice_client = None
                 elif voice_client.channel == channel:
-                    await interaction.response.send_message("I'm already in your voice channel!", ephemeral=True)
+                    await interaction.followup.send("I'm already in your voice channel!", ephemeral=True)
                     return
             
             # Connect or move to the specified channel
@@ -251,17 +254,10 @@ class Music(commands.Cog):
                     voice_client = await channel.connect(timeout=10.0, reconnect=True)
                 except asyncio.TimeoutError:
                     logger.error(f"Timed out connecting to voice channel {channel.id}")
-                    # Use followup if response is already used
-                    try:
-                        await interaction.response.send_message(
-                            embed=create_error_embed("Connection Error", "Timed out connecting to voice channel. Please try again or use a different channel."),
-                            ephemeral=True
-                        )
-                    except discord.errors.InteractionResponded:
-                        await interaction.followup.send(
-                            embed=create_error_embed("Connection Error", "Timed out connecting to voice channel. Please try again or use a different channel."),
-                            ephemeral=True
-                        )
+                    await interaction.followup.send(
+                        embed=create_error_embed("Connection Error", "Timed out connecting to voice channel. Please try again or use a different channel."),
+                        ephemeral=True
+                    )
                     return
 
             # Verify connection was successful
