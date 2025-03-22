@@ -198,11 +198,29 @@ class ProfanityFilter(commands.Cog):
                     # Try to timeout for 10 minutes
                     try:
                         # 600 seconds = 10 minutes
-                        await message.author.timeout(discord.utils.utcnow() + datetime.timedelta(seconds=600), 
+                        timeout_duration = datetime.timedelta(seconds=600)
+                        member = message.guild.get_member(message.author.id)
+                        if member:
+                            await member.timeout_for(timeout_duration, 
                                                 reason="Automatic timeout for repeated use of inappropriate language")
-                        logger.info(f"User {message.author.name} ({message.author.id}) timed out for 10 minutes due to repeated profanity in server '{message.guild.name}'")
+                            logger.info(f"User {message.author.name} ({message.author.id}) timed out for 10 minutes due to repeated profanity in server '{message.guild.name}'")
+                        else:
+                            logger.warning(f"Could not find member object for user {message.author.name} ({message.author.id})")
                     except discord.Forbidden:
                         logger.warning(f"No permission to timeout {message.author.name} ({message.author.id}) in server '{message.guild.name}'")
+                    except AttributeError as e:
+                        logger.error(f"Attribute error when timing out user: {str(e)}")
+                        # Try alternative timeout method for discord.py compatibility
+                        try:
+                            member = message.guild.get_member(message.author.id)
+                            if member:
+                                until = discord.utils.utcnow() + datetime.timedelta(seconds=600)
+                                await member.timeout(until, reason="Automatic timeout for repeated use of inappropriate language")
+                                logger.info(f"Timeout applied using alternative method for {message.author.name}")
+                            else:
+                                logger.warning(f"Could not find member object for user {message.author.name} ({message.author.id})")
+                        except Exception as e2:
+                            logger.error(f"Second attempt to timeout failed: {str(e2)}")
                     except Exception as e:
                         logger.error(f"Error timing out user: {str(e)}")
                         
