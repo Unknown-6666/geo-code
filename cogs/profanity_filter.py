@@ -558,11 +558,13 @@ class ProfanityFilter(commands.Cog):
                 # Try to resolve user
                 try:
                     member = await interaction.guild.fetch_member(int(user_id))
-                    user_name = member.display_name if member else f"Unknown User ({user_id})"
+                    user_name = member.name if member else f"Unknown User ({user_id})"
+                    display_name = member.display_name if member else user_name
+                    formatted_name = f"{display_name} (@{user_name})"
                 except:
-                    user_name = f"Unknown User ({user_id})"
+                    formatted_name = f"Unknown User ({user_id})"
                     
-                warning_list.append(f"**{user_name}** - {count} warning(s)")
+                warning_list.append(f"**{formatted_name}** - {count} warning(s)")
         
         if not warning_list:
             await interaction.response.send_message(f"No active warnings in server '{server_name}'.", ephemeral=True)
