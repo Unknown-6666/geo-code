@@ -195,32 +195,53 @@ class ProfanityFilter(commands.Cog):
                     
                 # If warning count exceeds threshold, take action
                 if warning_count >= 3:
-                    # Try to timeout for 10 minutes
+                    # Try to timeout for 10 minutes - Fixed implementation
                     try:
-                        # 600 seconds = 10 minutes
-                        timeout_duration = datetime.timedelta(seconds=600)
-                        member = message.guild.get_member(message.author.id)
-                        if member:
-                            await member.timeout_for(timeout_duration, 
-                                                reason="Automatic timeout for repeated use of inappropriate language")
-                            logger.info(f"User {message.author.name} ({message.author.id}) timed out for 10 minutes due to repeated profanity in server '{message.guild.name}'")
-                        else:
-                            logger.warning(f"Could not find member object for user {message.author.name} ({message.author.id})")
-                    except discord.Forbidden:
-                        logger.warning(f"No permission to timeout {message.author.name} ({message.author.id}) in server '{message.guild.name}'")
+                        # The timeout threshold is 3 warnings, but we'll continue trying if we get more
+                        logger.info(f"Trying to timeout user with {warning_count} warnings")
+                        
+                        # Make sure we have all the permissions we need
+                        bot_member = message.guild.get_member(self.bot.user.id)
+                        if not bot_member.guild_permissions.moderate_members:
+                            logger.warning(f"Bot lacks 'Moderate Members' permission in server '{message.guild.name}'")
+                            # Send a message to server logs channel if one exists
+                            try:
+                                log_channel = discord.utils.get(message.guild.text_channels, name="mod-logs")
+                                if not log_channel:
+                                    log_channel = discord.utils.get(message.guild.text_channels, name="logs")
+                                    
+                                if log_channel:
+                                    await log_channel.send(f"⚠️ Cannot timeout {message.author.mention} due to missing 'Moderate Members' permission. Please check my role permissions.")
+                            except:
+                                pass
+                            return
+                            
+                        # Get the proper member object
+                        member = message.author
+                        
+                        # Calculate timeout duration - discord.py 2.0+ uses until parameter
+                        until = discord.utils.utcnow() + datetime.timedelta(seconds=600)
+                        
+                        # Execute the timeout with proper error handling
+                        await member.timeout(until=until, reason="Automatic timeout for repeated use of inappropriate language")
+                        logger.info(f"User {message.author.name} ({message.author.id}) timed out for 10 minutes due to repeated profanity in server '{message.guild.name}'")
+                        
+                        # Notify the user via DM that they've been timed out
+                        try:
+                            await message.author.send(
+                                f"🛑 You have been timed out in **{message.guild.name}** for 10 minutes due to repeated use of inappropriate language.\n"
+                                f"This happened after receiving {warning_count} warnings."
+                            )
+                        except:
+                            # Can't send DM, but we already processed the timeout
+                            pass
+                            
+                    except discord.Forbidden as e:
+                        logger.warning(f"FORBIDDEN: No permission to timeout {message.author.name} ({message.author.id}) in server '{message.guild.name}': {str(e)}")
                     except AttributeError as e:
                         logger.error(f"Attribute error when timing out user: {str(e)}")
-                        # Try alternative timeout method for discord.py compatibility
-                        try:
-                            member = message.guild.get_member(message.author.id)
-                            if member:
-                                until = discord.utils.utcnow() + datetime.timedelta(seconds=600)
-                                await member.timeout(until, reason="Automatic timeout for repeated use of inappropriate language")
-                                logger.info(f"Timeout applied using alternative method for {message.author.name}")
-                            else:
-                                logger.warning(f"Could not find member object for user {message.author.name} ({message.author.id})")
-                        except Exception as e2:
-                            logger.error(f"Second attempt to timeout failed: {str(e2)}")
+                        # For older discord.py versions or other issues, we'll skip this
+                        logger.warning(f"Server '{message.guild.name}' might need an updated timeout implementation")
                     except Exception as e:
                         logger.error(f"Error timing out user: {str(e)}")
                         
