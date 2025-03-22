@@ -270,6 +270,11 @@ class Music(commands.Cog):
             # Defer only if we haven't responded yet
             if not interaction.response.is_done():
                 await interaction.response.defer()
+                
+        except Exception as e:
+            logger.error(f"Error checking voice state: {str(e)}")
+            return
+
         logger.info(f"Processing play command for query: {query}")
 
         try:
