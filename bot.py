@@ -46,28 +46,17 @@ class Bot(commands.Bot):
         except Exception as e:
             logger.error(f"Error loading cogs: {str(e)}")
             
-        # First check if there's a deploy flag file which indicates this is a deployment
-        # This helps prevent command duplication when deploying
-        is_deployment = os.path.exists('deploy.flag') or '--deploy' in sys.argv
-        
-        # Modified approach for syncing commands:
-        # When deploying, we'll clear commands first to prevent duplication
-        # Otherwise we'll just sync to update existing commands
+        # ALWAYS clear commands before syncing to prevent duplication issues
+        # This is the most reliable way to ensure we never get duplicate commands
         logger.info("Syncing global commands with Discord...")
         try:
-            if is_deployment:
-                logger.warning("Deployment mode detected - clearing commands first to prevent duplication")
-                # Clear all commands to prevent duplication
-                self.tree.clear_commands(guild=None)
-                await self.tree.sync()
-                logger.info("Cleared all commands before re-syncing")
+            # First step: Clear all commands to prevent duplication
+            logger.warning("Clearing all commands to prevent duplication")
+            self.tree.clear_commands(guild=None)
+            await self.tree.sync()
+            logger.info("Cleared all commands successfully")
                 
-                # Create a marker file to prevent clearing on the next restart
-                # unless it's another deployment
-                with open('deploy.flag', 'w') as f:
-                    f.write(str(time.time()))
-                    
-            # Now sync application commands with Discord
+            # Second step: Sync commands with the freshly loaded cogs
             synced = await self.tree.sync()
             logger.info(f"Global commands synced successfully - registered {len(synced)} commands")
             

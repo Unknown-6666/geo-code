@@ -49,14 +49,8 @@ if __name__ == "__main__":
     # Mark that we're in deployment mode
     os.environ['DEPLOYMENT'] = 'true'
     
-    # Create a deployment flag file for the bot to detect
-    logger.info("Creating deployment flag file...")
-    try:
-        with open('deploy.flag', 'w') as f:
-            f.write(str(time.time()))
-        logger.info("Deployment flag file created")
-    except Exception as e:
-        logger.error(f"Failed to create deployment flag file: {e}")
+    # No need for deployment flags anymore - the bot now clears commands
+    # on every startup to prevent duplication issues
     
     # Start Discord bot in a separate thread
     bot_thread = threading.Thread(target=run_discord_bot)
