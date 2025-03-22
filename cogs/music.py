@@ -2,6 +2,9 @@ import discord
 import logging
 import asyncio
 import yt_dlp
+import os
+import signal
+import psutil
 from discord import app_commands
 from discord.ext import commands
 from typing import Literal
