@@ -46,17 +46,34 @@ class Bot(commands.Bot):
         except Exception as e:
             logger.error(f"Error loading cogs: {str(e)}")
             
-        # Now that all cogs are loaded, sync commands - this is a new approach:
-        # We don't clear commands first because that removes all registered commands
-        # Instead we sync directly which will update all command registrations
+        # First check if there's a deploy flag file which indicates this is a deployment
+        # This helps prevent command duplication when deploying
+        is_deployment = os.path.exists('deploy.flag') or '--deploy' in sys.argv
+        
+        # Modified approach for syncing commands:
+        # When deploying, we'll clear commands first to prevent duplication
+        # Otherwise we'll just sync to update existing commands
         logger.info("Syncing global commands with Discord...")
         try:
-            # Sync application commands with Discord
+            if is_deployment:
+                logger.warning("Deployment mode detected - clearing commands first to prevent duplication")
+                # Clear all commands to prevent duplication
+                self.tree.clear_commands(guild=None)
+                await self.tree.sync()
+                logger.info("Cleared all commands before re-syncing")
+                
+                # Create a marker file to prevent clearing on the next restart
+                # unless it's another deployment
+                with open('deploy.flag', 'w') as f:
+                    f.write(str(time.time()))
+                    
+            # Now sync application commands with Discord
             synced = await self.tree.sync()
             logger.info(f"Global commands synced successfully - registered {len(synced)} commands")
+            
         except Exception as e:
             logger.error(f"Error syncing commands: {str(e)}")
-            logger.info("If commands are not updating, use !sync manually as the bot owner.")
+            logger.info("If commands are not updating, use !sync or !clear_commands manually as the bot owner.")
 
     async def on_ready(self):
         """Called when the bot is ready"""
