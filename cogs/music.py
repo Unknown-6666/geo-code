@@ -136,22 +136,33 @@ class YTDLSource(discord.PCMVolumeTransformer):
             filename = data['url'] if stream else ytdl.prepare_filename(data)
             logger.info(f"Creating audio source for: {data.get('title', 'Unknown title')} from {data.get('extractor', 'Unknown source')}")
             try:
-                # Kill any existing FFmpeg processes first
+                # More targeted FFmpeg process cleanup
                 import psutil
-                for proc in psutil.process_iter(['pid', 'name']):
+                import signal
+                current_pid = os.getpid()
+                parent = psutil.Process(current_pid)
+                
+                # Only kill child FFmpeg processes of the current process
+                children = parent.children(recursive=True)
+                for child in children:
                     try:
-                        if 'ffmpeg' in proc.info['name'].lower():
-                            proc.kill()
-                    except (psutil.NoSuchProcess, psutil.AccessDenied):
-                        pass
+                        if 'ffmpeg' in child.name().lower():
+                            logger.info(f"Terminating FFmpeg process {child.pid}")
+                            child.terminate()
+                            child.wait(timeout=2)
+                    except (psutil.NoSuchProcess, psutil.TimeoutExpired):
+                        try:
+                            os.kill(child.pid, signal.SIGKILL)
+                        except ProcessLookupError:
+                            pass
                 
-                # Wait a moment for processes to clean up
-                await asyncio.sleep(1)
+                # Wait briefly for cleanup
+                await asyncio.sleep(0.5)
                 
-                # Use more reliable ffmpeg options with explicit timeout
+                # Use more reliable ffmpeg options
                 audio_source = discord.FFmpegPCMAudio(filename, **{
-                    'options': '-vn -b:a 128k',
-                    'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5'
+                    'options': '-vn -b:a 128k -loglevel error',
+                    'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5 -nostdin'
                 })
                 logger.info(f"Created FFmpeg audio source for: {data.get('title', 'Unknown')}")
                 # Return the audio source transformer
