@@ -10,7 +10,7 @@ from collections import deque
 
 logger = logging.getLogger('discord')
 
-# Configure yt-dlp
+# Configure yt-dlp with more reliable options
 ytdl_format_options = {
     'format': 'bestaudio/best',
     'extractaudio': True,
@@ -21,20 +21,18 @@ ytdl_format_options = {
     'nocheckcertificate': True,
     'ignoreerrors': False,
     'logtostderr': False,
-    'quiet': True,
-    'no_warnings': True,
+    'quiet': False,  # Enable output to troubleshoot
+    'no_warnings': False,  # Show warnings for debugging
     'default_search': 'ytsearch',  # Use YouTube search by default
     'source_address': '0.0.0.0',
     # Support for SoundCloud and other platforms
-    'extractors': 'soundcloud,youtube,youtubewebarchive,spotify,spotifypodcast',
+    'extractors': 'youtube',  # Simplified to just youtube for now
     'extractor_args': {
-        'spotify': {
-            'username': None,
-            'password': None,
-            'client_id': None,
-            'client_secret': None,
+        'youtube': {
+            'skip': ['dash', 'hls'],  # Skip problematic formats
         },
     },
+    'verbose': True,  # Enable verbose output for debugging
 }
 
 ffmpeg_options = {
@@ -48,12 +46,18 @@ class YTDLSource(discord.PCMVolumeTransformer):
     def __init__(self, source, *, data, volume=0.5):
         super().__init__(source, volume)
         self.data = data
-        self.title = data.get('title')
-        self.url = data.get('url')
+        self.title = data.get('title', 'Unknown title')
+        self.url = data.get('url', '')
         self.duration = data.get('duration')
         self.thumbnail = data.get('thumbnail')
         self.webpage_url = data.get('webpage_url')
         self.platform = data.get('extractor', 'Unknown')
+        
+        # Keep track of the ffmpeg process for proper cleanup
+        self._ffmpeg_process = None
+        if hasattr(source, '_process'):
+            self._ffmpeg_process = source._process
+            logger.info(f"Tracking ffmpeg process for {self.title}")
         
     @classmethod
     async def search(cls, query, *, loop=None, stream=True):
@@ -132,15 +136,33 @@ class YTDLSource(discord.PCMVolumeTransformer):
             filename = data['url'] if stream else ytdl.prepare_filename(data)
             logger.info(f"Creating audio source for: {data.get('title', 'Unknown title')} from {data.get('extractor', 'Unknown source')}")
             try:
+                # Use more reliable ffmpeg options
                 audio_source = discord.FFmpegPCMAudio(filename, **ffmpeg_options)
+                logger.info(f"Created FFmpeg audio source for: {data.get('title', 'Unknown')}")
+                # Return the audio source transformer
                 return cls(audio_source, data=data)
             except Exception as audio_error:
                 logger.error(f"Error creating FFmpeg audio source: {str(audio_error)}")
-                # Try with different options if first attempt fails
-                simplified_options = {'options': '-vn'}
-                logger.info("Retrying with simplified FFmpeg options")
-                audio_source = discord.FFmpegPCMAudio(filename, **simplified_options)
-                return cls(audio_source, data=data)
+                try:
+                    # Try with simplified options if first attempt fails
+                    simplified_options = {
+                        'options': '-vn',
+                        'before_options': '-reconnect 1 -reconnect_streamed 1'
+                    }
+                    logger.info("Retrying with simplified FFmpeg options")
+                    # Verify the filename is valid
+                    if not filename or not isinstance(filename, str):
+                        logger.error(f"Invalid filename: {filename}")
+                        raise ValueError(f"Invalid URL for FFmpeg: {filename}")
+                    
+                    # Create the audio source with simplified options
+                    logger.info(f"Creating FFmpeg with URL: {filename[:50]}... (truncated)")
+                    audio_source = discord.FFmpegPCMAudio(filename, **simplified_options)
+                    logger.info(f"Successfully created audio source with simplified options")
+                    return cls(audio_source, data=data)
+                except Exception as retry_error:
+                    logger.error(f"Second attempt at creating audio source failed: {str(retry_error)}")
+                    raise
         except Exception as e:
             logger.error(f"Error extracting info from URL {url}: {str(e)}")
             # Include more detailed error info
@@ -364,13 +386,21 @@ class Music(commands.Cog):
         """Play the next song in the queue"""
         queue = self.get_queue(guild.id)
 
-        # Clean up any existing player
+        # Clean up any existing player more carefully
         if voice_client and voice_client.source:
             try:
-                voice_client.source._player.kill()  # Force kill FFmpeg process
-            except:
-                pass
-            voice_client.stop()
+                # Only attempt to kill if the attribute exists
+                if hasattr(voice_client.source, '_player') and voice_client.source._player:
+                    logger.info(f"Safely terminating previous ffmpeg process")
+                    voice_client.source._player.kill()
+            except Exception as e:
+                logger.error(f"Error cleaning up previous player: {str(e)}")
+            
+            # Safely stop the current playing audio
+            try:
+                voice_client.stop()
+            except Exception as e:
+                logger.error(f"Error stopping voice client: {str(e)}")
 
         if not queue:
             self.now_playing[guild.id] = None
@@ -383,25 +413,37 @@ class Music(commands.Cog):
             return
 
         try:
+            # Take the next song from the queue
             url = queue.popleft()
             logger.info(f"Attempting to play next song from URL: {url}")
             
             try:
+                # Create a brief delay to ensure previous ffmpeg processes are cleaned up
+                await asyncio.sleep(0.5)
+                
+                # Create the audio source
                 player = await YTDLSource.from_url(url, loop=self.bot.loop)
                 player.volume = self._volume.get(guild.id, 0.5)
                 
                 self.now_playing[guild.id] = player
                 logger.info(f"Playing next song in guild {guild.id}: {player.title}")
                 
+                # Define callback with better error handling
                 def after_callback(e):
                     if e:
                         logger.error(f"Error in play_next callback: {str(e)}")
-                    asyncio.run_coroutine_threadsafe(
-                        self.play_next(guild, voice_client), self.bot.loop
-                    )
+                    # Use a try-except block here to prevent potential crashes
+                    try:
+                        asyncio.run_coroutine_threadsafe(
+                            self.play_next(guild, voice_client), self.bot.loop
+                        )
+                    except Exception as callback_error:
+                        logger.error(f"Failed to schedule next song: {str(callback_error)}")
                 
                 # Check if the voice client is still connected before playing
-                if voice_client.is_connected():
+                if voice_client and voice_client.is_connected():
+                    # Add extra logging for debugging
+                    logger.info(f"Starting playback of {player.title}")
                     voice_client.play(player, after=after_callback)
                 else:
                     logger.warning(f"Voice client disconnected before playing in guild {guild.id}")
@@ -409,6 +451,10 @@ class Music(commands.Cog):
                     queue.clear()
             except Exception as e:
                 logger.error(f"Error getting audio source: {str(e)}")
+                # Add detailed error info
+                if hasattr(e, "__dict__"):
+                    for key, value in e.__dict__.items():
+                        logger.error(f"Error detail - {key}: {value}")
                 # Try to play the next song in the queue
                 asyncio.create_task(self.play_next(guild, voice_client))
                 
