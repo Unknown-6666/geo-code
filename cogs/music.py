@@ -258,14 +258,18 @@ class Music(commands.Cog):
         - /play https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT (Spotify URL)
         - /play https://soundcloud.com/artist/song-name (SoundCloud URL)
         """
-        if not interaction.user.voice:
-            await interaction.response.send_message(
-                embed=create_error_embed("Error", "You must be in a voice channel to use this command."),
-                ephemeral=True
-            )
-            return
+        try:
+            if not interaction.user.voice:
+                if not interaction.response.is_done():
+                    await interaction.response.send_message(
+                        embed=create_error_embed("Error", "You must be in a voice channel to use this command."),
+                        ephemeral=True
+                    )
+                return
 
-        await interaction.response.defer()  # This might take a while
+            # Defer only if we haven't responded yet
+            if not interaction.response.is_done():
+                await interaction.response.defer()
         logger.info(f"Processing play command for query: {query}")
 
         try:
@@ -354,6 +358,14 @@ class Music(commands.Cog):
     async def play_next(self, guild, voice_client):
         """Play the next song in the queue"""
         queue = self.get_queue(guild.id)
+
+        # Clean up any existing player
+        if voice_client and voice_client.source:
+            try:
+                voice_client.source._player.kill()  # Force kill FFmpeg process
+            except:
+                pass
+            voice_client.stop()
 
         if not queue:
             self.now_playing[guild.id] = None
