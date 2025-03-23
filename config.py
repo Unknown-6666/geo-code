@@ -7,7 +7,7 @@ if not TOKEN:
     raise ValueError("No Discord token found in environment variables")
 
 # Bot owner and permission configuration
-BOT_OWNER_ID = 1003686821600960582  # Your Discord ID
+BOT_OWNER_IDS = (1003686821600960582, 1296213550917881856)  # Your Discord IDs
 MOD_ROLE_IDS = [
     954166360680837182, 972579273493872710  # Moderator role ID
 ]
