@@ -40,7 +40,8 @@ class Bot(commands.Bot):
                 "cogs.memes",
                 "cogs.moderation",
                 "cogs.music",
-                "cogs.profanity_filter"
+                "cogs.profanity_filter",
+                "cogs.rules_enforcer"  # Added new rules enforcement cog
             ]
             
             for cog in cogs:
