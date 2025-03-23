@@ -1,14 +1,14 @@
 from discord import Member
 from discord.ext import commands
-from config import BOT_OWNER_ID, MOD_ROLE_IDS
+from config import BOT_OWNER_IDS, MOD_ROLE_IDS
 import logging
 
 logger = logging.getLogger('discord')
 
 def is_bot_owner(user_id: int) -> bool:
     """Check if a user is the bot owner"""
-    result = user_id == BOT_OWNER_ID
-    logger.debug(f"Checking bot owner: user_id={user_id}, owner_id={BOT_OWNER_ID}, result={result}")
+    result = user_id in BOT_OWNER_IDS
+    logger.debug(f"Checking bot owner: user_id={user_id}, owner_ids={BOT_OWNER_IDS}, result={result}")
     return result
 
 def is_mod(member: Member) -> bool:
