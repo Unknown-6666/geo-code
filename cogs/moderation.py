@@ -13,6 +13,7 @@ logger = logging.getLogger('discord')
 class Moderation(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.recent_actions = {}  # Store recent moderation actions for potential undoing
         logger.info("Moderation cog initialized")
 
     @commands.command(name="kick")
@@ -35,12 +36,22 @@ class Moderation(commands.Cog):
             return
             
         try:
+            # Store kicked user info for potential undoing
+            user_info = {
+                "user_id": user.id,
+                "user_name": str(user),
+                "kicked_by": ctx.author.id,
+                "kicked_at": discord.utils.utcnow(),
+                "reason": reason
+            }
+            self.recent_actions[f"kick_{ctx.guild.id}"] = user_info
+            
             await user.kick(reason=f"Kicked by {ctx.author}: {reason}")
             logger.info(f"User {user} was kicked by {ctx.author} for reason: {reason}")
             
             embed = create_embed(
                 "👢 User Kicked",
-                f"{user.mention} has been kicked from the server.\nReason: {reason or 'No reason provided'}",
+                f"{user.mention} has been kicked from the server.\nReason: {reason or 'No reason provided'}\n\nYou can use the `!undokick` command to invite this user back.",
                 color=0xF04747
             )
             await ctx.send(embed=embed)
@@ -85,12 +96,22 @@ class Moderation(commands.Cog):
             return
 
         try:
+            # Store kicked user info for potential undoing
+            user_info = {
+                "user_id": user.id,
+                "user_name": str(user),
+                "kicked_by": interaction.user.id,
+                "kicked_at": discord.utils.utcnow(),
+                "reason": reason
+            }
+            self.recent_actions[f"kick_{interaction.guild.id}"] = user_info
+            
             await user.kick(reason=f"Kicked by {interaction.user}: {reason}")
             logger.info(f"User {user} was kicked by {interaction.user} for reason: {reason}")
 
             embed = create_embed(
                 "👢 User Kicked",
-                f"{user.mention} has been kicked from the server.\nReason: {reason or 'No reason provided'}",
+                f"{user.mention} has been kicked from the server.\nReason: {reason or 'No reason provided'}\n\nYou can use the `/undokick` command to invite this user back.",
                 color=0xF04747
             )
             await interaction.response.send_message(embed=embed)
@@ -400,6 +421,225 @@ class Moderation(commands.Cog):
                 ephemeral=True
             )
 
+    @commands.command(name="undokick")
+    @commands.check_any(commands.has_permissions(kick_members=True), PermissionChecks.is_mod())
+    async def undokick_prefix(self, ctx, *, reason: str = None):
+        """Invite back the last kicked user (prefix command)"""
+        # Check if the bot can create invites
+        if not ctx.guild.me.guild_permissions.create_instant_invite:
+            await ctx.send(embed=create_error_embed("Error", "I don't have permission to create invites."))
+            return
+            
+        # Check if there's a record of a recently kicked user
+        kick_key = f"kick_{ctx.guild.id}"
+        if kick_key not in self.recent_actions:
+            await ctx.send(embed=create_error_embed("Error", "I don't have any record of recently kicked users."))
+            return
+            
+        user_info = self.recent_actions[kick_key]
+        
+        # Don't allow undoing kicks by other moderators unless you're an admin
+        if user_info["kicked_by"] != ctx.author.id and not is_admin(ctx.author) and not is_bot_owner(ctx.author.id):
+            await ctx.send(embed=create_error_embed(
+                "Error", 
+                "You cannot undo kicks performed by other moderators unless you're an admin."
+            ))
+            return
+            
+        try:
+            # Create an invite
+            invite = await ctx.channel.create_invite(
+                max_age=86400,  # 24 hours in seconds
+                max_uses=1,     # One-time use
+                reason=f"Undo kick for {user_info['user_name']} by {ctx.author}"
+            )
+            
+            embed = create_embed(
+                "🔄 Kick Undone",
+                f"An invite has been created for {user_info['user_name']} to rejoin the server.\n\n"
+                f"**Invite Link:** {invite.url}\n"
+                f"This invite will expire in 24 hours and can only be used once.\n\n"
+                f"**Original Kick Reason:** {user_info['reason'] or 'No reason provided'}\n"
+                f"**Undo Reason:** {reason or 'No reason provided'}",
+                color=0x43B581
+            )
+            await ctx.send(embed=embed)
+            
+            # Remove the record to prevent duplicate undos
+            del self.recent_actions[kick_key]
+            
+        except discord.Forbidden:
+            await ctx.send(embed=create_error_embed("Error", "I don't have permission to create invites."))
+        except Exception as e:
+            logger.error(f"Error undoing kick: {str(e)}")
+            await ctx.send(embed=create_error_embed("Error", "An error occurred while trying to undo the kick."))
+    
+    @app_commands.command(name="undokick", description="Invite back the last kicked user")
+    @app_commands.describe(
+        reason="Reason for undoing the kick"
+    )
+    @app_commands.default_permissions(kick_members=True)
+    @app_commands.check(PermissionChecks.slash_is_mod())
+    async def undokick(self, interaction: discord.Interaction, reason: str = None):
+        """Invite back the last kicked user"""
+        # Check if the bot can create invites
+        if not interaction.guild.me.guild_permissions.create_instant_invite:
+            await interaction.response.send_message(
+                embed=create_error_embed("Error", "I don't have permission to create invites."),
+                ephemeral=True
+            )
+            return
+            
+        # Check if there's a record of a recently kicked user
+        kick_key = f"kick_{interaction.guild.id}"
+        if kick_key not in self.recent_actions:
+            await interaction.response.send_message(
+                embed=create_error_embed("Error", "I don't have any record of recently kicked users."),
+                ephemeral=True
+            )
+            return
+            
+        user_info = self.recent_actions[kick_key]
+        
+        # Don't allow undoing kicks by other moderators unless you're an admin
+        if user_info["kicked_by"] != interaction.user.id and not is_admin(interaction.user) and not is_bot_owner(interaction.user.id):
+            await interaction.response.send_message(
+                embed=create_error_embed(
+                    "Error", 
+                    "You cannot undo kicks performed by other moderators unless you're an admin."
+                ),
+                ephemeral=True
+            )
+            return
+            
+        try:
+            # Create an invite
+            invite = await interaction.channel.create_invite(
+                max_age=86400,  # 24 hours in seconds
+                max_uses=1,     # One-time use
+                reason=f"Undo kick for {user_info['user_name']} by {interaction.user}"
+            )
+            
+            embed = create_embed(
+                "🔄 Kick Undone",
+                f"An invite has been created for {user_info['user_name']} to rejoin the server.\n\n"
+                f"**Invite Link:** {invite.url}\n"
+                f"This invite will expire in 24 hours and can only be used once.\n\n"
+                f"**Original Kick Reason:** {user_info['reason'] or 'No reason provided'}\n"
+                f"**Undo Reason:** {reason or 'No reason provided'}",
+                color=0x43B581
+            )
+            await interaction.response.send_message(embed=embed)
+            
+            # Remove the record to prevent duplicate undos
+            del self.recent_actions[kick_key]
+            
+        except discord.Forbidden:
+            await interaction.response.send_message(
+                embed=create_error_embed("Error", "I don't have permission to create invites."),
+                ephemeral=True
+            )
+        except Exception as e:
+            logger.error(f"Error undoing kick: {str(e)}")
+            await interaction.response.send_message(
+                embed=create_error_embed("Error", "An error occurred while trying to undo the kick."),
+                ephemeral=True
+            )
+    
+    @commands.command(name="untimeout")
+    @commands.check_any(commands.has_permissions(moderate_members=True), PermissionChecks.is_mod())
+    async def untimeout_prefix(self, ctx, user: discord.Member, *, reason: str = None):
+        """Remove timeout from a user (prefix command)"""
+        # Check if the bot can moderate members
+        if not ctx.guild.me.guild_permissions.moderate_members:
+            await ctx.send(embed=create_error_embed("Error", "I don't have permission to manage timeouts."))
+            return
+            
+        # Check if the user is trying to untimeout themselves
+        if user == ctx.author:
+            await ctx.send(embed=create_error_embed("Error", "You don't need to remove a timeout from yourself."))
+            return
+            
+        # Check if the user is trying to untimeout someone with a higher role
+        if user.top_role >= ctx.author.top_role and not is_bot_owner(ctx.author.id):
+            await ctx.send(embed=create_error_embed("Error", "You cannot remove a timeout from someone with a higher or equal role."))
+            return
+            
+        try:
+            # Remove timeout by setting duration to None
+            await user.timeout(None, reason=f"Timeout removed by {ctx.author}: {reason}")
+            logger.info(f"Timeout removed from user {user} by {ctx.author}. Reason: {reason}")
+            
+            embed = create_embed(
+                "🔊 Timeout Removed",
+                f"Timeout has been removed from {user.mention}.\nReason: {reason or 'No reason provided'}",
+                color=0x43B581
+            )
+            await ctx.send(embed=embed)
+            
+        except discord.Forbidden:
+            await ctx.send(embed=create_error_embed("Error", "I don't have permission to remove timeouts from this user."))
+        except Exception as e:
+            logger.error(f"Error removing timeout: {str(e)}")
+            await ctx.send(embed=create_error_embed("Error", "An error occurred while trying to remove the timeout."))
+    
+    @app_commands.command(name="untimeout", description="Remove timeout from a user")
+    @app_commands.describe(
+        user="The user to remove timeout from",
+        reason="Reason for removing the timeout"
+    )
+    @app_commands.default_permissions(moderate_members=True)
+    @app_commands.check(PermissionChecks.slash_is_mod())
+    async def untimeout(self, interaction: discord.Interaction, user: discord.Member, reason: str = None):
+        """Remove timeout from a user"""
+        # Check if the bot can moderate members
+        if not interaction.guild.me.guild_permissions.moderate_members:
+            await interaction.response.send_message(
+                embed=create_error_embed("Error", "I don't have permission to manage timeouts."),
+                ephemeral=True
+            )
+            return
+
+        # Check if the user is trying to untimeout themselves
+        if user == interaction.user:
+            await interaction.response.send_message(
+                embed=create_error_embed("Error", "You don't need to remove a timeout from yourself."),
+                ephemeral=True
+            )
+            return
+
+        # Check if the user is trying to untimeout someone with a higher role
+        if user.top_role >= interaction.user.top_role and not is_bot_owner(interaction.user.id):
+            await interaction.response.send_message(
+                embed=create_error_embed("Error", "You cannot remove a timeout from someone with a higher or equal role."),
+                ephemeral=True
+            )
+            return
+
+        try:
+            # Remove timeout by setting duration to None
+            await user.timeout(None, reason=f"Timeout removed by {interaction.user}: {reason}")
+            logger.info(f"Timeout removed from user {user} by {interaction.user}. Reason: {reason}")
+
+            embed = create_embed(
+                "🔊 Timeout Removed",
+                f"Timeout has been removed from {user.mention}.\nReason: {reason or 'No reason provided'}",
+                color=0x43B581
+            )
+            await interaction.response.send_message(embed=embed)
+
+        except discord.Forbidden:
+            await interaction.response.send_message(
+                embed=create_error_embed("Error", "I don't have permission to remove timeouts from this user."),
+                ephemeral=True
+            )
+        except Exception as e:
+            logger.error(f"Error removing timeout: {str(e)}")
+            await interaction.response.send_message(
+                embed=create_error_embed("Error", "An error occurred while trying to remove the timeout."),
+                ephemeral=True
+            )
+    
     @commands.command(name="clear")
     @commands.check_any(commands.has_permissions(manage_messages=True), PermissionChecks.is_mod())
     async def clear_prefix(self, ctx, amount: int, user: discord.Member = None):
@@ -629,6 +869,94 @@ class Moderation(commands.Cog):
             embed.add_field(name="Boosts", value=str(guild.premium_subscription_count), inline=True)
             
         await ctx.send(embed=embed)
+    
+    @commands.command(name="modhistory")
+    @commands.check_any(commands.has_permissions(moderate_members=True), PermissionChecks.is_mod())
+    async def modhistory_prefix(self, ctx):
+        """View recent moderation actions that can be undone (prefix command)"""
+        if not self.recent_actions:
+            await ctx.send(embed=create_error_embed("No Actions", "There are no recent moderation actions that can be undone."))
+            return
+            
+        # Create a nicely formatted embed with all recent actions
+        embed = create_embed(
+            "📜 Recent Moderation Actions",
+            "Here are the recent moderation actions that can be undone:",
+            color=0x5865F2
+        )
+        
+        for key, action in self.recent_actions.items():
+            if key.startswith("kick_"):
+                guild_id = key.split("_")[1]
+                guild = self.bot.get_guild(int(guild_id))
+                guild_name = guild.name if guild else "Unknown Server"
+                
+                # Calculate time since action
+                time_since = discord.utils.utcnow() - action["kicked_at"]
+                minutes = int(time_since.total_seconds() / 60)
+                time_str = f"{minutes} minutes ago" if minutes > 0 else "just now"
+                
+                # Get moderator who performed the action
+                mod = ctx.guild.get_member(action["kicked_by"])
+                mod_name = mod.display_name if mod else "Unknown Moderator"
+                
+                embed.add_field(
+                    name=f"Kick in {guild_name}",
+                    value=f"**User:** {action['user_name']}\n"
+                          f"**Reason:** {action['reason'] or 'No reason provided'}\n"
+                          f"**By:** {mod_name}\n"
+                          f"**When:** {time_str}\n"
+                          f"**Command to Undo:** `!undokick`",
+                    inline=False
+                )
+        
+        await ctx.send(embed=embed)
+    
+    @app_commands.command(name="modhistory", description="View recent moderation actions that can be undone")
+    @app_commands.default_permissions(moderate_members=True)
+    @app_commands.check(PermissionChecks.slash_is_mod())
+    async def modhistory(self, interaction: discord.Interaction):
+        """View recent moderation actions that can be undone"""
+        if not self.recent_actions:
+            await interaction.response.send_message(
+                embed=create_error_embed("No Actions", "There are no recent moderation actions that can be undone."),
+                ephemeral=True
+            )
+            return
+            
+        # Create a nicely formatted embed with all recent actions
+        embed = create_embed(
+            "📜 Recent Moderation Actions",
+            "Here are the recent moderation actions that can be undone:",
+            color=0x5865F2
+        )
+        
+        for key, action in self.recent_actions.items():
+            if key.startswith("kick_"):
+                guild_id = key.split("_")[1]
+                guild = self.bot.get_guild(int(guild_id))
+                guild_name = guild.name if guild else "Unknown Server"
+                
+                # Calculate time since action
+                time_since = discord.utils.utcnow() - action["kicked_at"]
+                minutes = int(time_since.total_seconds() / 60)
+                time_str = f"{minutes} minutes ago" if minutes > 0 else "just now"
+                
+                # Get moderator who performed the action
+                mod = interaction.guild.get_member(action["kicked_by"])
+                mod_name = mod.display_name if mod else "Unknown Moderator"
+                
+                embed.add_field(
+                    name=f"Kick in {guild_name}",
+                    value=f"**User:** {action['user_name']}\n"
+                          f"**Reason:** {action['reason'] or 'No reason provided'}\n"
+                          f"**By:** {mod_name}\n"
+                          f"**When:** {time_str}\n"
+                          f"**Command to Undo:** `/undokick`",
+                    inline=False
+                )
+        
+        await interaction.response.send_message(embed=embed, ephemeral=True)
     
     @app_commands.command(name="serverinfo", description="Show information about the server")
     @app_commands.default_permissions(moderate_members=True)

@@ -219,11 +219,11 @@ class ProfanityFilter(commands.Cog):
                         # Get the proper member object
                         member = message.author
                         
-                        # Calculate timeout duration - discord.py 2.0+ uses until parameter
-                        until = discord.utils.utcnow() + datetime.timedelta(seconds=600)
+                        # Calculate timeout duration - discord.py 2.0 changed the way timeouts work
+                        timeout_duration = datetime.timedelta(seconds=600)
                         
-                        # Execute the timeout with proper error handling
-                        await member.timeout(until=until, reason="Automatic timeout for repeated use of inappropriate language")
+                        # Execute the timeout with proper error handling - using positional argument for 'timeout_duration'
+                        await member.timeout(timeout_duration, reason="Automatic timeout for repeated use of inappropriate language")
                         logger.info(f"User {message.author.name} ({message.author.id}) timed out for 10 minutes due to repeated profanity in server '{message.guild.name}'")
                         
                         # Notify the user via DM that they've been timed out
