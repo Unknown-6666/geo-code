@@ -5,6 +5,7 @@ import random
 import asyncio
 import discord
 import logging
+import argparse
 from discord.ext import commands, tasks
 from discord import app_commands
 from config import TOKEN, DEFAULT_PREFIX, STATUS_MESSAGES
@@ -116,6 +117,78 @@ async def main():
     async with Bot() as bot:
         await bot.start(TOKEN)
 
+async def sync_commands_only():
+    """Function to only sync commands without starting the full bot"""
+    logger.info("Starting command sync mode...")
+    
+    # Initialize database first
+    init_db()
+    
+    # Create bot instance
+    bot = Bot()
+    
+    try:
+        # We need to login before we can sync commands, but we don't want to start the bot fully
+        await bot._async_setup_hook()  # Set up the bot's internal state
+        await bot.login(TOKEN)  # Login to Discord
+        
+        # Load all cogs
+        cogs = [
+            "cogs.basic_commands",
+            "cogs.member_events",
+            "cogs.youtube_tracker",
+            "cogs.economy",
+            "cogs.memes",
+            "cogs.moderation",
+            "cogs.music",
+            "cogs.profanity_filter",
+            "cogs.rules_enforcer"
+        ]
+        
+        # Load each cog
+        for cog in cogs:
+            await bot.load_extension(cog)
+            logger.info(f"Loaded {cog}")
+        
+        logger.info("All cogs loaded successfully")
+        
+        # Clear commands first to ensure we don't have duplicates
+        logger.info("Clearing all commands...")
+        try:
+            # Wait for bot to be ready and have application_id
+            if not bot.application_id:
+                logger.info("Waiting for application ID...")
+                await asyncio.sleep(2)  # Give it a moment to initialize
+                
+            if bot.application_id:
+                await bot.http.request(
+                    discord.http.Route("PUT", "/applications/{application_id}/commands", 
+                                    application_id=bot.application_id), 
+                    json=[]
+                )
+                logger.info("Commands cleared!")
+            else:
+                logger.error("Could not get application ID, skipping clear step")
+        except Exception as e:
+            logger.error(f"Error clearing commands: {str(e)}")
+        
+        # Sync commands
+        logger.info("Syncing global commands with Discord...")
+        synced = await bot.tree.sync()
+        logger.info(f"Successfully synced {len(synced)} commands globally!")
+        
+        return True
+    except Exception as e:
+        logger.error(f"Error during command sync: {str(e)}")
+        return False
+    finally:
+        # Close bot session
+        if bot.is_closed():
+            logger.info("Bot session already closed")
+        else:
+            await bot.close()
+            logger.info("Bot session closed")
+
 if __name__ == "__main__":
     import os
     import sys
@@ -123,6 +196,18 @@ if __name__ == "__main__":
     import glob
     import asyncio
     
+    # Set up command line arguments
+    parser = argparse.ArgumentParser(description='Discord Bot Runner')
+    parser.add_argument('--sync-commands', action='store_true', help='Only sync commands without starting the bot')
+    args = parser.parse_args()
+    
+    # If --sync-commands flag is provided, only sync commands and exit
+    if args.sync_commands:
+        logger.info("Running in command sync mode")
+        result = asyncio.run(sync_commands_only())
+        sys.exit(0 if result else 1)
+    
+    # Normal bot startup
     # Define lock files
     LOCK_FILE = ".discord_bot.lock"
     MAIN_APP_LOCK_FILE = ".main_discord_bot.lock"
