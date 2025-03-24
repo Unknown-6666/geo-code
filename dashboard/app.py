@@ -1,6 +1,9 @@
 import os
 import logging
-from flask import Flask, render_template, redirect, url_for, flash, request, session
+import asyncio
+import subprocess
+import threading
+from flask import Flask, render_template, redirect, url_for, flash, request, session, jsonify
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from requests_oauthlib import OAuth2Session
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -136,6 +139,57 @@ def logout():
 @login_required
 def dashboard():
     return render_template('dashboard.html')
+
+@app.route('/refresh_commands', methods=['POST'])
+@login_required
+def refresh_commands():
+    """Handle the refresh commands request"""
+    try:
+        # Check if user has bot owner permissions
+        from config import BOT_OWNER_IDS
+        if str(current_user.discord_id) not in BOT_OWNER_IDS:
+            logger.warning(f"User {current_user.username} (ID: {current_user.discord_id}) attempted to refresh commands without permission")
+            return jsonify({
+                'status': 'error',
+                'message': 'You do not have permission to refresh commands. Only bot owners can use this feature.'
+            }), 403
+        
+        logger.info(f"Command refresh initiated by {current_user.username} (ID: {current_user.discord_id})")
+        
+        # Create a function to run the command sync in the background
+        def run_command_sync():
+            try:
+                # Run the bot with a special flag to sync commands only
+                result = subprocess.run(['python', 'bot.py', '--sync-commands'], 
+                                      capture_output=True, text=True, timeout=30)
+                
+                logger.info(f"Command sync process completed with exit code {result.returncode}")
+                if result.returncode != 0:
+                    logger.error(f"Command sync failed: {result.stderr}")
+                else:
+                    logger.info(f"Command sync output: {result.stdout}")
+                    
+            except subprocess.TimeoutExpired:
+                logger.error("Command sync process timed out after 30 seconds")
+            except Exception as e:
+                logger.error(f"Error in command sync process: {str(e)}")
+        
+        # Start the subprocess in a separate thread to avoid blocking
+        thread = threading.Thread(target=run_command_sync)
+        thread.daemon = True
+        thread.start()
+        
+        return jsonify({
+            'status': 'success',
+            'message': 'Commands refresh initiated. This may take a few seconds to complete.'
+        })
+        
+    except Exception as e:
+        logger.error(f"Error during command refresh: {str(e)}", exc_info=True)
+        return jsonify({
+            'status': 'error',
+            'message': f'An error occurred: {str(e)}'
+        }), 500
 
 if __name__ == '__main__':
     with app.app_context():
