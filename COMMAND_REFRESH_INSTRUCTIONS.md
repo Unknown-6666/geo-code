@@ -48,12 +48,23 @@ If you prefer to use Discord itself, bot owners can also use these commands:
 - `!sync_guild` - Sync commands only for the current server
 - `!clear_commands` - Clear all slash commands (requires confirmation)
 
+## Rate Limits and Best Practices
+
+Discord enforces rate limits on command updates to prevent abuse of their API:
+
+1. **Avoid Frequent Refreshes**: Do not refresh commands more than once every 10-15 minutes
+2. **Schedule Updates**: Plan command changes during low-usage times
+3. **Batch Changes**: Make multiple command changes at once, then refresh once
+4. **Expect Delays**: Global commands can take up to an hour to fully propagate to all servers
+
+If you see a "Rate Limited" message, wait at least 15 minutes before trying again.
+
 ## Troubleshooting
 
 If command refresh doesn't solve the issue:
 1. Check the bot's logs for any errors
 2. Make sure the bot has the proper permissions in Discord
 3. Try using the Discord Developer Portal to manually view and manage commands
-4. Wait a few minutes - Discord can take time to update commands globally
+4. Wait at least one hour - Discord can take time to update commands globally
 
-For persistent issues, try kicking and reinviting the bot to your server.
+For persistent issues, try kicking and reinviting the bot to your server. As a last resort, you can use the Discord Developer Portal to manually delete commands.

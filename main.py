@@ -74,10 +74,42 @@ def main():
     """Main function to start either:
     1. Just the Flask dashboard
     2. Just the Discord bot
-    3. Or run them together (default)
+    3. Sync or refresh commands
+    4. Or run them together (default)
     """
-    # When running as a deployment or without arguments, run both services
-    if len(sys.argv) <= 1 or is_deployment:
+    import argparse
+    parser = argparse.ArgumentParser(description='Discord Bot with Web Dashboard')
+    parser.add_argument('--sync-commands', action='store_true', 
+                       help='Only sync commands with Discord and exit')
+    parser.add_argument('--refresh-commands', action='store_true', 
+                       help='Clear and refresh all commands with Discord and exit')
+    parser.add_argument('mode', nargs='?', choices=['bot', 'web', 'both'], 
+                       default='both', help='Which component to run')
+    
+    # Parse arguments
+    args = parser.parse_args()
+    
+    # Command sync mode - just sync commands and exit
+    if args.sync_commands:
+        logger.info("Running in command sync mode")
+        import asyncio
+        from bot import sync_commands_only
+        result = asyncio.run(sync_commands_only())
+        return
+        
+    # Command refresh mode - clear and sync commands and exit
+    if args.refresh_commands:
+        logger.info("Running in command refresh mode")
+        import subprocess
+        result = subprocess.run(['python', 'refresh_commands.py', '-y'], 
+                                capture_output=True, text=True)
+        print(result.stdout)
+        if result.stderr:
+            print(f"Errors: {result.stderr}")
+        return
+    
+    # When running as a deployment or in default mode, run both services
+    if args.mode == 'both' or is_deployment:
         logger.info("Starting both the web dashboard and Discord bot...")
         if is_deployment:
             # In deployment, we need to start the services directly
@@ -97,12 +129,14 @@ def main():
                 # Fall back to running with threads
                 run_both_services()
                 app.run(host="0.0.0.0", port=5000, debug=True)
-    elif sys.argv[1] == "bot":
-        # Run just the Discord bot
+    
+    # Run just the Discord bot
+    elif args.mode == "bot":
         logger.info("Starting Discord bot only...")
         asyncio.run(bot.main())
-    elif sys.argv[1] == "web":
-        # Run just the web dashboard
+    
+    # Run just the web dashboard
+    elif args.mode == "web":
         logger.info("Starting web dashboard only...")
         app.run(host="0.0.0.0", port=5000, debug=True)
 

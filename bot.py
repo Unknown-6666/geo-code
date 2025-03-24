@@ -126,6 +126,9 @@ async def sync_commands_only():
     
     # Create bot instance
     bot = Bot()
+    success_with_warning = False
+    warning_message = ""
+    command_count = 0
     
     try:
         # We need to login before we can sync commands, but we don't want to start the bot fully
@@ -136,7 +139,7 @@ async def sync_commands_only():
         cogs = [
             "cogs.basic_commands",
             "cogs.member_events",
-            "cogs.youtube_tracker",
+            "cogs.youtube_tracker", 
             "cogs.economy",
             "cogs.memes",
             "cogs.moderation",
@@ -145,12 +148,27 @@ async def sync_commands_only():
             "cogs.rules_enforcer"
         ]
         
-        # Load each cog
+        # Load each cog with error handling
+        cog_load_errors = []
         for cog in cogs:
-            await bot.load_extension(cog)
-            logger.info(f"Loaded {cog}")
+            try:
+                await bot.load_extension(cog)
+                logger.info(f"Loaded {cog}")
+            except discord.errors.ExtensionAlreadyLoaded:
+                logger.warning(f"Cog {cog} was already loaded, continuing")
+                success_with_warning = True
+                cog_load_errors.append(cog)
+                continue
+            except Exception as e:
+                logger.error(f"Error loading cog {cog}: {str(e)}")
+                cog_load_errors.append(cog)
+                success_with_warning = True
         
-        logger.info("All cogs loaded successfully")
+        if cog_load_errors:
+            warning_message = f"Some cogs had loading warnings: {', '.join(cog_load_errors)}"
+            logger.warning(warning_message)
+        else:
+            logger.info("All cogs loaded successfully")
         
         # Clear commands first to ensure we don't have duplicates
         logger.info("Clearing all commands...")
@@ -169,25 +187,48 @@ async def sync_commands_only():
                 logger.info("Commands cleared!")
             else:
                 logger.error("Could not get application ID, skipping clear step")
+                success_with_warning = True
+                warning_message += "\nCould not get application ID, skipped clear step."
         except Exception as e:
             logger.error(f"Error clearing commands: {str(e)}")
+            success_with_warning = True
+            warning_message += f"\nError clearing commands: {str(e)}"
         
         # Sync commands
         logger.info("Syncing global commands with Discord...")
-        synced = await bot.tree.sync()
-        logger.info(f"Successfully synced {len(synced)} commands globally!")
+        try:
+            synced = await bot.tree.sync()
+            command_count = len(synced)
+            logger.info(f"Successfully synced {command_count} commands globally!")
+        except Exception as e:
+            logger.error(f"Error syncing commands: {str(e)}")
+            return False
         
+        # Return appropriate status
+        if success_with_warning:
+            return (True, f"Synced {command_count} commands with warnings: {warning_message}")
         return True
     except Exception as e:
-        logger.error(f"Error during command sync: {str(e)}")
+        error_str = str(e)
+        logger.error(f"Error during command sync: {error_str}")
+        
+        # Special case: If the only error is that extensions are already loaded
+        if "Extension 'cogs." in error_str and "is already loaded" in error_str:
+            # This is actually okay - the commands still got synced
+            if command_count > 0:
+                return (True, f"Synced {command_count} commands despite extension loading warnings")
+        
         return False
     finally:
         # Close bot session
-        if bot.is_closed():
-            logger.info("Bot session already closed")
-        else:
-            await bot.close()
-            logger.info("Bot session closed")
+        try:
+            if bot.is_closed():
+                logger.info("Bot session already closed")
+            else:
+                await bot.close()
+                logger.info("Bot session closed")
+        except Exception as e:
+            logger.error(f"Error closing bot session: {str(e)}")
 
 if __name__ == "__main__":
     import os

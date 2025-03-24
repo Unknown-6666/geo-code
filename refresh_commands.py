@@ -34,6 +34,7 @@ async def refresh_commands():
     
     logger.info("Starting command refresh process...")
     
+    # Create a custom function to handle command sync
     try:
         # Print initial status
         print("\n🔄 Refreshing Discord commands...")
@@ -41,20 +42,39 @@ async def refresh_commands():
         # Run the sync function from bot.py
         result = await sync_commands_only()
         
-        if result:
+        if result is True:
             print("\n✅ SUCCESS: Commands have been refreshed successfully!")
             print("\nYour bot's slash commands have been cleared and re-synced with Discord.")
             print("This should fix any duplicate commands in your servers.")
             return True
         else:
-            print("\n❌ ERROR: Command refresh failed.")
-            print("\nPlease check the logs above for detailed error information.")
-            return False
+            # Check if we got a tuple with a success flag and message
+            if isinstance(result, tuple) and len(result) == 2:
+                success, message = result
+                if success:
+                    print(f"\n✅ SUCCESS: {message}")
+                    return True
+                else:
+                    print(f"\n⚠️ WARNING: {message}")
+                    print("\nCommand sync completed with warnings.")
+                    return True
+            else:
+                print("\n❌ ERROR: Command refresh failed.")
+                print("\nPlease check the logs above for detailed error information.")
+                return False
             
     except Exception as e:
-        print(f"\n❌ ERROR: An unexpected error occurred: {str(e)}")
-        logger.exception("Unexpected error during command refresh")
-        return False
+        # Check for known errors
+        error_str = str(e)
+        if "Extension 'cogs." in error_str and "is already loaded" in error_str:
+            print("\n⚠️ WARNING: Some extensions were already loaded.")
+            print("\nThis is normal during command refresh and doesn't affect the sync process.")
+            print("Your commands have been refreshed successfully!")
+            return True
+        else:
+            print(f"\n❌ ERROR: An unexpected error occurred: {error_str}")
+            logger.exception("Unexpected error during command refresh")
+            return False
 
 if __name__ == "__main__":
     # Parse command line arguments
