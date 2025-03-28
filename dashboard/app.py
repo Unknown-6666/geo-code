@@ -26,7 +26,8 @@ DISCORD_TOKEN_URL = DISCORD_API_BASE_URL + '/oauth2/token'
 
 # Determine the correct redirect URI based on environment
 if os.getenv('REPL_SLUG') and os.getenv('REPL_OWNER'):
-    DISCORD_REDIRECT_URI = f'https://{os.getenv("REPL_SLUG")}.{os.getenv("REPL_OWNER")}.repl.co/callback'
+    # For Replit, we need to use workspace.{owner}.repl.co format
+    DISCORD_REDIRECT_URI = f'https://workspace.{os.getenv("REPL_OWNER")}.repl.co/callback'
     logger.info(f"Using Replit redirect URI: {DISCORD_REDIRECT_URI}")
 else:
     DISCORD_REDIRECT_URI = 'http://localhost:5000/callback'
