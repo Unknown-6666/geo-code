@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bot Control Panel</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #7289DA;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .btn {
+            display: inline-block;
+            background-color: #7289DA;
+            color: white;
+            padding: 10px 15px;
+            text-decoration: none;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        .btn:hover {
+            background-color: #5b6eae;
+        }
+        .btn-danger {
+            background-color: #f04747;
+        }
+        .btn-danger:hover {
+            background-color: #d03737;
+        }
+        .btn-success {
+            background-color: #43b581;
+        }
+        .btn-success:hover {
+            background-color: #369167;
+        }
+        .card {
+            background-color: #fff;
+            border-radius: 5px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .card-title {
+            margin-top: 0;
+            color: #7289DA;
+            font-size: 24px;
+        }
+        .status {
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+            display: none;
+        }
+        .success {
+            background-color: #e3f9eb;
+            border: 1px solid #43b581;
+            color: #369167;
+        }
+        .error {
+            background-color: #fae3e3;
+            border: 1px solid #f04747;
+            color: #d03737;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Discord Bot Control Panel</h1>
+        
+        <div class="card">
+            <h2 class="card-title">Command Management</h2>
+            <p>Use this panel to manage Discord bot commands. If you're seeing duplicate commands in Discord, click the refresh button below.</p>
+            
+            <div id="status" class="status"></div>
+            
+            <button id="refreshCommands" class="btn btn-success">Refresh Discord Commands</button>
+            <p><small>Note: Command refresh may take up to a minute to complete. Refreshing too frequently may trigger Discord rate limits.</small></p>
+        </div>
+        
+        <div class="card">
+            <h2 class="card-title">Bot Status</h2>
+            <p>Bot is currently: <strong>Online</strong></p>
+            <p>Connected to: <strong>9 servers</strong></p>
+            <p>Last refreshed: <strong id="lastUpdated">{{ current_time }}</strong></p>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const refreshBtn = document.getElementById('refreshCommands');
+            const statusEl = document.getElementById('status');
+            
+            refreshBtn.addEventListener('click', function() {
+                // Disable button while processing
+                refreshBtn.disabled = true;
+                refreshBtn.textContent = 'Processing...';
+                
+                // Clear previous status
+                statusEl.className = 'status';
+                statusEl.style.display = 'none';
+                
+                // Send the refresh request
+                fetch('/refresh_commands', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    // Show status message
+                    statusEl.textContent = data.message;
+                    statusEl.className = 'status ' + (data.status === 'success' ? 'success' : 'error');
+                    statusEl.style.display = 'block';
+                    
+                    // Update timestamp
+                    document.getElementById('lastUpdated').textContent = new Date().toLocaleString();
+                    
+                    // Re-enable button
+                    refreshBtn.disabled = false;
+                    refreshBtn.textContent = 'Refresh Discord Commands';
+                })
+                .catch(error => {
+                    // Show error message
+                    statusEl.textContent = 'An error occurred: ' + error.message;
+                    statusEl.className = 'status error';
+                    statusEl.style.display = 'block';
+                    
+                    // Re-enable button
+                    refreshBtn.disabled = false;
+                    refreshBtn.textContent = 'Refresh Discord Commands';
+                });
+            });
+        });
+    </script>
+</body>
+</html>
