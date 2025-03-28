@@ -52,7 +52,20 @@ class Bot(commands.Bot):
             
             logger.info("All cogs loaded successfully")
             
-            # Sync commands without clearing first
+            # Always clear commands before syncing to prevent duplicates
+            logger.info("Clearing all commands before syncing...")
+            try:
+                await self.http.request(
+                    discord.http.Route("PUT", "/applications/{application_id}/commands", 
+                                      application_id=self.application_id), 
+                    json=[]
+                )
+                logger.info("Commands cleared successfully")
+            except Exception as e:
+                logger.error(f"Error clearing commands: {str(e)}")
+                logger.info("Continuing with sync despite clearing error")
+                
+            # Sync commands after clearing
             logger.info("Syncing global commands with Discord...")
             synced = await self.tree.sync()
             logger.info(f"Synced {len(synced)} commands globally")
