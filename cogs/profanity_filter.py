@@ -226,15 +226,30 @@ class ProfanityFilter(commands.Cog):
                         await member.timeout(timeout_duration, reason="Automatic timeout for repeated use of inappropriate language")
                         logger.info(f"User {message.author.name} ({message.author.id}) timed out for 10 minutes due to repeated profanity in server '{message.guild.name}'")
                         
-                        # Notify the user via DM that they've been timed out
+                        # Create a unified notification embed
+                        embed = discord.Embed(
+                            title="User Timed Out",
+                            description=f"User {message.author.mention} has been timed out for 10 minutes.",
+                            color=discord.Color.red()
+                        )
+                        embed.add_field(name="User", value=f"{message.author.name} ({message.author.id})", inline=True)
+                        embed.add_field(name="Server", value=message.guild.name, inline=True)
+                        embed.add_field(name="Reason", value="Repeated use of inappropriate language", inline=False)
+                        embed.add_field(name="Warning Count", value=str(warning_count), inline=True)
+                        embed.set_footer(text=f"Triggered: {datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC")
+                        
+                        # Notify the user via DM that they've been timed out - using same embed
+                        dm_sent = False
                         try:
                             await message.author.send(
-                                f"🛑 You have been timed out in **{message.guild.name}** for 10 minutes due to repeated use of inappropriate language.\n"
-                                f"This happened after receiving {warning_count} warnings."
+                                f"🛑 You have been timed out in **{message.guild.name}** for 10 minutes due to repeated use of inappropriate language.",
+                                embed=embed
                             )
+                            dm_sent = True
+                            logger.info(f"Timeout DM sent to {message.author.name}")
                         except:
-                            # Can't send DM, but we already processed the timeout
-                            pass
+                            logger.warning(f"Could not send timeout DM to {message.author.name}")
+                            # We'll still log to the channel, so not a critical error
                             
                     except discord.Forbidden as e:
                         logger.warning(f"FORBIDDEN: No permission to timeout {message.author.name} ({message.author.id}) in server '{message.guild.name}': {str(e)}")
@@ -245,7 +260,7 @@ class ProfanityFilter(commands.Cog):
                     except Exception as e:
                         logger.error(f"Error timing out user: {str(e)}")
                         
-                    # Notify a log channel if available
+                    # Notify a log channel if available - using same embed created above
                     try:
                         # Look for a channel named "mod-logs" or "logs"
                         log_channel = discord.utils.get(message.guild.text_channels, name="mod-logs")
@@ -253,17 +268,12 @@ class ProfanityFilter(commands.Cog):
                             log_channel = discord.utils.get(message.guild.text_channels, name="logs")
                             
                         if log_channel:
-                            embed = discord.Embed(
-                                title="User Timed Out",
-                                description=f"User {message.author.mention} has been timed out for 10 minutes.",
-                                color=discord.Color.red()
-                            )
-                            embed.add_field(name="User", value=f"{message.author.name} ({message.author.id})", inline=True)
-                            embed.add_field(name="Server", value=message.guild.name, inline=True)
-                            embed.add_field(name="Reason", value="Repeated use of inappropriate language", inline=False)
-                            embed.add_field(name="Warning Count", value=str(warning_count), inline=True)
-                            embed.set_footer(text=f"Triggered: {datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC")
-                            
+                            # Add note about DM status to the log
+                            if dm_sent:
+                                embed.add_field(name="DM Status", value="User was notified via DM", inline=False)
+                            else:
+                                embed.add_field(name="DM Status", value="Could not send DM to user", inline=False)
+                                
                             await log_channel.send(embed=embed)
                             logger.info(f"Notification sent to log channel in server '{message.guild.name}'")
                         else:
