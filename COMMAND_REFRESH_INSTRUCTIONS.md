@@ -1,70 +1,52 @@
-# Discord Bot Command Refresh Utility
+# Command Refresh Instructions
 
-This utility helps prevent duplicate commands in your Discord servers by refreshing the bot's slash commands.
+This guide explains how to use the Command Refresh feature in the Bot Control Panel.
 
-## When to use this utility
+## What Are Discord Commands?
 
-Run the command refresh utility when:
-- You notice duplicate slash commands in your Discord servers
-- You've added new commands and want to make sure they're properly registered
-- You've removed commands but they still appear in Discord
-- After making changes to command descriptions or parameters
+Discord commands (also called "slash commands") are the interactive features of your bot that users can access by typing `/` in a Discord channel. For example, `/ping`, `/help`, or `/play`.
 
-## How to refresh commands
+## About Duplicate Commands
 
-### Method 1: Using the Web Dashboard (For Bot Owners Only)
+Occasionally, you might see duplicate commands in your Discord server (e.g., two `/help` commands). This happens because Discord's API doesn't automatically remove old commands when new ones are registered.
 
-1. Log in to the bot's web dashboard
-2. Navigate to the Dashboard page
-3. Find the "Bot Owner Controls" section
-4. Click the "Refresh Commands" button
-5. Wait for the success message
+## How Our System Prevents Duplicates
 
-### Method 2: Using the command-line script
+Our bot now **automatically clears all commands before syncing them** when it starts up, which permanently solves the duplicate command issue.
 
-Run the following command in the terminal:
+## Using the Command Refresh Feature
 
-```bash
-python refresh_commands.py
-```
+While duplicate commands should no longer occur, we've kept the manual refresh feature available as a backup solution:
 
-This will:
-1. Clear all existing slash commands registered with Discord
-2. Re-sync all commands defined in the bot's code
-3. Show progress and result information
+1. Visit the **[Bot Control Panel](https://workspace.jonahpantz.repl.co/bot_control)**
+2. Find the **Command Management** section
+3. Click the **Refresh Discord Commands** button
+4. Wait for the status indicator to show success (usually takes about 30 seconds)
 
-#### Options
+## What Happens During a Refresh?
 
-- Add `-y` or `--yes` to skip the confirmation prompt:
-  ```bash
-  python refresh_commands.py --yes
-  ```
+When you click the "Refresh Discord Commands" button:
 
-## Manually refreshing commands in Discord
+1. **All existing commands** are cleared from Discord
+2. The bot **syncs its current commands** with Discord
+3. The status updates in real-time to show progress
 
-If you prefer to use Discord itself, bot owners can also use these commands:
+## When to Use Command Refresh
 
-- `!sync` - Sync all commands globally across all servers
-- `!sync_guild` - Sync commands only for the current server
-- `!clear_commands` - Clear all slash commands (requires confirmation)
+You should rarely need to use this feature now, but it's helpful if:
 
-## Rate Limits and Best Practices
-
-Discord enforces rate limits on command updates to prevent abuse of their API:
-
-1. **Avoid Frequent Refreshes**: Do not refresh commands more than once every 10-15 minutes
-2. **Schedule Updates**: Plan command changes during low-usage times
-3. **Batch Changes**: Make multiple command changes at once, then refresh once
-4. **Expect Delays**: Global commands can take up to an hour to fully propagate to all servers
-
-If you see a "Rate Limited" message, wait at least 15 minutes before trying again.
+- You've been instructed to do so by support
+- You notice any duplicate commands in your server
+- You've made changes to commands and want to update them immediately
 
 ## Troubleshooting
 
-If command refresh doesn't solve the issue:
-1. Check the bot's logs for any errors
-2. Make sure the bot has the proper permissions in Discord
-3. Try using the Discord Developer Portal to manually view and manage commands
-4. Wait at least one hour - Discord can take time to update commands globally
+If the command refresh process fails:
 
-For persistent issues, try kicking and reinviting the bot to your server. As a last resort, you can use the Discord Developer Portal to manually delete commands.
+1. Check the error message shown in the status area
+2. Try waiting a few minutes and trying again (Discord has rate limits)
+3. If problems persist, restart the bot and try again
+
+## Need More Help?
+
+Refer to the [COMMAND_MANAGEMENT.md](COMMAND_MANAGEMENT.md) document for more detailed information about how the command system works.

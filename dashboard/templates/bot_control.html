@@ -89,12 +89,17 @@
         
         <div class="card">
             <h2 class="card-title">Command Management</h2>
-            <p>Use this panel to manage Discord bot commands. If you're seeing duplicate commands in Discord, click the refresh button below.</p>
+            <p>Use this panel to manage Discord bot commands. The bot now automatically clears and refreshes commands on each restart, eliminating duplicate commands.</p>
+            
+            <div class="success" style="display: block;">
+                <strong>New Feature:</strong> Duplicate commands are now automatically prevented! The bot clears all commands before syncing them.
+            </div>
             
             <div id="status" class="status"></div>
             
             <button id="refreshCommands" class="btn btn-success">Refresh Discord Commands</button>
             <p><small>Note: Command refresh may take up to a minute to complete. Refreshing too frequently may trigger Discord rate limits.</small></p>
+            <p><small>You should no longer need to use this button unless instructed to by support.</small></p>
         </div>
         
         <div class="card">
@@ -109,6 +114,49 @@
         document.addEventListener('DOMContentLoaded', function() {
             const refreshBtn = document.getElementById('refreshCommands');
             const statusEl = document.getElementById('status');
+            let statusCheckInterval = null;
+            
+            // Function to check command refresh status
+            function checkRefreshStatus() {
+                fetch('/command_refresh_status')
+                    .then(response => response.json())
+                    .then(data => {
+                        // Check if the status is no longer pending
+                        if (data.status !== 'pending') {
+                            // Clear interval if process is complete
+                            if (statusCheckInterval) {
+                                clearInterval(statusCheckInterval);
+                                statusCheckInterval = null;
+                            }
+                            
+                            // Update status based on result
+                            if (data.status === 'success') {
+                                statusEl.textContent = '✅ ' + data.message;
+                                statusEl.className = 'status success';
+                            } else if (data.status === 'error') {
+                                statusEl.textContent = '❌ ' + data.message;
+                                statusEl.className = 'status error';
+                            } else {
+                                statusEl.textContent = data.message;
+                                statusEl.className = 'status';
+                            }
+                            
+                            // Re-enable button
+                            refreshBtn.disabled = false;
+                            refreshBtn.textContent = 'Refresh Discord Commands';
+                        } else {
+                            // Still processing
+                            statusEl.textContent = '⏳ ' + data.message;
+                            statusEl.className = 'status';
+                        }
+                        
+                        // Always make sure status is visible
+                        statusEl.style.display = 'block';
+                    })
+                    .catch(error => {
+                        console.error('Error checking status:', error);
+                    });
+            }
             
             refreshBtn.addEventListener('click', function() {
                 // Disable button while processing
@@ -117,7 +165,8 @@
                 
                 // Clear previous status
                 statusEl.className = 'status';
-                statusEl.style.display = 'none';
+                statusEl.style.display = 'block';
+                statusEl.textContent = 'Initializing command refresh...';
                 
                 // Send the refresh request
                 fetch('/refresh_commands', {
@@ -128,21 +177,24 @@
                 })
                 .then(response => response.json())
                 .then(data => {
-                    // Show status message
-                    statusEl.textContent = data.message;
-                    statusEl.className = 'status ' + (data.status === 'success' ? 'success' : 'error');
-                    statusEl.style.display = 'block';
+                    // Update initial status message
+                    statusEl.textContent = '⏳ ' + data.message;
                     
                     // Update timestamp
                     document.getElementById('lastUpdated').textContent = new Date().toLocaleString();
                     
-                    // Re-enable button
-                    refreshBtn.disabled = false;
-                    refreshBtn.textContent = 'Refresh Discord Commands';
+                    // Start polling for status updates
+                    if (statusCheckInterval) {
+                        clearInterval(statusCheckInterval);
+                    }
+                    
+                    // Check immediately and then every 2 seconds
+                    checkRefreshStatus();
+                    statusCheckInterval = setInterval(checkRefreshStatus, 2000);
                 })
                 .catch(error => {
                     // Show error message
-                    statusEl.textContent = 'An error occurred: ' + error.message;
+                    statusEl.textContent = '❌ An error occurred: ' + error.message;
                     statusEl.className = 'status error';
                     statusEl.style.display = 'block';
                     
@@ -151,6 +203,9 @@
                     refreshBtn.textContent = 'Refresh Discord Commands';
                 });
             });
+            
+            // Check if there's an ongoing or recent command refresh when page loads
+            checkRefreshStatus();
         });
     </script>
 </body>

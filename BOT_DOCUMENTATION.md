@@ -2,33 +2,43 @@
 
 ## For Bot Owners
 
-### Command Refresh System
+### Command Management System
 
-The bot includes a command refresh system that helps prevent duplicate commands in Discord servers. This occurs when the bot's slash commands get registered multiple times, causing users to see duplicate options.
+The bot includes an advanced command management system that **automatically prevents duplicate commands** in Discord servers. This is a major improvement over previous versions where commands could get registered multiple times, causing users to see duplicate options.
 
-#### Why Command Duplication Happens
+#### Automatic Duplicate Command Prevention
 
-Command duplication can occur due to:
+The bot now automatically clears all commands before syncing them with Discord:
+
+1. When the bot starts, it automatically clears all registered commands
+2. It then syncs the current command set, ensuring no duplicates are created
+3. All command refresh methods now use this clear-first approach
+
+This means **you should no longer experience duplicate commands** in your Discord servers!
+
+#### Why Command Duplication Happened Previously
+
+Command duplication used to occur due to:
 1. Discord API issues
 2. Bot restarts without proper command clearing
 3. Multiple instances of the bot running simultaneously
 4. Manual command registration without proper syncing
 
-#### Using the Command Refresh System
+#### Using the Command Refresh System (Backup Option)
 
-There are several ways to refresh commands:
+While the automatic system should prevent issues, you can still manually refresh commands if needed:
 
-1. **Web Dashboard** - Log in as a bot owner and use the "Refresh Commands" button
+1. **Web Dashboard** - Visit the [Bot Control Panel](https://workspace.jonahpantz.repl.co/bot_control) (no login required) and use the "Refresh Discord Commands" button
 2. **Command Line Scripts**:
    - `python refresh_commands.py` - Interactive refresh with confirmation
    - `python refresh_commands.py -y` - Non-interactive refresh (good for automation)
-   - `python sync_commands.py` - Lightweight sync without clearing first
+   - `python sync_commands.py` - Lightweight sync that now includes command clearing
 3. **Discord Commands** (for bot owners only):
-   - `!sync` - Sync commands globally
-   - `!sync_guild` - Sync only in the current server
+   - `!sync_commands` - Sync commands globally
+   - `!sync_guild_commands` - Sync only in the current server
    - `!clear_commands` - Clear all commands with confirmation
 
-For detailed instructions, see [COMMAND_REFRESH_INSTRUCTIONS.md](COMMAND_REFRESH_INSTRUCTIONS.md)
+For detailed instructions, see [COMMAND_REFRESH_INSTRUCTIONS.md](COMMAND_REFRESH_INSTRUCTIONS.md) and [COMMAND_MANAGEMENT.md](COMMAND_MANAGEMENT.md)
 
 ### Bot Lock Files
 

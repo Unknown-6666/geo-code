@@ -1,6 +1,8 @@
 import os
+import json
 import logging
 import asyncio
+import datetime
 import subprocess
 import threading
 from flask import Flask, render_template, redirect, url_for, flash, request, session, jsonify
@@ -146,6 +148,32 @@ def bot_control():
     """Public control panel for the bot"""
     from datetime import datetime
     return render_template('bot_control.html', current_time=datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+    
+@app.route('/command_refresh_status', methods=['GET'])
+def command_refresh_status():
+    """Get the status of the most recent command refresh"""
+    try:
+        # Check if status file exists
+        if not os.path.exists('data/command_refresh_status.json'):
+            return jsonify({
+                'status': 'unknown',
+                'message': 'No command refresh history found',
+                'timestamp': None
+            })
+        
+        # Read the status file
+        with open('data/command_refresh_status.json', 'r') as f:
+            status_data = json.load(f)
+            
+        return jsonify(status_data)
+        
+    except Exception as e:
+        logger.error(f"Error getting command refresh status: {str(e)}", exc_info=True)
+        return jsonify({
+            'status': 'error',
+            'message': f'Error retrieving status: {str(e)}',
+            'timestamp': datetime.datetime.now().isoformat()
+        }), 500
 
 @app.route('/refresh_commands', methods=['POST'])
 def refresh_commands():
@@ -156,20 +184,62 @@ def refresh_commands():
         # Create a function to run the command sync in the background
         def run_command_sync():
             try:
-                # Run the bot with a special flag to sync commands only
-                result = subprocess.run(['python', 'bot.py', '--sync-commands'], 
-                                      capture_output=True, text=True, timeout=30)
+                # Use the enhanced refresh_commands.py script instead
+                # This ensures we're using the same logic for all refresh methods
+                result = subprocess.run(['python', 'refresh_commands.py', '--yes'], 
+                                      capture_output=True, text=True, timeout=45)
                 
                 logger.info(f"Command sync process completed with exit code {result.returncode}")
                 if result.returncode != 0:
                     logger.error(f"Command sync failed: {result.stderr}")
+                    # Update the status file with error information
+                    with open('data/command_refresh_status.json', 'w') as f:
+                        json.dump({
+                            'status': 'error',
+                            'message': 'Command refresh failed. See logs for details.',
+                            'timestamp': datetime.datetime.now().isoformat(),
+                            'output': result.stderr
+                        }, f)
                 else:
-                    logger.info(f"Command sync output: {result.stdout}")
+                    logger.info(f"Command sync successful")
+                    # Update the status file with success information
+                    with open('data/command_refresh_status.json', 'w') as f:
+                        json.dump({
+                            'status': 'success',
+                            'message': 'Commands successfully cleared and refreshed.',
+                            'timestamp': datetime.datetime.now().isoformat(),
+                            'output': result.stdout
+                        }, f)
                     
             except subprocess.TimeoutExpired:
-                logger.error("Command sync process timed out after 30 seconds")
+                logger.error("Command sync process timed out after 45 seconds")
+                # Update the status file with timeout information
+                with open('data/command_refresh_status.json', 'w') as f:
+                    json.dump({
+                        'status': 'error',
+                        'message': 'Command refresh timed out after 45 seconds.',
+                        'timestamp': datetime.datetime.now().isoformat()
+                    }, f)
             except Exception as e:
                 logger.error(f"Error in command sync process: {str(e)}")
+                # Update the status file with error information
+                with open('data/command_refresh_status.json', 'w') as f:
+                    json.dump({
+                        'status': 'error',
+                        'message': f'Error during command refresh: {str(e)}',
+                        'timestamp': datetime.datetime.now().isoformat()
+                    }, f)
+        
+        # Create data directory if it doesn't exist
+        os.makedirs('data', exist_ok=True)
+        
+        # Update the status file with pending information
+        with open('data/command_refresh_status.json', 'w') as f:
+            json.dump({
+                'status': 'pending',
+                'message': 'Command refresh is in progress...',
+                'timestamp': datetime.datetime.now().isoformat()
+            }, f)
         
         # Start the subprocess in a separate thread to avoid blocking
         thread = threading.Thread(target=run_command_sync)
