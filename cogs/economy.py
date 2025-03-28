@@ -8,13 +8,14 @@ from utils.embed_helpers import create_embed, create_error_embed
 from models.economy import UserEconomy, Item, Inventory, Transaction
 from database import db
 from typing import Literal
-from app import app  # Import the Flask app directly
 
 logger = logging.getLogger('discord')
 
 class Economy(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        # Import app here to avoid circular imports
+        from app import app
         self.app = app
         logger.info("Economy cog initialized")
         # Initialize shop items on startup
