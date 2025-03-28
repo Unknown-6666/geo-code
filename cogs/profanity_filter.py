@@ -226,7 +226,8 @@ class ProfanityFilter(commands.Cog):
                         await member.timeout(timeout_duration, reason="Automatic timeout for repeated use of inappropriate language")
                         logger.info(f"User {message.author.name} ({message.author.id}) timed out for 10 minutes due to repeated profanity in server '{message.guild.name}'")
                         
-                        # Create a unified notification embed
+                        # Initialize variables for notification
+                        dm_sent = False
                         embed = discord.Embed(
                             title="User Timed Out",
                             description=f"User {message.author.mention} has been timed out for 10 minutes.",
@@ -239,7 +240,6 @@ class ProfanityFilter(commands.Cog):
                         embed.set_footer(text=f"Triggered: {datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC")
                         
                         # Notify the user via DM that they've been timed out - using same embed
-                        dm_sent = False
                         try:
                             await message.author.send(
                                 f"🛑 You have been timed out in **{message.guild.name}** for 10 minutes due to repeated use of inappropriate language.",
@@ -247,8 +247,8 @@ class ProfanityFilter(commands.Cog):
                             )
                             dm_sent = True
                             logger.info(f"Timeout DM sent to {message.author.name}")
-                        except:
-                            logger.warning(f"Could not send timeout DM to {message.author.name}")
+                        except Exception as e:
+                            logger.warning(f"Could not send timeout DM to {message.author.name}: {str(e)}")
                             # We'll still log to the channel, so not a critical error
                             
                     except discord.Forbidden as e:
