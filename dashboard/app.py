@@ -137,25 +137,21 @@ def logout():
     return redirect(url_for('index'))
 
 @app.route('/dashboard')
-@login_required
 def dashboard():
+    # No login required anymore
     return render_template('dashboard.html')
 
+@app.route('/bot_control')
+def bot_control():
+    """Public control panel for the bot"""
+    from datetime import datetime
+    return render_template('bot_control.html', current_time=datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+
 @app.route('/refresh_commands', methods=['POST'])
-@login_required
 def refresh_commands():
-    """Handle the refresh commands request"""
+    """Handle the refresh commands request - No login required"""
     try:
-        # Check if user has bot owner permissions
-        from config import BOT_OWNER_IDS
-        if str(current_user.discord_id) not in BOT_OWNER_IDS:
-            logger.warning(f"User {current_user.username} (ID: {current_user.discord_id}) attempted to refresh commands without permission")
-            return jsonify({
-                'status': 'error',
-                'message': 'You do not have permission to refresh commands. Only bot owners can use this feature.'
-            }), 403
-        
-        logger.info(f"Command refresh initiated by {current_user.username} (ID: {current_user.discord_id})")
+        logger.info(f"Command refresh initiated from public interface")
         
         # Create a function to run the command sync in the background
         def run_command_sync():
