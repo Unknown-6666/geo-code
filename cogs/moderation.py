@@ -1176,5 +1176,261 @@ class Moderation(commands.Cog):
                 ephemeral=True
             )
 
+    @commands.command(name="noping")
+    @commands.check_any(commands.has_permissions(manage_roles=True), PermissionChecks.is_mod())
+    async def noping_prefix(self, ctx, user: discord.Member, *, reason: str = None):
+        """Make a user unpingable (prefix command)
+        Usage: !noping @user [reason]"""
+        # Check if the bot can manage roles
+        if not ctx.guild.me.guild_permissions.manage_roles:
+            await ctx.send(embed=create_error_embed("Error", "I don't have permission to manage roles."))
+            return
+            
+        # Check if the user is trying to make themselves unpingable
+        if user == ctx.author and not ctx.author.guild_permissions.administrator:
+            await ctx.send(embed=create_error_embed("Error", "You cannot make yourself unpingable."))
+            return
+            
+        # Check if the user is a moderator or administrator
+        if user.guild_permissions.kick_members or user.guild_permissions.administrator:
+            if not ctx.author.guild_permissions.administrator:
+                await ctx.send(embed=create_error_embed("Error", "You cannot make a moderator or administrator unpingable."))
+                return
+                
+        # Check if the user is the bot
+        if user.id == self.bot.user.id:
+            await ctx.send(embed=create_error_embed("Error", "I cannot make myself unpingable."))
+            return
+
+        # Look for an existing No Ping role or create one
+        no_ping_role = discord.utils.get(ctx.guild.roles, name="No Ping")
+        
+        if not no_ping_role:
+            try:
+                # Create the No Ping role with mentionable set to False
+                no_ping_role = await ctx.guild.create_role(
+                    name="No Ping",
+                    colour=discord.Colour.dark_gray(),
+                    mentionable=False,
+                    reason="Created for noping command"
+                )
+                logger.info(f"Created 'No Ping' role in server '{ctx.guild.name}'")
+                
+                # Move the role above the default role to ensure it takes effect
+                positions = {
+                    no_ping_role: 1  # Just above the default role
+                }
+                await ctx.guild.edit_role_positions(positions=positions)
+                
+            except discord.Forbidden:
+                await ctx.send(embed=create_error_embed("Error", "I don't have permission to create roles."))
+                return
+            except discord.HTTPException as e:
+                await ctx.send(embed=create_error_embed("Error", f"Failed to create role: {str(e)}"))
+                return
+                
+        # Assign the No Ping role to the user
+        try:
+            await user.add_roles(no_ping_role, reason=f"Made unpingable by {ctx.author.name}: {reason or 'No reason provided'}")
+            
+            # Send confirmation
+            embed = discord.Embed(
+                title="User Made Unpingable",
+                description=f"{user.name} can no longer be pinged by regular members.",
+                color=discord.Color.blue()
+            )
+            embed.add_field(name="User", value=f"{user.name} ({user.id})", inline=True)
+            embed.add_field(name="Moderator", value=ctx.author.name, inline=True)
+            if reason:
+                embed.add_field(name="Reason", value=reason, inline=False)
+                
+            await ctx.send(embed=embed)
+            logger.info(f"User {user.name} ({user.id}) made unpingable by {ctx.author.name} in server '{ctx.guild.name}'")
+            
+        except discord.Forbidden:
+            await ctx.send(embed=create_error_embed("Error", "I don't have permission to assign roles."))
+        except discord.HTTPException as e:
+            await ctx.send(embed=create_error_embed("Error", f"Failed to assign role: {str(e)}"))
+            
+    @app_commands.command(name="noping", description="Make a user unpingable by regular members")
+    @app_commands.default_permissions(manage_roles=True)
+    async def noping_slash(self, interaction: discord.Interaction, user: discord.Member, reason: str = None):
+        """Make a user unpingable by regular members"""
+        # Check if the user has appropriate permissions
+        if not interaction.user.guild_permissions.manage_roles and not await PermissionChecks.is_mod().predicate(interaction):
+            await interaction.response.send_message("You need 'Manage Roles' permission to use this command.", ephemeral=True)
+            return
+            
+        # Check if the bot can manage roles
+        if not interaction.guild.me.guild_permissions.manage_roles:
+            await interaction.response.send_message("I don't have permission to manage roles.", ephemeral=True)
+            return
+            
+        # Check if the user is trying to make themselves unpingable
+        if user == interaction.user and not interaction.user.guild_permissions.administrator:
+            await interaction.response.send_message("You cannot make yourself unpingable.", ephemeral=True)
+            return
+            
+        # Check if the user is a moderator or administrator
+        if user.guild_permissions.kick_members or user.guild_permissions.administrator:
+            if not interaction.user.guild_permissions.administrator:
+                await interaction.response.send_message("You cannot make a moderator or administrator unpingable.", ephemeral=True)
+                return
+                
+        # Check if the user is the bot
+        if user.id == self.bot.user.id:
+            await interaction.response.send_message("I cannot make myself unpingable.", ephemeral=True)
+            return
+
+        # Defer the response for potentially slow role operations
+        await interaction.response.defer(ephemeral=False)
+
+        # Look for an existing No Ping role or create one
+        no_ping_role = discord.utils.get(interaction.guild.roles, name="No Ping")
+        
+        if not no_ping_role:
+            try:
+                # Create the No Ping role with mentionable set to False
+                no_ping_role = await interaction.guild.create_role(
+                    name="No Ping",
+                    colour=discord.Colour.dark_gray(),
+                    mentionable=False,
+                    reason="Created for noping command"
+                )
+                logger.info(f"Created 'No Ping' role in server '{interaction.guild.name}'")
+                
+                # Move the role above the default role to ensure it takes effect
+                positions = {
+                    no_ping_role: 1  # Just above the default role
+                }
+                await interaction.guild.edit_role_positions(positions=positions)
+                
+            except discord.Forbidden:
+                await interaction.followup.send("I don't have permission to create roles.")
+                return
+            except discord.HTTPException as e:
+                await interaction.followup.send(f"Failed to create role: {str(e)}")
+                return
+                
+        # Assign the No Ping role to the user
+        try:
+            await user.add_roles(no_ping_role, reason=f"Made unpingable by {interaction.user.name}: {reason or 'No reason provided'}")
+            
+            # Send confirmation
+            embed = discord.Embed(
+                title="User Made Unpingable",
+                description=f"{user.name} can no longer be pinged by regular members.",
+                color=discord.Color.blue()
+            )
+            embed.add_field(name="User", value=f"{user.name} ({user.id})", inline=True)
+            embed.add_field(name="Moderator", value=interaction.user.name, inline=True)
+            if reason:
+                embed.add_field(name="Reason", value=reason, inline=False)
+                
+            await interaction.followup.send(embed=embed)
+            logger.info(f"User {user.name} ({user.id}) made unpingable by {interaction.user.name} in server '{interaction.guild.name}'")
+            
+        except discord.Forbidden:
+            await interaction.followup.send("I don't have permission to assign roles.")
+        except discord.HTTPException as e:
+            await interaction.followup.send(f"Failed to assign role: {str(e)}")
+
+    @commands.command(name="allowping")
+    @commands.check_any(commands.has_permissions(manage_roles=True), PermissionChecks.is_mod())
+    async def allowping_prefix(self, ctx, user: discord.Member, *, reason: str = None):
+        """Make a user pingable again (prefix command)
+        Usage: !allowping @user [reason]"""
+        # Check if the bot can manage roles
+        if not ctx.guild.me.guild_permissions.manage_roles:
+            await ctx.send(embed=create_error_embed("Error", "I don't have permission to manage roles."))
+            return
+
+        # Find the No Ping role
+        no_ping_role = discord.utils.get(ctx.guild.roles, name="No Ping")
+        
+        if not no_ping_role:
+            await ctx.send(embed=create_error_embed("Error", "The No Ping role doesn't exist in this server."))
+            return
+            
+        # Check if the user has the No Ping role
+        if no_ping_role not in user.roles:
+            await ctx.send(embed=create_error_embed("Error", f"{user.name} is not currently unpingable."))
+            return
+            
+        # Remove the No Ping role
+        try:
+            await user.remove_roles(no_ping_role, reason=f"Made pingable again by {ctx.author.name}: {reason or 'No reason provided'}")
+            
+            # Send confirmation
+            embed = discord.Embed(
+                title="User Can Be Pinged Again",
+                description=f"{user.name} can now be pinged by members again.",
+                color=discord.Color.green()
+            )
+            embed.add_field(name="User", value=f"{user.name} ({user.id})", inline=True)
+            embed.add_field(name="Moderator", value=ctx.author.name, inline=True)
+            if reason:
+                embed.add_field(name="Reason", value=reason, inline=False)
+                
+            await ctx.send(embed=embed)
+            logger.info(f"User {user.name} ({user.id}) made pingable again by {ctx.author.name} in server '{ctx.guild.name}'")
+            
+        except discord.Forbidden:
+            await ctx.send(embed=create_error_embed("Error", "I don't have permission to remove roles."))
+        except discord.HTTPException as e:
+            await ctx.send(embed=create_error_embed("Error", f"Failed to remove role: {str(e)}"))
+
+    @app_commands.command(name="allowping", description="Make a user pingable again")
+    @app_commands.default_permissions(manage_roles=True)
+    async def allowping_slash(self, interaction: discord.Interaction, user: discord.Member, reason: str = None):
+        """Make a user pingable again"""
+        # Check if the user has appropriate permissions
+        if not interaction.user.guild_permissions.manage_roles and not await PermissionChecks.is_mod().predicate(interaction):
+            await interaction.response.send_message("You need 'Manage Roles' permission to use this command.", ephemeral=True)
+            return
+            
+        # Check if the bot can manage roles
+        if not interaction.guild.me.guild_permissions.manage_roles:
+            await interaction.response.send_message("I don't have permission to manage roles.", ephemeral=True)
+            return
+
+        # Defer the response for potentially slow role operations
+        await interaction.response.defer(ephemeral=False)
+
+        # Find the No Ping role
+        no_ping_role = discord.utils.get(interaction.guild.roles, name="No Ping")
+        
+        if not no_ping_role:
+            await interaction.followup.send("The No Ping role doesn't exist in this server.")
+            return
+            
+        # Check if the user has the No Ping role
+        if no_ping_role not in user.roles:
+            await interaction.followup.send(f"{user.name} is not currently unpingable.")
+            return
+            
+        # Remove the No Ping role
+        try:
+            await user.remove_roles(no_ping_role, reason=f"Made pingable again by {interaction.user.name}: {reason or 'No reason provided'}")
+            
+            # Send confirmation
+            embed = discord.Embed(
+                title="User Can Be Pinged Again",
+                description=f"{user.name} can now be pinged by members again.",
+                color=discord.Color.green()
+            )
+            embed.add_field(name="User", value=f"{user.name} ({user.id})", inline=True)
+            embed.add_field(name="Moderator", value=interaction.user.name, inline=True)
+            if reason:
+                embed.add_field(name="Reason", value=reason, inline=False)
+                
+            await interaction.followup.send(embed=embed)
+            logger.info(f"User {user.name} ({user.id}) made pingable again by {interaction.user.name} in server '{interaction.guild.name}'")
+            
+        except discord.Forbidden:
+            await interaction.followup.send("I don't have permission to remove roles.")
+        except discord.HTTPException as e:
+            await interaction.followup.send(f"Failed to remove role: {str(e)}")
+
 async def setup(bot):
     await bot.add_cog(Moderation(bot))
