@@ -2,6 +2,7 @@ import discord
 import logging
 import asyncio
 import re
+import config
 from discord import app_commands
 from discord.ext import commands
 from datetime import timedelta
@@ -1186,9 +1187,10 @@ class Moderation(commands.Cog):
             await ctx.send(embed=create_error_embed("Error", "I don't have permission to manage roles."))
             return
             
-        # Special exception for bot owner - can make anyone unpingable
-        if await PermissionChecks.is_owner().predicate(ctx):
-            pass  # Bot owner can make anyone unpingable
+        # Direct check for bot owner - bypasses ALL permissions
+        if ctx.author.id in config.BOT_OWNER_IDS:
+            logger.info(f"Bot owner {ctx.author.name} ({ctx.author.id}) bypassing permission checks for noping command")
+            # Bot owner can make anyone unpingable - proceed directly
         # Check if the command user has permission to use it on the target
         elif not ctx.author.guild_permissions.administrator:
             # Allow moderators to noping regular users but not other mods or admins
@@ -1266,9 +1268,10 @@ class Moderation(commands.Cog):
             await interaction.response.send_message("I don't have permission to manage roles.", ephemeral=True)
             return
             
-        # Special exception for bot owner - can make anyone unpingable
-        if await PermissionChecks.is_owner().predicate(interaction):
-            pass  # Bot owner can make anyone unpingable
+        # Direct check for bot owner - bypasses ALL permissions
+        if interaction.user.id in config.BOT_OWNER_IDS:
+            logger.info(f"Bot owner {interaction.user.name} ({interaction.user.id}) bypassing permission checks for noping slash command")
+            # Bot owner can make anyone unpingable - proceed directly
         # Check if the command user has permission to use it on the target
         elif not interaction.user.guild_permissions.administrator:
             # Allow moderators to noping regular users but not other mods or admins
@@ -1345,9 +1348,10 @@ class Moderation(commands.Cog):
             await ctx.send(embed=create_error_embed("Error", "I don't have permission to manage roles."))
             return
             
-        # Special exception for bot owner - can make anyone pingable again
-        if await PermissionChecks.is_owner().predicate(ctx):
-            pass  # Bot owner can change ping status of anyone
+        # Direct check for bot owner - bypasses ALL permissions
+        if ctx.author.id in config.BOT_OWNER_IDS:
+            logger.info(f"Bot owner {ctx.author.name} ({ctx.author.id}) bypassing permission checks for allowping prefix command")
+            # Bot owner can make anyone pingable - proceed directly
 
         # Find the No Ping role
         no_ping_role = discord.utils.get(ctx.guild.roles, name="No Ping")
@@ -1398,9 +1402,10 @@ class Moderation(commands.Cog):
             await interaction.response.send_message("I don't have permission to manage roles.", ephemeral=True)
             return
             
-        # Special exception for bot owner - can make anyone pingable again
-        if await PermissionChecks.is_owner().predicate(interaction):
-            pass  # Bot owner can change ping status of anyone
+        # Direct check for bot owner - bypasses ALL permissions
+        if interaction.user.id in config.BOT_OWNER_IDS:
+            logger.info(f"Bot owner {interaction.user.name} ({interaction.user.id}) bypassing permission checks for allowping slash command")
+            # Bot owner can make anyone pingable - proceed directly
 
         # Defer the response for potentially slow role operations
         await interaction.response.defer(ephemeral=False)
