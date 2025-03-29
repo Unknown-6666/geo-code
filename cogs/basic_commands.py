@@ -208,12 +208,28 @@ class BasicCommands(commands.Cog):
     @PermissionChecks.is_owner()
     async def sync_commands(self, ctx):
         """Sync slash commands across all servers (Bot Owner Only)"""
+        # Create a message ID to track this specific command execution
+        command_id = f"{ctx.message.id}-{ctx.author.id}"
+        
         try:
-            await ctx.send("Starting global slash command sync... Please wait.")
-            logger.info("Starting global slash command sync")
+            # Store message reference to avoid duplicate messages
+            message = await ctx.send("Starting global slash command sync... Please wait.")
+            logger.info(f"Starting global slash command sync (ID: {command_id})")
             
-            # Directly sync the command tree - no clearing first
-            # This will update existing commands and add new ones
+            # First clear existing commands
+            logger.info(f"Clearing existing commands (ID: {command_id})")
+            try:
+                await self.bot.http.request(
+                    discord.http.Route("PUT", "/applications/{application_id}/commands", 
+                                    application_id=self.bot.application_id), 
+                    json=[]
+                )
+                logger.info(f"Commands cleared successfully (ID: {command_id})")
+            except Exception as e:
+                logger.error(f"Error clearing commands: {str(e)} (ID: {command_id})")
+                # Continue to sync even if clear fails
+            
+            # Now sync the command tree
             synced = await self.bot.tree.sync()
             
             if len(synced) > 0:
@@ -222,28 +238,43 @@ class BasicCommands(commands.Cog):
                     f"Successfully synced {len(synced)} commands globally!\nYou can now use the updated slash commands in all servers.",
                     color=COLORS["PRIMARY"]
                 )
-                logger.info(f"Successfully synced {len(synced)} commands globally")
+                logger.info(f"Successfully synced {len(synced)} commands globally (ID: {command_id})")
             else:
                 embed = create_embed(
                     "⚠️ Command Sync Issue",
                     "No commands were registered. This might indicate a problem with command registration in the cogs.",
                     color=COLORS["WARNING"]
                 )
-                logger.warning("Command sync returned 0 commands - possible issue with command registration")
-                
-            await ctx.send(embed=embed)
+                logger.warning(f"Command sync returned 0 commands - possible issue with command registration (ID: {command_id})")
+            
+            # Edit the original message instead of sending a new one
+            await message.edit(content=None, embed=embed)
+            
         except Exception as e:
-            logger.error(f"Error syncing commands: {str(e)}")
+            logger.error(f"Error syncing commands: {str(e)} (ID: {command_id})")
             embed = create_error_embed("Error", f"Failed to sync commands: {str(e)}")
-            await ctx.send(embed=embed)
+            try:
+                # Try to respond in the original channel
+                await ctx.send(embed=embed)
+            except:
+                # If that fails, try to DM the owner
+                try:
+                    await ctx.author.send(embed=embed)
+                except:
+                    # If everything fails, just log the error
+                    logger.error(f"Couldn't send error message to {ctx.author} (ID: {command_id})")
 
     @commands.command(name="sync_guild")
     @PermissionChecks.is_owner()
     async def sync_guild_commands(self, ctx):
         """Sync slash commands for the current server only (Bot Owner Only)"""
+        # Create a message ID to track this specific command execution
+        command_id = f"{ctx.message.id}-{ctx.author.id}"
+        
         try:
-            await ctx.send("Starting server slash command sync... Please wait.")
-            logger.info(f"Starting slash command sync for guild {ctx.guild.id}")
+            # Store message reference to avoid duplicate messages
+            message = await ctx.send("Starting server slash command sync... Please wait.")
+            logger.info(f"Starting slash command sync for guild {ctx.guild.id} (ID: {command_id})")
             
             # Copy global commands to this guild and sync
             self.bot.tree.copy_global_to(guild=ctx.guild)
@@ -255,20 +286,31 @@ class BasicCommands(commands.Cog):
                     f"Successfully synced {len(synced)} commands in this server!\nYou can now use the updated slash commands here.",
                     color=COLORS["PRIMARY"]
                 )
-                logger.info(f"Successfully synced {len(synced)} commands in guild {ctx.guild.id}")
+                logger.info(f"Successfully synced {len(synced)} commands in guild {ctx.guild.id} (ID: {command_id})")
             else:
                 embed = create_embed(
                     "⚠️ Command Sync Issue",
                     "No commands were registered in this server. This might indicate a problem with command registration.",
                     color=COLORS["WARNING"]
                 )
-                logger.warning(f"Guild command sync returned 0 commands for guild {ctx.guild.id}")
-                
-            await ctx.send(embed=embed)
+                logger.warning(f"Guild command sync returned 0 commands for guild {ctx.guild.id} (ID: {command_id})")
+            
+            # Edit the original message instead of sending a new one
+            await message.edit(content=None, embed=embed)
+            
         except Exception as e:
-            logger.error(f"Error syncing guild commands: {str(e)}")
+            logger.error(f"Error syncing guild commands: {str(e)} (ID: {command_id})")
             embed = create_error_embed("Error", f"Failed to sync commands: {str(e)}")
-            await ctx.send(embed=embed)
+            try:
+                # Try to respond in the original channel
+                await ctx.send(embed=embed)
+            except:
+                # If that fails, try to DM the owner
+                try:
+                    await ctx.author.send(embed=embed)
+                except:
+                    # If everything fails, just log the error
+                    logger.error(f"Couldn't send error message to {ctx.author} (ID: {command_id})")
 
     @commands.command(name="clear_commands")
     @PermissionChecks.is_owner()
