@@ -1186,8 +1186,11 @@ class Moderation(commands.Cog):
             await ctx.send(embed=create_error_embed("Error", "I don't have permission to manage roles."))
             return
             
+        # Special exception for bot owner - can make anyone unpingable
+        if await PermissionChecks.is_owner().predicate(ctx):
+            pass  # Bot owner can make anyone unpingable
         # Check if the command user has permission to use it on the target
-        if not ctx.author.guild_permissions.administrator:
+        elif not ctx.author.guild_permissions.administrator:
             # Allow moderators to noping regular users but not other mods or admins
             if user.guild_permissions.kick_members or user.guild_permissions.administrator:
                 if user != ctx.author:  # Allow making yourself unpingable
@@ -1263,8 +1266,11 @@ class Moderation(commands.Cog):
             await interaction.response.send_message("I don't have permission to manage roles.", ephemeral=True)
             return
             
+        # Special exception for bot owner - can make anyone unpingable
+        if await PermissionChecks.is_owner().predicate(interaction):
+            pass  # Bot owner can make anyone unpingable
         # Check if the command user has permission to use it on the target
-        if not interaction.user.guild_permissions.administrator:
+        elif not interaction.user.guild_permissions.administrator:
             # Allow moderators to noping regular users but not other mods or admins
             if user.guild_permissions.kick_members or user.guild_permissions.administrator:
                 if user != interaction.user:  # Allow making yourself unpingable
@@ -1338,6 +1344,10 @@ class Moderation(commands.Cog):
         if not ctx.guild.me.guild_permissions.manage_roles:
             await ctx.send(embed=create_error_embed("Error", "I don't have permission to manage roles."))
             return
+            
+        # Special exception for bot owner - can make anyone pingable again
+        if await PermissionChecks.is_owner().predicate(ctx):
+            pass  # Bot owner can change ping status of anyone
 
         # Find the No Ping role
         no_ping_role = discord.utils.get(ctx.guild.roles, name="No Ping")
@@ -1387,6 +1397,10 @@ class Moderation(commands.Cog):
         if not interaction.guild.me.guild_permissions.manage_roles:
             await interaction.response.send_message("I don't have permission to manage roles.", ephemeral=True)
             return
+            
+        # Special exception for bot owner - can make anyone pingable again
+        if await PermissionChecks.is_owner().predicate(interaction):
+            pass  # Bot owner can change ping status of anyone
 
         # Defer the response for potentially slow role operations
         await interaction.response.defer(ephemeral=False)
