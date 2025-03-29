@@ -1186,16 +1186,13 @@ class Moderation(commands.Cog):
             await ctx.send(embed=create_error_embed("Error", "I don't have permission to manage roles."))
             return
             
-        # Check if the user is trying to make themselves unpingable
-        if user == ctx.author and not ctx.author.guild_permissions.administrator:
-            await ctx.send(embed=create_error_embed("Error", "You cannot make yourself unpingable."))
-            return
-            
-        # Check if the user is a moderator or administrator
-        if user.guild_permissions.kick_members or user.guild_permissions.administrator:
-            if not ctx.author.guild_permissions.administrator:
-                await ctx.send(embed=create_error_embed("Error", "You cannot make a moderator or administrator unpingable."))
-                return
+        # Check if the command user has permission to use it on the target
+        if not ctx.author.guild_permissions.administrator:
+            # Allow moderators to noping regular users but not other mods or admins
+            if user.guild_permissions.kick_members or user.guild_permissions.administrator:
+                if user != ctx.author:  # Allow making yourself unpingable
+                    await ctx.send(embed=create_error_embed("Error", "You cannot make a moderator or administrator unpingable unless you're an admin."))
+                    return
                 
         # Check if the user is the bot
         if user.id == self.bot.user.id:
@@ -1266,16 +1263,13 @@ class Moderation(commands.Cog):
             await interaction.response.send_message("I don't have permission to manage roles.", ephemeral=True)
             return
             
-        # Check if the user is trying to make themselves unpingable
-        if user == interaction.user and not interaction.user.guild_permissions.administrator:
-            await interaction.response.send_message("You cannot make yourself unpingable.", ephemeral=True)
-            return
-            
-        # Check if the user is a moderator or administrator
-        if user.guild_permissions.kick_members or user.guild_permissions.administrator:
-            if not interaction.user.guild_permissions.administrator:
-                await interaction.response.send_message("You cannot make a moderator or administrator unpingable.", ephemeral=True)
-                return
+        # Check if the command user has permission to use it on the target
+        if not interaction.user.guild_permissions.administrator:
+            # Allow moderators to noping regular users but not other mods or admins
+            if user.guild_permissions.kick_members or user.guild_permissions.administrator:
+                if user != interaction.user:  # Allow making yourself unpingable
+                    await interaction.response.send_message("You cannot make a moderator or administrator unpingable unless you're an admin.", ephemeral=True)
+                    return
                 
         # Check if the user is the bot
         if user.id == self.bot.user.id:
