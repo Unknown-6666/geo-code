@@ -39,9 +39,33 @@ except Exception as e:
     logger.error(f"Error clearing commands: {str(e)}")
     logger.info("Continuing with sync despite clearing error")
     
-# Sync commands after clearing
+# Sync commands after clearing with rate limit handling
 logger.info("Syncing global commands with Discord...")
-synced = await self.tree.sync()
+rate_limit_count = 0
+max_rate_limits = 3  # Maximum number of rate limit retries
+
+while rate_limit_count < max_rate_limits:
+    try:
+        synced = await self.tree.sync()
+        logger.info(f"Synced {len(synced)} commands globally")
+        break  # Successfully synced, exit the loop
+    except discord.errors.HTTPException as e:
+        if e.status == 429:  # Rate limited
+            rate_limit_count += 1
+            retry_after = e.retry_after if hasattr(e, 'retry_after') else 60
+            
+            logger.warning(f"Rate limited while syncing commands ({rate_limit_count}/{max_rate_limits}). "
+                          f"Retrying in {retry_after:.2f} seconds...")
+            
+            if rate_limit_count >= max_rate_limits:
+                logger.warning(f"Hit rate limit {max_rate_limits} times, stopping command sync.")
+                break
+                
+            # Wait for the rate limit to expire
+            await asyncio.sleep(retry_after)
+        else:
+            # Not a rate limit error, re-raise
+            raise
 ```
 
 ### Enhanced Manual Refresh System
@@ -80,7 +104,13 @@ If you ever encounter command issues in the future, simply restart the bot or us
 
 ## Additional Information
 
-- Discord has rate limits that may occasionally cause temporary issues with command syncing
+- **Rate Limit Protection**: The bot now automatically handles Discord API rate limits:
+  - Attempts to sync commands up to 3 times when rate limited
+  - Waits for the appropriate time between attempts
+  - Will stop after 3 consecutive rate limits to prevent excessive waiting
+  - Provides clear warning logs about rate limiting status
+
+- Discord has rate limits that occasionally cause temporary issues with command syncing
 - Command changes may take up to an hour to propagate across all Discord servers
 - New commands are added automatically when new features are implemented in the bot
 

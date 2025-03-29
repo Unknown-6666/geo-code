@@ -65,10 +65,34 @@ class Bot(commands.Bot):
                 logger.error(f"Error clearing commands: {str(e)}")
                 logger.info("Continuing with sync despite clearing error")
                 
-            # Sync commands after clearing
+            # Sync commands after clearing with rate limit handling
             logger.info("Syncing global commands with Discord...")
-            synced = await self.tree.sync()
-            logger.info(f"Synced {len(synced)} commands globally")
+            rate_limit_count = 0
+            max_rate_limits = 3  # Maximum number of rate limit retries
+            
+            while rate_limit_count < max_rate_limits:
+                try:
+                    synced = await self.tree.sync()
+                    logger.info(f"Synced {len(synced)} commands globally")
+                    break  # Successfully synced, exit the loop
+                except discord.errors.HTTPException as e:
+                    if e.status == 429:  # Rate limited
+                        rate_limit_count += 1
+                        retry_after = e.retry_after if hasattr(e, 'retry_after') else 60
+                        
+                        logger.warning(f"Rate limited while syncing commands ({rate_limit_count}/{max_rate_limits}). "
+                                      f"Retrying in {retry_after:.2f} seconds...")
+                        
+                        if rate_limit_count >= max_rate_limits:
+                            logger.warning(f"Hit rate limit {max_rate_limits} times, stopping command sync. "
+                                          f"Commands may be partially updated or use old versions.")
+                            break
+                            
+                        # Wait for the rate limit to expire
+                        await asyncio.sleep(retry_after)
+                    else:
+                        # Not a rate limit error, re-raise
+                        raise
             
         except Exception as e:
             logger.error(f"Error in setup: {str(e)}")
@@ -209,15 +233,41 @@ async def sync_commands_only():
             success_with_warning = True
             warning_message += f"\nError clearing commands: {str(e)}"
         
-        # Sync commands
+        # Sync commands with rate limit handling
         logger.info("Syncing global commands with Discord...")
-        try:
-            synced = await bot.tree.sync()
-            command_count = len(synced)
-            logger.info(f"Successfully synced {command_count} commands globally!")
-        except Exception as e:
-            logger.error(f"Error syncing commands: {str(e)}")
-            return False
+        rate_limit_count = 0
+        max_rate_limits = 3  # Maximum number of rate limit retries
+        command_count = 0
+        
+        while rate_limit_count < max_rate_limits:
+            try:
+                synced = await bot.tree.sync()
+                command_count = len(synced)
+                logger.info(f"Successfully synced {command_count} commands globally!")
+                break  # Successfully synced, exit the loop
+            except discord.errors.HTTPException as e:
+                if e.status == 429:  # Rate limited
+                    rate_limit_count += 1
+                    retry_after = e.retry_after if hasattr(e, 'retry_after') else 60
+                    
+                    logger.warning(f"Rate limited while syncing commands ({rate_limit_count}/{max_rate_limits}). "
+                                   f"Retrying in {retry_after:.2f} seconds...")
+                    
+                    if rate_limit_count >= max_rate_limits:
+                        logger.warning(f"Hit rate limit {max_rate_limits} times, stopping command sync. "
+                                       f"Commands may be partially updated or use old versions.")
+                        # We'll return success with a warning instead of failing completely
+                        return (True, f"Synced commands with rate limit warnings after {rate_limit_count} attempts")
+                        
+                    # Wait for the rate limit to expire
+                    await asyncio.sleep(retry_after)
+                else:
+                    # Not a rate limit error, re-raise
+                    logger.error(f"Error syncing commands: {str(e)}")
+                    return False
+            except Exception as e:
+                logger.error(f"Error syncing commands: {str(e)}")
+                return False
         
         # Return appropriate status
         if success_with_warning:
