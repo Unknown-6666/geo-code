@@ -73,8 +73,8 @@ class AIChat(commands.Cog):
                 # Add system prompt if provided
                 if system_prompt:
                     payload["contents"].insert(0, {
-                        "role": "system",
-                        "parts": [{"text": system_prompt}]
+                        "role": "user",  # Use valid role 'user' instead of 'system'
+                        "parts": [{"text": "System instructions: " + system_prompt}]
                     })
                 
                 async with aiohttp.ClientSession() as session:
@@ -182,9 +182,9 @@ class AIChat(commands.Cog):
                             logger.warning(f"Retrying FreeGpt in {retry_after}s")
                             await asyncio.sleep(retry_after)
                 
-                # If FreeGpt failed, try with ChatBase provider
+                # If FreeGpt failed, try with You.com provider
                 if not response:
-                    logger.info("FreeGpt failed, trying ChatBase provider")
+                    logger.info("FreeGpt failed, trying You.com provider")
                     for attempt in range(max_retries):
                         try:
                             response = await asyncio.wait_for(
@@ -192,20 +192,20 @@ class AIChat(commands.Cog):
                                     None,
                                     lambda: g4f.ChatCompletion.create(
                                         model="gpt-3.5-turbo",  # Use a more compatible model
-                                        provider=g4f.Provider.ChatBase,  # Second provider to try
+                                        provider=g4f.Provider.You,  # Second provider to try
                                         messages=system_messages + [{"role": "user", "content": question}]
                                     )
                                 ),
                                 timeout=30.0  # 30 second timeout
                             )
                             if response:  # If we got a valid response, break the retry loop
-                                ai_source = "ChatBase AI"
+                                ai_source = "You.com AI"
                                 break
                         except Exception as e:
-                            logger.error(f"Error with ChatBase attempt {attempt+1}/{max_retries}: {str(e)}")
+                            logger.error(f"Error with You.com attempt {attempt+1}/{max_retries}: {str(e)}")
                             if attempt < max_retries - 1:
                                 retry_after = retry_delay * (2 ** attempt)
-                                logger.warning(f"Retrying ChatBase in {retry_after}s")
+                                logger.warning(f"Retrying You.com in {retry_after}s")
                                 await asyncio.sleep(retry_after)
                 
                 # If all else failed
@@ -311,9 +311,9 @@ class AIChat(commands.Cog):
                             logger.warning(f"Retrying FreeGpt chat in {retry_after}s")
                             await asyncio.sleep(retry_after)
                 
-                # If FreeGpt failed, try with ChatBase provider
+                # If FreeGpt failed, try with You.com provider
                 if not response:
-                    logger.info("FreeGpt failed, trying ChatBase provider for chat")
+                    logger.info("FreeGpt failed, trying You.com provider for chat")
                     for attempt in range(max_retries):
                         try:
                             response = await asyncio.wait_for(
@@ -321,7 +321,7 @@ class AIChat(commands.Cog):
                                     None,
                                     lambda: g4f.ChatCompletion.create(
                                         model="gpt-3.5-turbo",  # Use a more compatible model
-                                        provider=g4f.Provider.ChatBase,  # Second provider to try
+                                        provider=g4f.Provider.You,  # Second provider to try
                                         messages=[
                                             {"role": "system", "content": system_prompt},
                                             {"role": "user", "content": message}
@@ -331,13 +331,13 @@ class AIChat(commands.Cog):
                                 timeout=30.0  # 30 second timeout
                             )
                             if response:  # If we got a valid response, break the retry loop
-                                ai_source = "ChatBase AI"
+                                ai_source = "You.com AI"
                                 break
                         except Exception as e:
-                            logger.error(f"Error with ChatBase chat attempt {attempt+1}/{max_retries}: {str(e)}")
+                            logger.error(f"Error with You.com chat attempt {attempt+1}/{max_retries}: {str(e)}")
                             if attempt < max_retries - 1:
                                 retry_after = retry_delay * (2 ** attempt)
-                                logger.warning(f"Retrying ChatBase chat in {retry_after}s")
+                                logger.warning(f"Retrying You.com chat in {retry_after}s")
                                 await asyncio.sleep(retry_after)
                 
                 # If all else failed
