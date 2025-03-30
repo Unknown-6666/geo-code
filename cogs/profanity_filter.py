@@ -239,11 +239,10 @@ class ProfanityFilter(commands.Cog):
                         embed.add_field(name="Warning Count", value=str(warning_count), inline=True)
                         embed.set_footer(text=f"Triggered: {datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC")
                         
-                        # Notify the user via DM that they've been timed out - using same embed
+                        # Notify the user via DM that they've been timed out - with a simplified message (no embed)
                         try:
                             await message.author.send(
-                                f"🛑 You have been timed out in **{message.guild.name}** for 10 minutes due to repeated use of inappropriate language.",
-                                embed=embed
+                                f"🛑 You have been timed out in **{message.guild.name}** for 10 minutes due to repeated use of inappropriate language."
                             )
                             dm_sent = True
                             logger.info(f"Timeout DM sent to {message.author.name}")
