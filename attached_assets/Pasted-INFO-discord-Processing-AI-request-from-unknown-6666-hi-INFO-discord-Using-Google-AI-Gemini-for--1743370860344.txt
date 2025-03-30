@@ -1,0 +1,43 @@
+INFO:discord:Processing AI request from unknown_6666: hi
+INFO:discord:Using Google AI (Gemini) for response
+ERROR:discord:Google AI API returned status code 400
+ERROR:discord:Error details: {
+  "error": {
+    "code": 400,
+    "message": "Please use a valid role: user, model.",
+    "status": "INVALID_ARGUMENT"
+  }
+}
+
+WARNING:discord:Retrying in 1s (attempt 1/3)
+ERROR:discord:Google AI API returned status code 400
+ERROR:discord:Error details: {
+  "error": {
+    "code": 400,
+    "message": "Please use a valid role: user, model.",
+    "status": "INVALID_ARGUMENT"
+  }
+}
+
+WARNING:discord:Retrying in 2s (attempt 2/3)
+ERROR:discord:Google AI API returned status code 400
+ERROR:discord:Error details: {
+  "error": {
+    "code": 400,
+    "message": "Please use a valid role: user, model.",
+    "status": "INVALID_ARGUMENT"
+  }
+}
+
+INFO:discord:Using g4f as fallback for AI response
+New g4f version: 0.5.0.1 (current: 0.4.8.6) | pip install -U g4f
+ERROR:discord:Error with FreeGpt attempt 1/2: 'NoneType' object has no attribute 'get'
+WARNING:discord:Retrying FreeGpt in 1s
+ERROR:discord:Error with FreeGpt attempt 2/2: 'NoneType' object has no attribute 'get'
+INFO:discord:FreeGpt failed, trying You.com provider
+ERROR:discord:Error with You.com attempt 1/2: Model is not supported: gpt-3.5-turbo in: You Valid models: ['gpt-4o-mini', 'gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'grok-2', 'claude-3.5-sonnet', 'claude-3.5-haiku', 'claude-3-opus', 'claude-3-sonnet', 'claude-3-haiku', 'llama-3.3-70b', 'llama-3.1-70b', 'llama-3', 'gemini-1-5-flash', 'gemini-1-5-pro', 'databricks-dbrx-instruct', 'command-r', 'command-r-plus', 'dolphin-2.5', 'agent', 'dall-e']
+WARNING:discord:Retrying You.com in 1s
+ERROR:discord:Error with You.com attempt 2/2: Model is not supported: gpt-3.5-turbo in: You Valid models: ['gpt-4o-mini', 'gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'grok-2', 'claude-3.5-sonnet', 'claude-3.5-haiku', 'claude-3-opus', 'claude-3-sonnet', 'claude-3-haiku', 'llama-3.3-70b', 'llama-3.1-70b', 'llama-3', 'gemini-1-5-flash', 'gemini-1-5-pro', 'databricks-dbrx-instruct', 'command-r', 'command-r-plus', 'dolphin-2.5', 'agent', 'dall-e']
+WARNING:discord:All AI providers failed, using fallback response
+INFO:discord:AI Response generated successfully: I'm sorry, I couldn't generate a response right now. It seems our AI services are experiencing diffi...
+INFO:discord:Successfully sent AI response from Fallback System
