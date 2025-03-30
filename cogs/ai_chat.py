@@ -53,10 +53,11 @@ class AIChat(commands.Cog):
                 # Gemini API endpoint for text generation - using one of the available 1.5 models
                 url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key={GOOGLE_API_KEY}"
                 
-                # Prepare request payload
+                # Prepare request payload with the correct role
                 payload = {
                     "contents": [
                         {
+                            "role": "user",
                             "parts": [
                                 {"text": prompt}
                             ]
@@ -70,12 +71,10 @@ class AIChat(commands.Cog):
                     }
                 }
                 
-                # Add system prompt if provided
+                # For system prompt, we'll add it to the user's prompt since Gemini needs it as part of the user message
                 if system_prompt:
-                    payload["contents"].insert(0, {
-                        "role": "user",  # Use valid role 'user' instead of 'system'
-                        "parts": [{"text": "System instructions: " + system_prompt}]
-                    })
+                    modified_prompt = f"[System instructions: {system_prompt}]\n\nUser: {prompt}"
+                    payload["contents"][0]["parts"][0]["text"] = modified_prompt
                 
                 async with aiohttp.ClientSession() as session:
                     async with session.post(url, json=payload) as response:
@@ -191,7 +190,7 @@ class AIChat(commands.Cog):
                                 self.bot.loop.run_in_executor(
                                     None,
                                     lambda: g4f.ChatCompletion.create(
-                                        model="gpt-3.5-turbo",  # Use a more compatible model
+                                        model="gemini-1-5-pro",  # Use a model supported by You.com
                                         provider=g4f.Provider.You,  # Second provider to try
                                         messages=system_messages + [{"role": "user", "content": question}]
                                     )
@@ -320,7 +319,7 @@ class AIChat(commands.Cog):
                                 self.bot.loop.run_in_executor(
                                     None,
                                     lambda: g4f.ChatCompletion.create(
-                                        model="gpt-3.5-turbo",  # Use a more compatible model
+                                        model="gemini-1-5-pro",  # Use a model supported by You.com 
                                         provider=g4f.Provider.You,  # Second provider to try
                                         messages=[
                                             {"role": "system", "content": system_prompt},
