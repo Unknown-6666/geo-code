@@ -5,9 +5,12 @@ import asyncio
 import os
 import json
 import aiohttp
+import random
+from typing import Literal, Optional
 from discord import app_commands
 from discord.ext import commands
 from utils.embed_helpers import create_embed, create_error_embed
+from utils.ai_preference_manager import ai_preferences
 
 logger = logging.getLogger('discord')
 
@@ -37,10 +40,26 @@ class AIChat(commands.Cog):
         max_retries = 3
         retry_delay = 1  # Start with 1 second delay and increase exponentially
 
+        # Check for keyword triggers first
+        keyword_response = ai_preferences.check_keyword_triggers(prompt)
+        if keyword_response:
+            logger.info("Using keyword trigger response")
+            return keyword_response
+
+        # Use the provided system prompt or get one from preferences
+        if not system_prompt:
+            system_prompt = ai_preferences.get_system_prompt()
+
+        # Get temperature from preferences
+        temperature = ai_preferences.get_temperature()
+        
+        # Get max tokens from preferences
+        max_tokens = ai_preferences.get_max_tokens()
+
         for attempt in range(max_retries):
             try:
-                # Gemini API endpoint for text generation - using the correct model path
-                url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={GOOGLE_API_KEY}"
+                # Gemini API endpoint for text generation - using one of the available 1.5 models
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key={GOOGLE_API_KEY}"
                 
                 # Prepare request payload
                 payload = {
@@ -52,10 +71,10 @@ class AIChat(commands.Cog):
                         }
                     ],
                     "generationConfig": {
-                        "temperature": 0.7,
+                        "temperature": temperature,
                         "topK": 40,
                         "topP": 0.95,
-                        "maxOutputTokens": 1000
+                        "maxOutputTokens": max_tokens
                     }
                 }
                 
@@ -122,10 +141,19 @@ class AIChat(commands.Cog):
             response = None
             ai_source = "Unknown"
             
-            # Try Google AI first if API key is available
-            if USE_GOOGLE_AI:
+            # First check for custom responses in our preferences
+            custom_response = ai_preferences.get_custom_response(question)
+            if custom_response:
+                logger.info(f"Using custom response for query: {question[:50]}...")
+                response = custom_response
+                ai_source = "Custom Response"
+            
+            # If no custom response, try Google AI if API key is available
+            elif USE_GOOGLE_AI:
                 logger.info("Using Google AI (Gemini) for response")
-                response = await self.get_google_ai_response(question)
+                # Get system prompt from preferences
+                system_prompt = ai_preferences.get_system_prompt()
+                response = await self.get_google_ai_response(question, system_prompt)
                 ai_source = "Google Gemini"
             
             # Fall back to g4f if Google AI failed or not configured
@@ -134,6 +162,11 @@ class AIChat(commands.Cog):
                 max_retries = 2
                 retry_delay = 1
                 
+                # Get system prompt from preferences
+                system_prompt = ai_preferences.get_system_prompt()
+                system_messages = [{"role": "system", "content": system_prompt}] if system_prompt else []
+                
+                # Try with FreeGpt provider first
                 for attempt in range(max_retries):
                     try:
                         response = await asyncio.wait_for(
@@ -141,25 +174,57 @@ class AIChat(commands.Cog):
                                 None,
                                 lambda: g4f.ChatCompletion.create(
                                     model="gpt-3.5-turbo",  # Use a more compatible model
-                                    provider=g4f.Provider.AiChats,  # Use a provider that doesn't require API key
-                                    messages=[{"role": "user", "content": question}]
+                                    provider=g4f.Provider.FreeGpt,  # First provider to try
+                                    messages=system_messages + [{"role": "user", "content": question}]
                                 )
                             ),
                             timeout=30.0  # 30 second timeout
                         )
                         if response:  # If we got a valid response, break the retry loop
+                            ai_source = "FreeGpt AI"
                             break
                     except Exception as e:
-                        logger.error(f"Error with g4f attempt {attempt+1}/{max_retries}: {str(e)}")
+                        logger.error(f"Error with FreeGpt attempt {attempt+1}/{max_retries}: {str(e)}")
                         if attempt < max_retries - 1:
                             retry_after = retry_delay * (2 ** attempt)
-                            logger.warning(f"Retrying g4f in {retry_after}s")
+                            logger.warning(f"Retrying FreeGpt in {retry_after}s")
                             await asyncio.sleep(retry_after)
                 
-                ai_source = "Alternative AI"
+                # If FreeGpt failed, try with ChatBase provider
+                if not response:
+                    logger.info("FreeGpt failed, trying ChatBase provider")
+                    for attempt in range(max_retries):
+                        try:
+                            response = await asyncio.wait_for(
+                                self.bot.loop.run_in_executor(
+                                    None,
+                                    lambda: g4f.ChatCompletion.create(
+                                        model="gpt-3.5-turbo",  # Use a more compatible model
+                                        provider=g4f.Provider.ChatBase,  # Second provider to try
+                                        messages=system_messages + [{"role": "user", "content": question}]
+                                    )
+                                ),
+                                timeout=30.0  # 30 second timeout
+                            )
+                            if response:  # If we got a valid response, break the retry loop
+                                ai_source = "ChatBase AI"
+                                break
+                        except Exception as e:
+                            logger.error(f"Error with ChatBase attempt {attempt+1}/{max_retries}: {str(e)}")
+                            if attempt < max_retries - 1:
+                                retry_after = retry_delay * (2 ** attempt)
+                                logger.warning(f"Retrying ChatBase in {retry_after}s")
+                                await asyncio.sleep(retry_after)
+                
+                # If all else failed
+                if not response:
+                    ai_source = "Alternative AI"
 
             if not response:
-                raise ValueError("Empty response received from AI provider")
+                # Instead of throwing an error, provide a fallback response
+                response = "I'm sorry, I couldn't generate a response right now. It seems our AI services are experiencing difficulties."
+                ai_source = "Fallback System"
+                logger.warning("All AI providers failed, using fallback response")
 
             logger.info(f"AI Response generated successfully: {response[:100]}...")  # Log first 100 chars
 
@@ -198,11 +263,21 @@ class AIChat(commands.Cog):
             
             response = None
             ai_source = "Unknown"
-            system_prompt = "You are a friendly and helpful chat bot. Keep responses concise and engaging."
             
-            # Try Google AI first if API key is available
-            if USE_GOOGLE_AI:
+            # First check for custom responses in our preferences
+            custom_response = ai_preferences.get_custom_response(message)
+            if custom_response:
+                logger.info(f"Using custom response for casual chat: {message[:50]}...")
+                response = custom_response
+                ai_source = "Custom Response"
+            
+            # If no custom response, try Google AI if API key is available
+            elif USE_GOOGLE_AI:
                 logger.info("Using Google AI (Gemini) for casual chat")
+                # Get system prompt from preferences or use default
+                system_prompt = ai_preferences.get_system_prompt()
+                if not system_prompt:
+                    system_prompt = "You are a friendly and helpful chat bot. Keep responses concise and engaging."
                 response = await self.get_google_ai_response(message, system_prompt)
                 ai_source = "Google Gemini"
             
@@ -212,6 +287,12 @@ class AIChat(commands.Cog):
                 max_retries = 2
                 retry_delay = 1
                 
+                # Get system prompt from preferences or use default
+                system_prompt = ai_preferences.get_system_prompt()
+                if not system_prompt:
+                    system_prompt = "You are a friendly and helpful chat bot. Keep responses concise and engaging."
+                
+                # Try with FreeGpt provider first
                 for attempt in range(max_retries):
                     try:
                         response = await asyncio.wait_for(
@@ -219,7 +300,7 @@ class AIChat(commands.Cog):
                                 None,
                                 lambda: g4f.ChatCompletion.create(
                                     model="gpt-3.5-turbo",  # Use a more compatible model
-                                    provider=g4f.Provider.AiChats,  # Use a provider that doesn't require API key
+                                    provider=g4f.Provider.FreeGpt,  # First provider to try
                                     messages=[
                                         {"role": "system", "content": system_prompt},
                                         {"role": "user", "content": message}
@@ -229,18 +310,53 @@ class AIChat(commands.Cog):
                             timeout=30.0  # 30 second timeout
                         )
                         if response:  # If we got a valid response, break the retry loop
+                            ai_source = "FreeGpt AI"
                             break
                     except Exception as e:
-                        logger.error(f"Error with g4f chat attempt {attempt+1}/{max_retries}: {str(e)}")
+                        logger.error(f"Error with FreeGpt chat attempt {attempt+1}/{max_retries}: {str(e)}")
                         if attempt < max_retries - 1:
                             retry_after = retry_delay * (2 ** attempt)
-                            logger.warning(f"Retrying g4f chat in {retry_after}s")
+                            logger.warning(f"Retrying FreeGpt chat in {retry_after}s")
                             await asyncio.sleep(retry_after)
                 
-                ai_source = "Alternative AI"
+                # If FreeGpt failed, try with ChatBase provider
+                if not response:
+                    logger.info("FreeGpt failed, trying ChatBase provider for chat")
+                    for attempt in range(max_retries):
+                        try:
+                            response = await asyncio.wait_for(
+                                self.bot.loop.run_in_executor(
+                                    None,
+                                    lambda: g4f.ChatCompletion.create(
+                                        model="gpt-3.5-turbo",  # Use a more compatible model
+                                        provider=g4f.Provider.ChatBase,  # Second provider to try
+                                        messages=[
+                                            {"role": "system", "content": system_prompt},
+                                            {"role": "user", "content": message}
+                                        ]
+                                    )
+                                ),
+                                timeout=30.0  # 30 second timeout
+                            )
+                            if response:  # If we got a valid response, break the retry loop
+                                ai_source = "ChatBase AI"
+                                break
+                        except Exception as e:
+                            logger.error(f"Error with ChatBase chat attempt {attempt+1}/{max_retries}: {str(e)}")
+                            if attempt < max_retries - 1:
+                                retry_after = retry_delay * (2 ** attempt)
+                                logger.warning(f"Retrying ChatBase chat in {retry_after}s")
+                                await asyncio.sleep(retry_after)
+                
+                # If all else failed
+                if not response:
+                    ai_source = "Alternative AI"
 
             if not response:
-                raise ValueError("Empty response received from AI provider")
+                # Instead of throwing an error, provide a fallback response
+                response = "I'm sorry, I couldn't generate a response right now. It seems our AI services are experiencing difficulties."
+                ai_source = "Fallback System"
+                logger.warning("All AI providers failed, using fallback response")
 
             logger.info(f"Casual AI Response generated successfully: {response[:100]}...")  # Log first 100 chars
 
@@ -264,6 +380,223 @@ class AIChat(commands.Cog):
             logger.error(f"Error in AI chat: {str(e)}")
             await interaction.followup.send(
                 embed=create_error_embed("Error", "I'm having trouble connecting to the AI service right now. Please try again in a few moments."),
+                ephemeral=True
+            )
+    
+    @app_commands.command(name="ai_reload", description="Reload AI preferences from file (Admin only)")
+    @app_commands.default_permissions(administrator=True)
+    async def ai_reload(self, interaction: discord.Interaction):
+        """Reload AI preferences from the JSON file (Admin only)"""
+        try:
+            await interaction.response.defer(ephemeral=True)
+            preferences = ai_preferences.reload_preferences()
+            
+            # Get stats about loaded preferences
+            custom_response_count = len(preferences.get('custom_responses', {}))
+            pattern_count = sum(len(data.get('patterns', [])) for _, data in preferences.get('custom_responses', {}).items())
+            response_count = sum(len(data.get('responses', [])) for _, data in preferences.get('custom_responses', {}).items())
+            
+            # Create response embed
+            embed = create_embed(
+                "✅ AI Preferences Reloaded",
+                f"Successfully reloaded AI preferences from file.",
+                color=0x00FF00
+            )
+            embed.add_field(name="Custom Response Categories", value=str(custom_response_count), inline=True)
+            embed.add_field(name="Total Patterns", value=str(pattern_count), inline=True)
+            embed.add_field(name="Total Responses", value=str(response_count), inline=True)
+            
+            if preferences.get('personality', {}).get('system_prompt'):
+                embed.add_field(
+                    name="System Prompt", 
+                    value=preferences.get('personality', {}).get('system_prompt')[:100] + "...", 
+                    inline=False
+                )
+                
+            await interaction.followup.send(embed=embed, ephemeral=True)
+            logger.info(f"AI preferences reloaded by {interaction.user}")
+            
+        except Exception as e:
+            logger.error(f"Error reloading AI preferences: {str(e)}")
+            await interaction.followup.send(
+                embed=create_error_embed("Error", f"Failed to reload AI preferences: {str(e)}"),
+                ephemeral=True
+            )
+    
+    @app_commands.command(
+        name="custom_response",
+        description="List, add, or remove custom AI responses (Admin only)"
+    )
+    @app_commands.describe(
+        action="Action to perform: list, add, remove",
+        category="Category name for add/remove actions",
+        pattern="Pattern to add (comma-separated for multiple)",
+        response="Response to add (only used with add action)"
+    )
+    @app_commands.default_permissions(administrator=True)
+    async def custom_response(
+        self, 
+        interaction: discord.Interaction, 
+        action: Literal["list", "add", "remove"],
+        category: str = None,
+        pattern: str = None,
+        response: str = None
+    ):
+        """Manage custom AI responses (Admin only)"""
+        try:
+            await interaction.response.defer(ephemeral=True)
+            
+            if action == "list":
+                # List all custom response categories
+                preferences = ai_preferences.preferences
+                custom_responses = preferences.get('custom_responses', {})
+                
+                if not custom_responses:
+                    await interaction.followup.send(
+                        embed=create_embed("Custom Responses", "No custom responses configured.", color=0x3498DB),
+                        ephemeral=True
+                    )
+                    return
+                
+                # Create embed with list of categories
+                embed = create_embed(
+                    "🤖 Custom AI Responses",
+                    f"There are {len(custom_responses)} custom response categories configured.",
+                    color=0x3498DB
+                )
+                
+                for category, data in custom_responses.items():
+                    patterns = data.get('patterns', [])
+                    responses = data.get('responses', [])
+                    
+                    # Truncate if too long
+                    pattern_examples = ", ".join(patterns[:3])
+                    if len(patterns) > 3:
+                        pattern_examples += f", ... ({len(patterns) - 3} more)"
+                        
+                    response_preview = responses[0][:50] + "..." if responses and len(responses[0]) > 50 else responses[0] if responses else "None"
+                    
+                    embed.add_field(
+                        name=f"📋 {category}",
+                        value=f"**Patterns:** {pattern_examples}\n**Responses:** {len(responses)}\n**Example:** {response_preview}",
+                        inline=False
+                    )
+                    
+                await interaction.followup.send(embed=embed, ephemeral=True)
+                logger.info(f"Custom responses listed by {interaction.user}")
+                
+            elif action == "add":
+                # Validate required parameters
+                if not category or not pattern or not response:
+                    await interaction.followup.send(
+                        embed=create_error_embed("Error", "Category, pattern, and response are required for adding a custom response."),
+                        ephemeral=True
+                    )
+                    return
+                    
+                # Split patterns by comma
+                patterns = [p.strip() for p in pattern.split(",")]
+                responses = [response]
+                
+                # Get existing data if category exists
+                preferences = ai_preferences.preferences
+                custom_responses = preferences.get('custom_responses', {})
+                
+                if category in custom_responses:
+                    # Category exists, add to it
+                    existing_patterns = custom_responses[category].get('patterns', [])
+                    existing_responses = custom_responses[category].get('responses', [])
+                    
+                    # Check for duplicates
+                    new_patterns = [p for p in patterns if p not in existing_patterns]
+                    if not new_patterns:
+                        await interaction.followup.send(
+                            embed=create_error_embed("Error", "All patterns already exist in this category."),
+                            ephemeral=True
+                        )
+                        return
+                        
+                    # Add new patterns and response
+                    custom_responses[category]['patterns'].extend(new_patterns)
+                    custom_responses[category]['responses'].append(response)
+                    
+                    success = ai_preferences.save_preferences()
+                    if success:
+                        embed = create_embed(
+                            "✅ Custom Response Updated",
+                            f"Added {len(new_patterns)} new patterns and 1 response to category '{category}'.",
+                            color=0x00FF00
+                        )
+                        embed.add_field(name="New Patterns", value=", ".join(new_patterns), inline=False)
+                        embed.add_field(name="New Response", value=response, inline=False)
+                        
+                        await interaction.followup.send(embed=embed, ephemeral=True)
+                        logger.info(f"Custom response category '{category}' updated by {interaction.user}")
+                    else:
+                        await interaction.followup.send(
+                            embed=create_error_embed("Error", "Failed to save preferences."),
+                            ephemeral=True
+                        )
+                else:
+                    # Create new category
+                    success = ai_preferences.add_custom_response(category, patterns, responses)
+                    if success:
+                        embed = create_embed(
+                            "✅ Custom Response Added",
+                            f"Created new category '{category}' with {len(patterns)} patterns and 1 response.",
+                            color=0x00FF00
+                        )
+                        embed.add_field(name="Patterns", value=", ".join(patterns), inline=False)
+                        embed.add_field(name="Response", value=response, inline=False)
+                        
+                        await interaction.followup.send(embed=embed, ephemeral=True)
+                        logger.info(f"New custom response category '{category}' created by {interaction.user}")
+                    else:
+                        await interaction.followup.send(
+                            embed=create_error_embed("Error", "Failed to add custom response."),
+                            ephemeral=True
+                        )
+                        
+            elif action == "remove":
+                # Validate required parameter
+                if not category:
+                    await interaction.followup.send(
+                        embed=create_error_embed("Error", "Category is required for removing a custom response."),
+                        ephemeral=True
+                    )
+                    return
+                    
+                # Check if category exists
+                preferences = ai_preferences.preferences
+                custom_responses = preferences.get('custom_responses', {})
+                
+                if category not in custom_responses:
+                    await interaction.followup.send(
+                        embed=create_error_embed("Error", f"Category '{category}' does not exist."),
+                        ephemeral=True
+                    )
+                    return
+                    
+                # Remove the category
+                success = ai_preferences.remove_custom_response(category)
+                if success:
+                    embed = create_embed(
+                        "✅ Custom Response Removed",
+                        f"Removed custom response category '{category}'.",
+                        color=0x00FF00
+                    )
+                    await interaction.followup.send(embed=embed, ephemeral=True)
+                    logger.info(f"Custom response category '{category}' removed by {interaction.user}")
+                else:
+                    await interaction.followup.send(
+                        embed=create_error_embed("Error", "Failed to remove custom response."),
+                        ephemeral=True
+                    )
+            
+        except Exception as e:
+            logger.error(f"Error managing custom responses: {str(e)}")
+            await interaction.followup.send(
+                embed=create_error_embed("Error", f"Failed to manage custom responses: {str(e)}"),
                 ephemeral=True
             )
 
