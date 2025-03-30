@@ -39,22 +39,14 @@ class AIChat(commands.Cog):
 
         max_retries = 3
         retry_delay = 1  # Start with 1 second delay and increase exponentially
-
-        # Check for keyword triggers first
-        keyword_response = ai_preferences.check_keyword_triggers(prompt)
-        if keyword_response:
-            logger.info("Using keyword trigger response")
-            return keyword_response
-
-        # Use the provided system prompt or get one from preferences
-        if not system_prompt:
-            system_prompt = ai_preferences.get_system_prompt()
-
-        # Get temperature from preferences
-        temperature = ai_preferences.get_temperature()
         
-        # Get max tokens from preferences
-        max_tokens = ai_preferences.get_max_tokens()
+        # Default settings
+        temperature = 0.7
+        max_tokens = 1000
+        
+        # Use the provided system prompt or default
+        if not system_prompt:
+            system_prompt = "You are a friendly and helpful chat bot. Keep responses concise and engaging."
 
         for attempt in range(max_retries):
             try:
