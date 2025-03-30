@@ -60,6 +60,9 @@ async def refresh_commands():
     
     logger.info("Starting command refresh process...")
     
+    # Set the environment variable to enable command syncing
+    os.environ['SYNC_COMMANDS_ON_STARTUP'] = 'true'
+    
     # Update status to 'pending'
     update_status_file('pending', 'Command refresh is in progress...')
     
