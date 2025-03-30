@@ -69,6 +69,12 @@ def start_discord_bot():
     global discord_process
     logger.info("Starting Discord bot...")
     
+    # Remove any stale lock files
+    if os.path.exists(".discord_bot.lock"):
+        os.remove(".discord_bot.lock")
+    if os.path.exists(".main_discord_bot.lock"):
+        os.remove(".main_discord_bot.lock")
+    
     discord_cmd = ["python", "bot.py"]
     discord_process = subprocess.Popen(
         discord_cmd,

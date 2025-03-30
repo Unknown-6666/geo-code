@@ -34,54 +34,82 @@ class AIChat(commands.Cog):
         if not GOOGLE_API_KEY:
             return None
 
-        try:
-            # Gemini API endpoint for text generation
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={GOOGLE_API_KEY}"
-            
-            # Prepare request payload
-            payload = {
-                "contents": [
-                    {
-                        "parts": [
-                            {"text": prompt}
-                        ]
+        max_retries = 3
+        retry_delay = 1  # Start with 1 second delay and increase exponentially
+
+        for attempt in range(max_retries):
+            try:
+                # Gemini API endpoint for text generation
+                url = f"https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key={GOOGLE_API_KEY}"
+                
+                # Prepare request payload
+                payload = {
+                    "contents": [
+                        {
+                            "parts": [
+                                {"text": prompt}
+                            ]
+                        }
+                    ],
+                    "generationConfig": {
+                        "temperature": 0.7,
+                        "topK": 40,
+                        "topP": 0.95,
+                        "maxOutputTokens": 1000
                     }
-                ],
-                "generationConfig": {
-                    "temperature": 0.7,
-                    "topK": 40,
-                    "topP": 0.95,
-                    "maxOutputTokens": 1000
                 }
-            }
+                
+                # Add system prompt if provided
+                if system_prompt:
+                    payload["contents"].insert(0, {
+                        "role": "system",
+                        "parts": [{"text": system_prompt}]
+                    })
+                
+                async with aiohttp.ClientSession() as session:
+                    async with session.post(url, json=payload) as response:
+                        if response.status == 429:  # Rate limited
+                            retry_after = retry_delay * (2 ** attempt)  # Exponential backoff
+                            logger.warning(f"Google AI API rate limited. Retrying in {retry_after}s (attempt {attempt+1}/{max_retries})")
+                            await asyncio.sleep(retry_after)
+                            continue
+                            
+                        elif response.status != 200:
+                            logger.error(f"Google AI API returned status code {response.status}")
+                            error_text = await response.text()
+                            logger.error(f"Error details: {error_text[:200]}")
+                            
+                            if attempt < max_retries - 1:
+                                retry_after = retry_delay * (2 ** attempt)
+                                logger.warning(f"Retrying in {retry_after}s (attempt {attempt+1}/{max_retries})")
+                                await asyncio.sleep(retry_after)
+                                continue
+                            else:
+                                return None
+                        
+                        data = await response.json()
+                        
+                        if "candidates" not in data or not data["candidates"]:
+                            logger.error("No candidates in Google AI response")
+                            logger.error(f"Response data: {json.dumps(data)[:200]}")
+                            return None
+                        
+                        # Extract the response text
+                        text_parts = data["candidates"][0]["content"]["parts"]
+                        response_text = " ".join([part["text"] for part in text_parts if "text" in part])
+                        return response_text
             
-            # Add system prompt if provided
-            if system_prompt:
-                payload["contents"].insert(0, {
-                    "role": "system",
-                    "parts": [{"text": system_prompt}]
-                })
-            
-            async with aiohttp.ClientSession() as session:
-                async with session.post(url, json=payload) as response:
-                    if response.status != 200:
-                        logger.error(f"Google AI API returned status code {response.status}")
-                        return None
+            except Exception as e:
+                logger.error(f"Error getting Google AI response: {str(e)}")
+                if attempt < max_retries - 1:
+                    retry_after = retry_delay * (2 ** attempt)
+                    logger.warning(f"Retrying in {retry_after}s (attempt {attempt+1}/{max_retries})")
+                    await asyncio.sleep(retry_after)
+                else:
+                    return None
                     
-                    data = await response.json()
-                    
-                    if "candidates" not in data or not data["candidates"]:
-                        logger.error("No candidates in Google AI response")
-                        return None
-                    
-                    # Extract the response text
-                    text_parts = data["candidates"][0]["content"]["parts"]
-                    response_text = " ".join([part["text"] for part in text_parts if "text" in part])
-                    return response_text
-        
-        except Exception as e:
-            logger.error(f"Error getting Google AI response: {str(e)}")
-            return None
+        # If we got here, all retries failed
+        return None
 
     @app_commands.command(name="ask", description="Ask the AI a question")
     @app_commands.describe(question="The question or prompt for the AI")
@@ -103,15 +131,30 @@ class AIChat(commands.Cog):
             # Fall back to g4f if Google AI failed or not configured
             if not response:
                 logger.info("Using g4f as fallback for AI response")
-                response = await asyncio.wait_for(
-                    self.bot.loop.run_in_executor(
-                        None,
-                        lambda: g4f.ChatCompletion.create(
-                            messages=[{"role": "user", "content": question}]
+                max_retries = 2
+                retry_delay = 1
+                
+                for attempt in range(max_retries):
+                    try:
+                        response = await asyncio.wait_for(
+                            self.bot.loop.run_in_executor(
+                                None,
+                                lambda: g4f.ChatCompletion.create(
+                                    model="gpt-3.5-turbo",
+                                    messages=[{"role": "user", "content": question}]
+                                )
+                            ),
+                            timeout=30.0  # 30 second timeout
                         )
-                    ),
-                    timeout=30.0  # 30 second timeout
-                )
+                        if response:  # If we got a valid response, break the retry loop
+                            break
+                    except Exception as e:
+                        logger.error(f"Error with g4f attempt {attempt+1}/{max_retries}: {str(e)}")
+                        if attempt < max_retries - 1:
+                            retry_after = retry_delay * (2 ** attempt)
+                            logger.warning(f"Retrying g4f in {retry_after}s")
+                            await asyncio.sleep(retry_after)
+                
                 ai_source = "Alternative AI"
 
             if not response:
@@ -165,18 +208,33 @@ class AIChat(commands.Cog):
             # Fall back to g4f if Google AI failed or not configured
             if not response:
                 logger.info("Using g4f as fallback for casual chat")
-                response = await asyncio.wait_for(
-                    self.bot.loop.run_in_executor(
-                        None,
-                        lambda: g4f.ChatCompletion.create(
-                            messages=[
-                                {"role": "system", "content": system_prompt},
-                                {"role": "user", "content": message}
-                            ]
+                max_retries = 2
+                retry_delay = 1
+                
+                for attempt in range(max_retries):
+                    try:
+                        response = await asyncio.wait_for(
+                            self.bot.loop.run_in_executor(
+                                None,
+                                lambda: g4f.ChatCompletion.create(
+                                    model="gpt-3.5-turbo",
+                                    messages=[
+                                        {"role": "system", "content": system_prompt},
+                                        {"role": "user", "content": message}
+                                    ]
+                                )
+                            ),
+                            timeout=30.0  # 30 second timeout
                         )
-                    ),
-                    timeout=30.0  # 30 second timeout
-                )
+                        if response:  # If we got a valid response, break the retry loop
+                            break
+                    except Exception as e:
+                        logger.error(f"Error with g4f chat attempt {attempt+1}/{max_retries}: {str(e)}")
+                        if attempt < max_retries - 1:
+                            retry_after = retry_delay * (2 ** attempt)
+                            logger.warning(f"Retrying g4f chat in {retry_after}s")
+                            await asyncio.sleep(retry_after)
+                
                 ai_source = "Alternative AI"
 
             if not response:
