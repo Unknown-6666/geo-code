@@ -1,0 +1,42 @@
+[DISCORD] INFO:discord:Processing AI request from unknown_6666: hi
+[DISCORD] INFO:discord:Using Google AI (Gemini) for response
+[DISCORD] ERROR:discord:Google AI API returned status code 400
+[DISCORD] ERROR:discord:Error details: {
+[DISCORD] "error": {
+[DISCORD] "code": 400,
+[DISCORD] "message": "Please use a valid role: user, model.",
+[DISCORD] "status": "INVALID_ARGUMENT"
+[DISCORD] }
+[DISCORD] }
+[DISCORD] 
+[DISCORD] WARNING:discord:Retrying in 1s (attempt 1/3)
+[DISCORD] ERROR:discord:Google AI API returned status code 400
+[DISCORD] ERROR:discord:Error details: {
+[DISCORD] "error": {
+[DISCORD] "code": 400,
+[DISCORD] "message": "Please use a valid role: user, model.",
+[DISCORD] "status": "INVALID_ARGUMENT"
+[DISCORD] }
+[DISCORD] }
+[DISCORD] 
+[DISCORD] WARNING:discord:Retrying in 2s (attempt 2/3)
+[DISCORD] ERROR:discord:Google AI API returned status code 400
+[DISCORD] ERROR:discord:Error details: {
+[DISCORD] "error": {
+[DISCORD] "code": 400,
+[DISCORD] "message": "Please use a valid role: user, model.",
+[DISCORD] "status": "INVALID_ARGUMENT"
+[DISCORD] }
+[DISCORD] }
+[DISCORD] 
+[DISCORD] INFO:discord:Using g4f as fallback for AI response
+[DISCORD] ERROR:discord:Error with FreeGpt attempt 1/2: 'NoneType' object has no attribute 'get'
+[DISCORD] WARNING:discord:Retrying FreeGpt in 1s
+[DISCORD] ERROR:discord:Error with FreeGpt attempt 2/2: 'NoneType' object has no attribute 'get'
+[DISCORD] INFO:discord:FreeGpt failed, trying ChatBase provider
+[DISCORD] ERROR:discord:Error with ChatBase attempt 1/2: module 'g4f.Provider' has no attribute 'ChatBase'
+[DISCORD] WARNING:discord:Retrying ChatBase in 1s
+[DISCORD] ERROR:discord:Error with ChatBase attempt 2/2: module 'g4f.Provider' has no attribute 'ChatBase'
+[DISCORD] WARNING:discord:All AI providers failed, using fallback response
+[DISCORD] INFO:discord:AI Response generated successfully: I'm sorry, I couldn't generate a response right now. It seems our AI services are experiencing diffi...
+[DISCORD] INFO:discord:Successfully sent AI response from Fallback System
