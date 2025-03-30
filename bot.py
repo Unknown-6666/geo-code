@@ -53,47 +53,54 @@ class Bot(commands.Bot):
             
             logger.info("All cogs loaded successfully")
             
-            # Always clear commands before syncing to prevent duplicates
-            logger.info("Clearing all commands before syncing...")
-            try:
-                await self.http.request(
-                    discord.http.Route("PUT", "/applications/{application_id}/commands", 
-                                      application_id=self.application_id), 
-                    json=[]
-                )
-                logger.info("Commands cleared successfully")
-            except Exception as e:
-                logger.error(f"Error clearing commands: {str(e)}")
-                logger.info("Continuing with sync despite clearing error")
-                
-            # Sync commands after clearing with rate limit handling
-            logger.info("Syncing global commands with Discord...")
-            rate_limit_count = 0
-            max_rate_limits = 3  # Maximum number of rate limit retries
+            # Check if we should sync commands on startup
+            # Default to False (don't sync) unless explicitly set to true
+            should_sync = os.environ.get('SYNC_COMMANDS_ON_STARTUP', 'false').lower() == 'true'
             
-            while rate_limit_count < max_rate_limits:
+            if should_sync:
+                # Always clear commands before syncing to prevent duplicates
+                logger.info("Clearing all commands before syncing...")
                 try:
-                    synced = await self.tree.sync()
-                    logger.info(f"Synced {len(synced)} commands globally")
-                    break  # Successfully synced, exit the loop
-                except discord.errors.HTTPException as e:
-                    if e.status == 429:  # Rate limited
-                        rate_limit_count += 1
-                        retry_after = e.retry_after if hasattr(e, 'retry_after') else 60
-                        
-                        logger.warning(f"Rate limited while syncing commands ({rate_limit_count}/{max_rate_limits}). "
-                                      f"Retrying in {retry_after:.2f} seconds...")
-                        
-                        if rate_limit_count >= max_rate_limits:
-                            logger.warning(f"Hit rate limit {max_rate_limits} times, stopping command sync. "
-                                          f"Commands may be partially updated or use old versions.")
-                            break
+                    await self.http.request(
+                        discord.http.Route("PUT", "/applications/{application_id}/commands", 
+                                        application_id=self.application_id), 
+                        json=[]
+                    )
+                    logger.info("Commands cleared successfully")
+                except Exception as e:
+                    logger.error(f"Error clearing commands: {str(e)}")
+                    logger.info("Continuing with sync despite clearing error")
+                    
+                # Sync commands after clearing with rate limit handling
+                logger.info("Syncing global commands with Discord...")
+                rate_limit_count = 0
+                max_rate_limits = 3  # Maximum number of rate limit retries
+                
+                while rate_limit_count < max_rate_limits:
+                    try:
+                        synced = await self.tree.sync()
+                        logger.info(f"Synced {len(synced)} commands globally")
+                        break  # Successfully synced, exit the loop
+                    except discord.errors.HTTPException as e:
+                        if e.status == 429:  # Rate limited
+                            rate_limit_count += 1
+                            retry_after = e.retry_after if hasattr(e, 'retry_after') else 60
                             
-                        # Wait for the rate limit to expire
-                        await asyncio.sleep(retry_after)
-                    else:
-                        # Not a rate limit error, re-raise
-                        raise
+                            logger.warning(f"Rate limited while syncing commands ({rate_limit_count}/{max_rate_limits}). "
+                                        f"Retrying in {retry_after:.2f} seconds...")
+                            
+                            if rate_limit_count >= max_rate_limits:
+                                logger.warning(f"Hit rate limit {max_rate_limits} times, stopping command sync. "
+                                            f"Commands may be partially updated or use old versions.")
+                                break
+                                
+                            # Wait for the rate limit to expire
+                            await asyncio.sleep(retry_after)
+                        else:
+                            # Not a rate limit error, re-raise
+                            raise
+            else:
+                logger.info("Skipping command sync on startup - use !sync command manually if needed")
             
         except Exception as e:
             logger.error(f"Error in setup: {str(e)}")
@@ -159,6 +166,10 @@ async def main():
 async def sync_commands_only():
     """Function to only sync commands without starting the full bot"""
     logger.info("Starting command sync mode...")
+    
+    # When explicitly running sync_commands_only, we want to sync commands
+    # so we'll set the variable to true
+    os.environ['SYNC_COMMANDS_ON_STARTUP'] = 'true'
     
     # Initialize database first
     init_db()

@@ -31,9 +31,9 @@ def run_discord_bot():
             f.write(str(os.getpid()))
             logger.info(f"Created main application lock file with PID {os.getpid()}")
         
-        # Set environment variable to enable command syncing
-        # This prevents multiple instances from all trying to sync
-        os.environ['SYNC_COMMANDS'] = 'true'
+        # Set environment variable to disable command syncing on startup
+        # This can be changed to 'true' when you want to sync commands
+        os.environ['SYNC_COMMANDS_ON_STARTUP'] = 'false'
         
         # No need for deployment flags anymore - the bot now clears commands
         # on every startup to prevent duplication issues
@@ -92,6 +92,8 @@ def main():
     # Command sync mode - just sync commands and exit
     if args.sync_commands:
         logger.info("Running in command sync mode")
+        # Make sure we enable command syncing when explicitly running sync mode
+        os.environ['SYNC_COMMANDS_ON_STARTUP'] = 'true'
         import asyncio
         from bot import sync_commands_only
         result = asyncio.run(sync_commands_only())
@@ -100,6 +102,8 @@ def main():
     # Command refresh mode - clear and sync commands and exit
     if args.refresh_commands:
         logger.info("Running in command refresh mode")
+        # Make sure we enable command syncing when refreshing commands
+        os.environ['SYNC_COMMANDS_ON_STARTUP'] = 'true'
         import subprocess
         result = subprocess.run(['python', 'refresh_commands.py', '-y'], 
                                 capture_output=True, text=True)
