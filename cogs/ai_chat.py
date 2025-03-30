@@ -39,8 +39,8 @@ class AIChat(commands.Cog):
 
         for attempt in range(max_retries):
             try:
-                # Gemini API endpoint for text generation
-                url = f"https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key={GOOGLE_API_KEY}"
+                # Gemini API endpoint for text generation - using v1beta for compatibility
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={GOOGLE_API_KEY}"
                 
                 # Prepare request payload
                 payload = {
@@ -140,7 +140,8 @@ class AIChat(commands.Cog):
                             self.bot.loop.run_in_executor(
                                 None,
                                 lambda: g4f.ChatCompletion.create(
-                                    model="gpt-3.5-turbo",
+                                    model=g4f.models.gemini,  # Using the constant from g4f
+                                    provider=g4f.Provider.GeminiPro,  # Use a reliable provider
                                     messages=[{"role": "user", "content": question}]
                                 )
                             ),
@@ -217,7 +218,8 @@ class AIChat(commands.Cog):
                             self.bot.loop.run_in_executor(
                                 None,
                                 lambda: g4f.ChatCompletion.create(
-                                    model="gpt-3.5-turbo",
+                                    model=g4f.models.gemini,  # Using the constant from g4f
+                                    provider=g4f.Provider.GeminiPro,  # Use a reliable provider
                                     messages=[
                                         {"role": "system", "content": system_prompt},
                                         {"role": "user", "content": message}
