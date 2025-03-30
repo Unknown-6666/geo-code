@@ -52,6 +52,15 @@ task = "packager.installForAll"
 task = "shell.exec"
 args = "python bot.py"
 
+[[workflows.workflow]]
+name = "Run Discord Bot"
+author = 39706813
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python run_all.py"
+
 [[ports]]
 localPort = 5000
 externalPort = 80
