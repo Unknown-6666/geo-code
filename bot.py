@@ -151,6 +151,7 @@ def init_db():
     """Initialize database tables"""
     from dashboard.app import app
     from models.economy import initialize_shop
+    from models.conversation import Conversation  # Import Conversation model
     with app.app_context():
         db.create_all()
         initialize_shop()  # Initialize shop items

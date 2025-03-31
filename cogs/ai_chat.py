@@ -11,6 +11,7 @@ from discord import app_commands
 from discord.ext import commands
 from utils.embed_helpers import create_embed, create_error_embed
 from utils.ai_preference_manager import ai_preferences
+from models.conversation import Conversation
 
 logger = logging.getLogger('discord')
 
@@ -32,8 +33,8 @@ class AIChat(commands.Cog):
             logger.info("AI Chat cog initialized with fallback AI providers")
             logger.info("To use Google's Gemini AI, set the GOOGLE_API environment variable")
 
-    async def get_google_ai_response(self, prompt, system_prompt=None):
-        """Get a response from Google's Gemini AI API"""
+    async def get_google_ai_response(self, prompt, system_prompt=None, user_id=None, include_history=True):
+        """Get a response from Google's Gemini AI API with conversation history support"""
         if not GOOGLE_API_KEY:
             return None
 
@@ -53,16 +54,37 @@ class AIChat(commands.Cog):
                 # Gemini API endpoint for text generation - using one of the available 1.5 models
                 url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key={GOOGLE_API_KEY}"
                 
-                # Prepare request payload with the correct role
+                # Prepare conversation history for context if user_id is provided and include_history is True
+                history_contents = []
+                if user_id and include_history:
+                    # Get conversation history
+                    history = Conversation.get_formatted_history(user_id, limit=8)  # Get last 8 messages
+                    
+                    # If we have history, add it to the conversation
+                    if history:
+                        logger.info(f"Including {len(history)} previous messages in conversation history")
+                        for msg in history:
+                            # Convert to Gemini format (role + parts)
+                            # Gemini API only accepts "user" or "model" roles, map "assistant" to "model"
+                            gemini_role = "model" if msg["role"] == "assistant" else "user"
+                            history_contents.append({
+                                "role": gemini_role,
+                                "parts": [{"text": msg["content"]}]
+                            })
+                
+                # Prepare request payload with the correct role and history
+                contents = history_contents.copy() if history_contents else []
+                
+                # Add current user message
+                contents.append({
+                    "role": "user",
+                    "parts": [
+                        {"text": prompt}
+                    ]
+                })
+                
                 payload = {
-                    "contents": [
-                        {
-                            "role": "user",
-                            "parts": [
-                                {"text": prompt}
-                            ]
-                        }
-                    ],
+                    "contents": contents,
                     "generationConfig": {
                         "temperature": temperature,
                         "topK": 40,
@@ -71,10 +93,10 @@ class AIChat(commands.Cog):
                     }
                 }
                 
-                # For system prompt, we'll add it to the user's prompt since Gemini needs it as part of the user message
-                if system_prompt:
+                # If we don't have history but have a system prompt, we'll add it to the user's prompt
+                if not history_contents and system_prompt:
                     modified_prompt = f"[System instructions: {system_prompt}]\n\nUser: {prompt}"
-                    payload["contents"][0]["parts"][0]["text"] = modified_prompt
+                    payload["contents"][-1]["parts"][0]["text"] = modified_prompt
                 
                 async with aiohttp.ClientSession() as session:
                     async with session.post(url, json=payload) as response:
@@ -192,7 +214,7 @@ class AIChat(commands.Cog):
                                     lambda: g4f.ChatCompletion.create(
                                         model="gemini-1-5-pro",  # Use a model supported by You.com
                                         provider=g4f.Provider.You,  # Second provider to try
-                                        messages=system_messages + [{"role": "user", "content": question}]
+                                        messages=[{"role": "user", "content": question}]  # You.com doesn't support system messages
                                     )
                                 ),
                                 timeout=30.0  # 30 second timeout
@@ -219,6 +241,14 @@ class AIChat(commands.Cog):
 
             logger.info(f"AI Response generated successfully: {response[:100]}...")  # Log first 100 chars
 
+            # Save the AI's response to the conversation history
+            try:
+                user_id = str(interaction.user.id)
+                Conversation.add_message(user_id, "assistant", response)
+                logger.info(f"Added AI response to conversation history for {user_id}")
+            except Exception as e:
+                logger.error(f"Failed to save AI response to conversation history: {str(e)}")
+            
             # Create embed with the response
             embed = create_embed(
                 f"🤖 AI Response",
@@ -247,10 +277,18 @@ class AIChat(commands.Cog):
     @app_commands.command(name="chat", description="Have a casual chat with the AI")
     @app_commands.describe(message="Your message to the AI")
     async def chat(self, interaction: discord.Interaction, *, message: str):
-        """Have a more casual conversation with the AI"""
+        """Have a more casual conversation with the AI with memory of past conversations"""
         try:
             await interaction.response.defer()
-            logger.info(f"Processing casual AI chat from {interaction.user}: {message}")
+            user_id = str(interaction.user.id)
+            logger.info(f"Processing casual AI chat from {interaction.user} (ID: {user_id}): {message}")
+            
+            # Save the user's message to the conversation history
+            try:
+                Conversation.add_message(user_id, "user", message)
+                logger.info(f"Added user message to conversation history for {user_id}")
+            except Exception as e:
+                logger.error(f"Failed to save user message to conversation history: {str(e)}")
             
             response = None
             ai_source = "Unknown"
@@ -269,7 +307,14 @@ class AIChat(commands.Cog):
                 system_prompt = ai_preferences.get_system_prompt()
                 if not system_prompt:
                     system_prompt = "You are a friendly and helpful chat bot. Keep responses concise and engaging."
-                response = await self.get_google_ai_response(message, system_prompt)
+                
+                # Pass user_id to include conversation history
+                response = await self.get_google_ai_response(
+                    message, 
+                    system_prompt=system_prompt,
+                    user_id=user_id,
+                    include_history=True
+                )
                 ai_source = "Google Gemini"
             
             # Fall back to g4f if Google AI failed or not configured
@@ -322,9 +367,8 @@ class AIChat(commands.Cog):
                                         model="gemini-1-5-pro",  # Use a model supported by You.com 
                                         provider=g4f.Provider.You,  # Second provider to try
                                         messages=[
-                                            {"role": "system", "content": system_prompt},
                                             {"role": "user", "content": message}
-                                        ]
+                                        ]  # You.com doesn't support system messages
                                     )
                                 ),
                                 timeout=30.0  # 30 second timeout
@@ -350,6 +394,13 @@ class AIChat(commands.Cog):
                 logger.warning("All AI providers failed, using fallback response")
 
             logger.info(f"Casual AI Response generated successfully: {response[:100]}...")  # Log first 100 chars
+
+            # Save the AI's response to the conversation history
+            try:
+                Conversation.add_message(user_id, "assistant", response)
+                logger.info(f"Added AI response to conversation history for {user_id}")
+            except Exception as e:
+                logger.error(f"Failed to save AI response to conversation history: {str(e)}")
 
             embed = create_embed(
                 "💭 AI Chat",
@@ -588,6 +639,94 @@ class AIChat(commands.Cog):
             logger.error(f"Error managing custom responses: {str(e)}")
             await interaction.followup.send(
                 embed=create_error_embed("Error", f"Failed to manage custom responses: {str(e)}"),
+                ephemeral=True
+            )
+
+    @app_commands.command(name="clear_chat_history", description="Clear your conversation history with the AI")
+    async def clear_chat_history(self, interaction: discord.Interaction):
+        """Clear your conversation history with the AI"""
+        try:
+            await interaction.response.defer(ephemeral=True)
+            user_id = str(interaction.user.id)
+            
+            try:
+                Conversation.clear_history(user_id)
+                logger.info(f"Cleared conversation history for user {interaction.user} (ID: {user_id})")
+                
+                embed = create_embed(
+                    "🧹 Conversation History Cleared",
+                    "Your conversation history with the AI has been cleared. The AI will no longer remember your previous interactions.",
+                    color=0xFFA500
+                )
+                await interaction.followup.send(embed=embed, ephemeral=True)
+                
+            except Exception as e:
+                logger.error(f"Error clearing conversation history: {str(e)}")
+                await interaction.followup.send(
+                    embed=create_error_embed("Error", "Failed to clear conversation history. Please try again later."),
+                    ephemeral=True
+                )
+                
+        except Exception as e:
+            logger.error(f"Error in clear_chat_history: {str(e)}")
+            await interaction.followup.send(
+                embed=create_error_embed("Error", "An error occurred. Please try again later."),
+                ephemeral=True
+            )
+    
+    @app_commands.command(name="show_chat_history", description="Show your recent conversation history with the AI")
+    async def show_chat_history(self, interaction: discord.Interaction):
+        """Show your recent conversation with the AI"""
+        try:
+            await interaction.response.defer(ephemeral=True)
+            user_id = str(interaction.user.id)
+            
+            try:
+                # Get up to 10 most recent messages
+                history = Conversation.get_history(user_id, limit=10)
+                
+                if not history:
+                    await interaction.followup.send(
+                        embed=create_embed("Conversation History", "You don't have any recent conversations with the AI.", color=0x3498DB),
+                        ephemeral=True
+                    )
+                    return
+                
+                # Format the history
+                embed = create_embed(
+                    "💬 Your Recent AI Conversations",
+                    f"Here are your {len(history)} most recent messages with the AI:",
+                    color=0x3498DB
+                )
+                
+                # We want them in chronological order (oldest first)
+                history.reverse()
+                
+                # Add each message to the embed
+                for i, msg in enumerate(history, 1):
+                    role_icon = "👤" if msg.role == "user" else "🤖"
+                    timestamp = msg.timestamp.strftime("%Y-%m-%d %H:%M:%S")
+                    content = msg.content[:200] + "..." if len(msg.content) > 200 else msg.content
+                    
+                    embed.add_field(
+                        name=f"{i}. {role_icon} {msg.role.capitalize()} ({timestamp})",
+                        value=content,
+                        inline=False
+                    )
+                
+                await interaction.followup.send(embed=embed, ephemeral=True)
+                
+            except Exception as e:
+                logger.error(f"Error retrieving conversation history: {str(e)}")
+                await interaction.followup.send(
+                    embed=create_error_embed("Error", "Failed to retrieve conversation history. Please try again later."),
+                    ephemeral=True
+                )
+                
+        except Exception as e:
+            logger.error(f"Error in show_chat_history: {str(e)}")
+            await interaction.followup.send(
+                embed=create_error_embed("Error", "An error occurred. Please try again later."),
                 ephemeral=True
             )
 
