@@ -1,4 +1,5 @@
 import datetime
+import os
 from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey
 from database import Base, db
 
@@ -21,11 +22,44 @@ class Conversation(Base):
         # Import here to avoid circular imports
         from dashboard.app import app
         
-        with app.app_context():
-            message = cls(user_id=str(user_id), role=role, content=content)
-            db.session.add(message)
-            db.session.commit()
-            return message
+        try:
+            with app.app_context():
+                # Create a new session to avoid using a potentially closed one
+                from sqlalchemy.orm import Session
+                from sqlalchemy import create_engine
+                
+                # Get the database URL from environment
+                database_url = os.environ.get("DATABASE_URL")
+                
+                if not database_url:
+                    # Fall back to the app's configured database URL
+                    database_url = app.config.get("SQLALCHEMY_DATABASE_URI")
+                
+                if not database_url:
+                    raise ValueError("No database URL found")
+                
+                # Create a new engine and session for this operation
+                engine = create_engine(database_url)
+                session = Session(engine)
+                
+                try:
+                    # Create and add the message
+                    message = cls(user_id=str(user_id), role=role, content=content)
+                    session.add(message)
+                    session.commit()
+                    return message
+                except Exception as e:
+                    session.rollback()
+                    raise e
+                finally:
+                    session.close()
+                    engine.dispose()
+        except Exception as e:
+            # Log the error but don't raise - we don't want to break the chat functionality
+            import logging
+            logger = logging.getLogger('discord')
+            logger.error(f"Error saving message to conversation history: {str(e)}")
+            return None
     
     @classmethod
     def get_history(cls, user_id, limit=10):
@@ -33,11 +67,46 @@ class Conversation(Base):
         # Import here to avoid circular imports
         from dashboard.app import app
         
-        with app.app_context():
-            return cls.query.filter_by(user_id=str(user_id)) \
-                .order_by(cls.timestamp.desc()) \
-                .limit(limit) \
-                .all()
+        try:
+            with app.app_context():
+                # Create a new session to avoid using a potentially closed one
+                from sqlalchemy.orm import Session
+                from sqlalchemy import create_engine
+                
+                # Get the database URL from environment
+                database_url = os.environ.get("DATABASE_URL")
+                
+                if not database_url:
+                    # Fall back to the app's configured database URL
+                    database_url = app.config.get("SQLALCHEMY_DATABASE_URI")
+                
+                if not database_url:
+                    raise ValueError("No database URL found")
+                
+                # Create a new engine and session for this operation
+                engine = create_engine(database_url)
+                session = Session(engine)
+                
+                try:
+                    # Query for messages
+                    Base.metadata.create_all(engine)
+                    result = session.query(cls).filter(cls.user_id == str(user_id))\
+                        .order_by(cls.timestamp.desc())\
+                        .limit(limit)\
+                        .all()
+                    return result
+                except Exception as e:
+                    session.rollback()
+                    raise e
+                finally:
+                    session.close()
+                    engine.dispose()
+        except Exception as e:
+            # Log the error but don't raise - we don't want to break the chat functionality
+            import logging
+            logger = logging.getLogger('discord')
+            logger.error(f"Error fetching conversation history: {str(e)}")
+            return []  # Return empty list on error
     
     @classmethod
     def get_formatted_history(cls, user_id, limit=10):
@@ -57,6 +126,41 @@ class Conversation(Base):
         # Import here to avoid circular imports
         from dashboard.app import app
         
-        with app.app_context():
-            cls.query.filter_by(user_id=str(user_id)).delete()
-            db.session.commit()
+        try:
+            with app.app_context():
+                # Create a new session to avoid using a potentially closed one
+                from sqlalchemy.orm import Session
+                from sqlalchemy import create_engine
+                
+                # Get the database URL from environment
+                database_url = os.environ.get("DATABASE_URL")
+                
+                if not database_url:
+                    # Fall back to the app's configured database URL
+                    database_url = app.config.get("SQLALCHEMY_DATABASE_URI")
+                
+                if not database_url:
+                    raise ValueError("No database URL found")
+                
+                # Create a new engine and session for this operation
+                engine = create_engine(database_url)
+                session = Session(engine)
+                
+                try:
+                    # Delete messages for this user
+                    Base.metadata.create_all(engine)
+                    result = session.query(cls).filter(cls.user_id == str(user_id)).delete()
+                    session.commit()
+                    return result
+                except Exception as e:
+                    session.rollback()
+                    raise e
+                finally:
+                    session.close()
+                    engine.dispose()
+        except Exception as e:
+            # Log the error but don't raise - we don't want to break the chat functionality
+            import logging
+            logger = logging.getLogger('discord')
+            logger.error(f"Error clearing conversation history: {str(e)}")
+            return 0  # Return 0 rows affected on error
