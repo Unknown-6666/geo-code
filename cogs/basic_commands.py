@@ -190,19 +190,16 @@ class BasicCommands(commands.Cog):
     @commands.Cog.listener()
     async def on_command_error(self, ctx, error):
         """Handle command errors"""
+        # Just log errors - let the individual commands handle their own error responses
         logger.error(f'Command error in {ctx.guild}: {str(error)}')
 
+        # Log specific common errors with appropriate level
         if isinstance(error, commands.MissingPermissions):
-            embed = create_error_embed("Error", "You don't have permission to use this command.")
             logger.warning(f'User {ctx.author} attempted to use command without permission')
         elif isinstance(error, commands.MemberNotFound):
-            embed = create_error_embed("Error", "Member not found.")
             logger.warning(f'Member not found error for command {ctx.command}')
         else:
-            embed = create_error_embed("Error", str(error))
             logger.error(f'Unexpected error in command {ctx.command}: {str(error)}')
-
-        await ctx.send(embed=embed)
 
     @commands.command(name="sync")
     @PermissionChecks.is_owner()
