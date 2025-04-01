@@ -146,6 +146,9 @@ class Bot(commands.Bot):
     async def on_command(self, ctx):
         """Log when commands are used"""
         logger.info(f'Command "{ctx.command}" used by {ctx.author} in {ctx.guild}')
+        
+        # Don't add any additional processing here
+        # This event handler should only log commands, not respond to them
 
 def init_db():
     """Initialize database tables"""

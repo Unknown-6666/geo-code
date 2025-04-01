@@ -1,6 +1,8 @@
 import discord
+import json
 import logging
 import asyncio
+import os
 import re
 import config
 from discord import app_commands
@@ -15,7 +17,35 @@ class Moderation(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.recent_actions = {}  # Store recent moderation actions for potential undoing
+        # Default to 0, will be configurable via commands
+        self.prisoner_role_id = 1355679559625867435  # Placeholder for prisoner role ID
+        # Try to load from config file if it exists
+        self.config_file = 'data/prisoner_role.json'
+        self._load_prisoner_role_config()
         logger.info("Moderation cog initialized")
+        
+    def _load_prisoner_role_config(self):
+        """Load prisoner role configuration from file"""
+        try:
+            if os.path.exists(self.config_file):
+                with open(self.config_file, 'r') as f:
+                    config = json.load(f)
+                    self.prisoner_role_id = config.get('prisoner_role_id', 0)
+                    logger.info(f"Loaded prisoner role ID: {self.prisoner_role_id}")
+        except Exception as e:
+            logger.error(f"Failed to load prisoner role config: {e}")
+            
+    def _save_prisoner_role_config(self):
+        """Save prisoner role configuration to file"""
+        try:
+            # Create directory if it doesn't exist
+            os.makedirs(os.path.dirname(self.config_file), exist_ok=True)
+            
+            with open(self.config_file, 'w') as f:
+                json.dump({'prisoner_role_id': self.prisoner_role_id}, f)
+                logger.info(f"Saved prisoner role ID: {self.prisoner_role_id}")
+        except Exception as e:
+            logger.error(f"Failed to save prisoner role config: {e}")
 
     @commands.command(name="kick")
     @commands.check_any(commands.has_permissions(kick_members=True), PermissionChecks.is_mod())
@@ -643,58 +673,294 @@ class Moderation(commands.Cog):
     
     @commands.command(name="clear")
     @commands.check_any(commands.has_permissions(manage_messages=True), PermissionChecks.is_mod())
-    async def clear_prefix(self, ctx, amount: int, user: discord.Member = None):
+    async def clear_prefix(self, ctx, *args):
         """Clear messages from the channel (prefix command)
-        Usage: !clear amount [@user]"""
-        if not ctx.channel.permissions_for(ctx.guild.me).manage_messages:
-            await ctx.send(embed=create_error_embed("Error", "I don't have permission to delete messages."))
+        Usage: !clear amount [@user] or !clear @user amount or !clear all"""
+        # Prevent processing of commands from DMs
+        if not ctx.guild:
             return
             
-        # Limit amount to 1-100
-        amount = max(1, min(100, amount))
+        # Check for permissions first
+        if not ctx.channel.permissions_for(ctx.guild.me).manage_messages:
+            await ctx.send(embed=create_error_embed("Error", "I don't have permission to delete messages."), delete_after=10)
+            return
+        
+        # Handle flexible parameter ordering
+        amount = None
+        user = None
+        all_messages = False
+        
+        if len(args) == 0:
+            await ctx.send(embed=create_error_embed("Error", "Please provide the number of messages to delete or 'all' to clear the entire channel."), delete_after=10)
+            return
+        
+        # Check if the first argument is 'all'
+        if args[0].lower() == 'all':
+            all_messages = True
+            
+            # Check if there's a user mentioned after 'all'
+            if len(args) > 1:
+                for arg in args[1:]:
+                    # Check if argument is a member mention
+                    if isinstance(arg, str) and (arg.startswith('<@') or arg.startswith('<@!')):
+                        try:
+                            # Extract user ID from mention
+                            user_id = ''.join(filter(str.isdigit, arg))
+                            user = ctx.guild.get_member(int(user_id))
+                            if not user:
+                                await ctx.send(embed=create_error_embed("Error", f"Member not found from mention: {arg}"), delete_after=10)
+                                return
+                            break
+                        except (ValueError, AttributeError):
+                            await ctx.send(embed=create_error_embed("Error", f"Invalid user mention: {arg}"), delete_after=10)
+                            return
+                    # Check if argument is a numeric user ID
+                    elif isinstance(arg, str) and arg.isdigit() and len(arg) > 8:  # User IDs are typically at least 17 digits
+                        try:
+                            user_id = int(arg)
+                            user = ctx.guild.get_member(user_id)
+                            if not user:
+                                await ctx.send(embed=create_error_embed("Error", f"Member not found with ID: {arg}"), delete_after=10)
+                                return
+                            break
+                        except (ValueError, AttributeError):
+                            await ctx.send(embed=create_error_embed("Error", f"Invalid user ID: {arg}"), delete_after=10)
+                            return
+            
+            # Customize confirmation message based on whether a user was mentioned
+            if user:
+                confirmation_message = f"You are about to delete **ALL** messages from **{user.display_name}** in this channel. This action cannot be undone."
+            else:
+                confirmation_message = "You are about to delete **ALL** messages in this channel. This action cannot be undone."
+                
+            # Show a confirmation before proceeding with deletion
+            confirmation_embed = create_embed(
+                "⚠️ Confirm Clear All",
+                confirmation_message + "\n\nReply with `yes` within 30 seconds to confirm, or `no` to cancel.",
+                color=0xFFCC00
+            )
+            confirm_msg = await ctx.send(embed=confirmation_embed)
+            
+            def check(m):
+                return m.author == ctx.author and m.channel == ctx.channel and m.content.lower() in ['yes', 'no']
+            
+            try:
+                reply = await self.bot.wait_for('message', check=check, timeout=30.0)
+                
+                # Clean up the confirmation messages
+                try:
+                    await confirm_msg.delete()
+                    await reply.delete()
+                except:
+                    pass
+                
+                if reply.content.lower() != 'yes':
+                    await ctx.send(embed=create_embed("Operation Cancelled", "Clear all operation has been cancelled.", color=0x43B581), delete_after=10)
+                    return
+                    
+            except asyncio.TimeoutError:
+                # If the user doesn't respond in time
+                try:
+                    await confirm_msg.delete()
+                except:
+                    pass
+                    
+                await ctx.send(embed=create_error_embed("Operation Cancelled", "Clear all operation has been cancelled due to timeout."), delete_after=10)
+                return
+                
+        else:
+            # Process regular clear command arguments
+            for arg in args:
+                # Check if argument is a member mention
+                if isinstance(arg, str) and (arg.startswith('<@') or arg.startswith('<@!')):
+                    try:
+                        # Extract user ID from mention
+                        user_id = ''.join(filter(str.isdigit, arg))
+                        user = ctx.guild.get_member(int(user_id))
+                        if not user:
+                            await ctx.send(embed=create_error_embed("Error", f"Member not found from mention: {arg}"), delete_after=10)
+                            return
+                    except (ValueError, AttributeError):
+                        await ctx.send(embed=create_error_embed("Error", f"Invalid user mention: {arg}"), delete_after=10)
+                        return
+                # Check if argument is a numeric user ID
+                elif isinstance(arg, str) and arg.isdigit() and len(arg) > 8:  # User IDs are typically at least 17 digits
+                    try:
+                        user_id = int(arg)
+                        user = ctx.guild.get_member(user_id)
+                        if not user:
+                            await ctx.send(embed=create_error_embed("Error", f"Member not found with ID: {arg}"), delete_after=10)
+                            return
+                    except (ValueError, AttributeError):
+                        await ctx.send(embed=create_error_embed("Error", f"Invalid user ID: {arg}"), delete_after=10)
+                        return
+                # Try to parse as amount
+                else:
+                    try:
+                        amount = int(arg)
+                    except (ValueError, TypeError):
+                        # Check if this might be a username instead of an amount
+                        if isinstance(arg, str):
+                            potential_user = None
+                            for member in ctx.guild.members:
+                                if arg.lower() in member.name.lower() or (member.nick and arg.lower() in member.nick.lower()):
+                                    potential_user = member
+                                    break
+                            
+                            if potential_user:
+                                user = potential_user
+                            else:
+                                await ctx.send(embed=create_error_embed("Error", f"Invalid amount: {arg}. Please provide a valid number."), delete_after=10)
+                                return
+                        else:
+                            await ctx.send(embed=create_error_embed("Error", "Please provide a valid number of messages to delete."), delete_after=10)
+                            return
+            
+            # If amount is still None, there was no valid number provided
+            if amount is None:
+                await ctx.send(embed=create_error_embed("Error", "Please provide a valid number of messages to delete."), delete_after=10)
+                return
+                
+            # Limit amount to 1-100
+            amount = max(1, min(100, amount))
+        
+        # Attempt to delete the original command message
+        try:
+            await ctx.message.delete()
+        except:
+            pass
         
         try:
-            def check_message(message):
-                return user is None or message.author == user
+            total_deleted = 0
+            
+            if all_messages:
+                # Handle "clear all" which will delete all messages in the channel in batches
+                # Customize progress message based on whether we're deleting all messages or just from a specific user
+                if user:
+                    progress_message = f"Deleting all messages from **{user.display_name}** in this channel. This may take some time..."
+                else:
+                    progress_message = "Deleting all messages in this channel. This may take some time..."
                 
-            deleted = await ctx.channel.purge(
-                limit=amount + 1,  # +1 to include the command message
-                check=check_message
-            )
+                # Show a "working" message that will be updated with progress
+                progress_embed = create_embed(
+                    "🗑️ Clearing Channel",
+                    progress_message,
+                    color=0x43B581
+                )
+                progress_msg = await ctx.send(embed=progress_embed)
+                
+                # Delete messages in batches of 100 (Discord API limitation)
+                batch_size = 100
+                while True:
+                    def check_message(message):
+                        # Don't delete the progress message and filter by user if specified
+                        if message.id == progress_msg.id:
+                            return False
+                        if user:
+                            return message.author.id == user.id
+                        return True
+                        
+                    # Get messages in batches
+                    deleted = await ctx.channel.purge(limit=batch_size, check=check_message)
+                    total_deleted += len(deleted)
+                    
+                    # Update progress message every 500 messages
+                    if total_deleted % 500 == 0 and deleted:
+                        try:
+                            await progress_msg.edit(embed=create_embed(
+                                "🗑️ Clearing Channel",
+                                f"Deleted {total_deleted} messages so far...",
+                                color=0x43B581
+                            ))
+                        except:
+                            # If the progress message was deleted, create a new one
+                            progress_msg = await ctx.send(embed=create_embed(
+                                "🗑️ Clearing Channel",
+                                f"Deleted {total_deleted} messages so far...",
+                                color=0x43B581
+                            ))
+                    
+                    # If we deleted fewer messages than the batch size, we're done
+                    if len(deleted) < batch_size:
+                        break
+                
+                # Delete the progress message now that we're done
+                try:
+                    await progress_msg.delete()
+                except:
+                    pass
+                
+                # Send final confirmation
+                if total_deleted > 0:
+                    confirm_embed = create_embed(
+                        "🗑️ Channel Cleared",
+                        f"Successfully deleted {total_deleted} messages from this channel.",
+                        color=0x43B581
+                    )
+                    confirm_message = await ctx.send(embed=confirm_embed)
+                else:
+                    confirm_embed = create_embed(
+                        "🗑️ Channel Cleared",
+                        "No messages were found to delete.",
+                        color=0x43B581
+                    )
+                    confirm_message = await ctx.send(embed=confirm_embed)
+                
+                # Delete confirmation after 5 seconds
+                await asyncio.sleep(5)
+                try:
+                    await confirm_message.delete()
+                except:
+                    pass
+            else:
+                # Regular purge for specific amount
+                def check_message(message):
+                    return user is None or message.author == user
+                    
+                deleted = await ctx.channel.purge(
+                    limit=amount,  # No need for +1 since we already deleted the command message
+                    check=check_message
+                )
+                
+                # Count the deleted messages
+                total_deleted = len(deleted)
             
-            # Remove 1 from count if user is None (command message counted)
-            actual_count = len(deleted) - 1 if user is None else len(deleted)
-            
-            user_text = f" from {user.mention}" if user else ""
-            embed = create_embed(
-                "🗑️ Messages Cleared",
-                f"Deleted {actual_count} messages{user_text}.",
-                color=0x43B581
-            )
-            confirm_message = await ctx.send(embed=embed)
-            
-            # Delete confirmation after 5 seconds
-            await asyncio.sleep(5)
-            try:
-                await confirm_message.delete()
-            except:
-                pass
+            # Only if we actually deleted messages and haven't already sent a confirmation for "clear all"
+            if total_deleted > 0 and not all_messages:
+                user_text = f" from {user.mention}" if user else ""
+                embed = create_embed(
+                    "🗑️ Messages Cleared",
+                    f"Deleted {total_deleted} messages{user_text}.",
+                    color=0x43B581
+                )
+                confirm_message = await ctx.send(embed=embed)
+                
+                # Delete confirmation after 5 seconds
+                await asyncio.sleep(5)
+                try:
+                    await confirm_message.delete()
+                except:
+                    pass
                 
         except discord.Forbidden:
-            await ctx.send(embed=create_error_embed("Error", "I don't have permission to delete messages."))
+            await ctx.send(embed=create_error_embed("Error", "I don't have permission to delete messages."), delete_after=10)
         except Exception as e:
             logger.error(f"Error clearing messages: {str(e)}")
-            await ctx.send(embed=create_error_embed("Error", "An error occurred while trying to clear messages."))
+            await ctx.send(embed=create_error_embed("Error", f"An error occurred while trying to clear messages: {str(e)}"), delete_after=10)
     
     @app_commands.command(name="clear", description="Clear messages from the channel")
     @app_commands.describe(
-        amount="Number of messages to delete (1-100)",
+        amount="Number of messages to delete (1-100, or 'all' to clear the entire channel)",
         user="Only delete messages from this user"
     )
     @app_commands.default_permissions(manage_messages=True)
     @app_commands.check(PermissionChecks.slash_is_mod())
-    async def clear(self, interaction: discord.Interaction, amount: int, user: discord.Member = None):
+    async def clear(self, interaction: discord.Interaction, amount: str, user: discord.Member = None):
         """Clear messages from the channel"""
+        # Prevent processing if not in a guild
+        if not interaction.guild:
+            return
+            
         if not interaction.channel.permissions_for(interaction.guild.me).manage_messages:
             await interaction.response.send_message(
                 embed=create_error_embed("Error", "I don't have permission to delete messages."),
@@ -702,40 +968,175 @@ class Moderation(commands.Cog):
             )
             return
 
-        # Limit amount to 1-100
-        amount = max(1, min(100, amount))
+        all_messages = False
+        delete_count = 0
 
-        try:
-            await interaction.response.defer(ephemeral=True)
-
-            def check_message(message):
-                return user is None or message.author == user
-
-            deleted = await interaction.channel.purge(
-                limit=amount,
-                check=check_message,
-                before=interaction.created_at
+        # Check if amount is "all"
+        if amount.lower() == "all":
+            all_messages = True
+            
+            # Customize confirmation message based on whether a user was specified
+            if user:
+                confirmation_message = f"You are about to delete **ALL** messages from **{user.display_name}** in this channel. This action cannot be undone."
+            else:
+                confirmation_message = "You are about to delete **ALL** messages in this channel. This action cannot be undone."
+                
+            # Confirm with a button UI
+            confirm_embed = create_embed(
+                "⚠️ Confirm Clear All",
+                confirmation_message,
+                color=0xFFCC00
             )
+            
+            # Create confirm/cancel buttons
+            confirm_view = discord.ui.View(timeout=30)
+            confirm_button = discord.ui.Button(style=discord.ButtonStyle.danger, label="Confirm", custom_id="confirm")
+            cancel_button = discord.ui.Button(style=discord.ButtonStyle.secondary, label="Cancel", custom_id="cancel")
+            
+            async def confirm_callback(btn_interaction):
+                if btn_interaction.user.id != interaction.user.id:
+                    await btn_interaction.response.send_message("You cannot interact with this button.", ephemeral=True)
+                    return
+                    
+                # User confirmed, proceed with deletion
+                # Customize progress message based on whether we're deleting all messages or just from a specific user
+                if user:
+                    progress_message = f"Deleting all messages from **{user.display_name}** in this channel. This may take some time..."
+                else:
+                    progress_message = "Deleting all messages in this channel. This may take some time..."
+                    
+                await btn_interaction.response.edit_message(
+                    embed=create_embed("Processing", progress_message, color=0x5865F2),
+                    view=None
+                )
+                
+                # Use defer to prevent timeouts during deletion process
+                total_deleted = 0
+                
+                # Delete messages in batches of 100 (Discord API limitation)
+                batch_size = 100
+                progress_update_count = 0
+                
+                while True:
+                    # Create a check function to filter messages
+                    def check_message(message):
+                        if user:
+                            return message.author.id == user.id
+                        return True
+                        
+                    # Get messages in batches
+                    deleted = await interaction.channel.purge(limit=batch_size, check=check_message)
+                    total_deleted += len(deleted)
+                    progress_update_count += 1
+                    
+                    # Update progress message occasionally
+                    if progress_update_count % 5 == 0 and deleted:
+                        try:
+                            await btn_interaction.edit_original_response(
+                                embed=create_embed(
+                                    "🗑️ Clearing Channel",
+                                    f"Deleted {total_deleted} messages so far...",
+                                    color=0x43B581
+                                )
+                            )
+                        except:
+                            pass
+                    
+                    # If we deleted fewer messages than the batch size, we're done
+                    if len(deleted) < batch_size:
+                        break
+                
+                # Send final confirmation with user information if a user was specified
+                if user:
+                    confirmation_message = f"Successfully deleted {total_deleted} messages from **{user.display_name}** in this channel."
+                else:
+                    confirmation_message = f"Successfully deleted {total_deleted} messages from this channel."
+                    
+                await btn_interaction.edit_original_response(
+                    embed=create_embed(
+                        "🗑️ Channel Cleared",
+                        confirmation_message,
+                        color=0x43B581
+                    )
+                )
+                
+            async def cancel_callback(btn_interaction):
+                if btn_interaction.user.id != interaction.user.id:
+                    await btn_interaction.response.send_message("You cannot interact with this button.", ephemeral=True)
+                    return
+                    
+                # User cancelled
+                await btn_interaction.response.edit_message(
+                    embed=create_embed("Operation Cancelled", "Clear all operation has been cancelled.", color=0x43B581),
+                    view=None
+                )
+            
+            # Set the callbacks
+            confirm_button.callback = confirm_callback
+            cancel_button.callback = cancel_callback
+            
+            # Add buttons to view
+            confirm_view.add_item(confirm_button)
+            confirm_view.add_item(cancel_button)
+            
+            # Send the confirmation message
+            await interaction.response.send_message(embed=confirm_embed, view=confirm_view)
+            return
+                
+        else:
+            # Try to convert to integer
+            try:
+                delete_count = int(amount)
+                # Limit amount to 1-100
+                delete_count = max(1, min(100, delete_count))
+            except ValueError:
+                await interaction.response.send_message(
+                    embed=create_error_embed("Error", "Please provide a valid number of messages to delete or 'all' to clear the entire channel."),
+                    ephemeral=True
+                )
+                return
 
-            user_text = f" from {user.mention}" if user else ""
-            embed = create_embed(
-                "🗑️ Messages Cleared",
-                f"Deleted {len(deleted)} messages{user_text}.",
-                color=0x43B581
-            )
-            await interaction.followup.send(embed=embed, ephemeral=True)
+            try:
+                # Use defer to prevent timeouts during purge operations
+                await interaction.response.defer(ephemeral=True)
 
-        except discord.Forbidden:
-            await interaction.followup.send(
-                embed=create_error_embed("Error", "I don't have permission to delete messages."),
-                ephemeral=True
-            )
-        except Exception as e:
-            logger.error(f"Error clearing messages: {str(e)}")
-            await interaction.followup.send(
-                embed=create_error_embed("Error", "An error occurred while trying to clear messages."),
-                ephemeral=True
-            )
+                def check_message(message):
+                    return user is None or message.author == user
+
+                # Perform the purge operation
+                deleted = await interaction.channel.purge(
+                    limit=delete_count,
+                    check=check_message,
+                    before=interaction.created_at
+                )
+
+                # Only send a confirmation if messages were actually deleted
+                actual_count = len(deleted)
+                if actual_count > 0:
+                    user_text = f" from {user.mention}" if user else ""
+                    embed = create_embed(
+                        "🗑️ Messages Cleared",
+                        f"Deleted {actual_count} messages{user_text}.",
+                        color=0x43B581
+                    )
+                    await interaction.followup.send(embed=embed, ephemeral=True)
+                else:
+                    await interaction.followup.send(
+                        embed=create_embed("No Messages", "No messages were found matching the criteria.", color=0x43B581),
+                        ephemeral=True
+                    )
+
+            except discord.Forbidden:
+                await interaction.followup.send(
+                    embed=create_error_embed("Error", "I don't have permission to delete messages."),
+                    ephemeral=True
+                )
+            except Exception as e:
+                logger.error(f"Error clearing messages: {str(e)}")
+                await interaction.followup.send(
+                    embed=create_error_embed("Error", f"An error occurred while trying to clear messages: {str(e)}"),
+                    ephemeral=True
+                )
 
     @commands.command(name="slowmode")
     @commands.check_any(commands.has_permissions(manage_channels=True), PermissionChecks.is_mod())
@@ -1444,6 +1845,636 @@ class Moderation(commands.Cog):
             await interaction.followup.send("I don't have permission to remove roles.")
         except discord.HTTPException as e:
             await interaction.followup.send(f"Failed to remove role: {str(e)}")
+
+    @commands.command(name="prisoner")
+    @commands.check_any(commands.has_permissions(manage_roles=True), PermissionChecks.is_mod())
+    async def prisoner_prefix(self, ctx, user: discord.Member, *, reason: str = None):
+        """Assign the prisoner role to a user (prefix command)
+        Usage: !prisoner @user [reason]"""
+        # Check if the bot can manage roles
+        if not ctx.guild.me.guild_permissions.manage_roles:
+            await ctx.send(embed=create_error_embed("Error", "I don't have permission to manage roles."))
+            return
+            
+        # Check if the prisoner role is configured
+        if self.prisoner_role_id == 0:
+            await ctx.send(embed=create_error_embed("Error", "The prisoner role ID has not been configured yet."))
+            return
+            
+        # Get the prisoner role by ID
+        prisoner_role = ctx.guild.get_role(self.prisoner_role_id)
+        if not prisoner_role:
+            await ctx.send(embed=create_error_embed("Error", "The prisoner role doesn't exist in this server."))
+            return
+            
+        # Check if the user is trying to assign a role to a user with higher permissions
+        if user.top_role >= ctx.author.top_role and ctx.author.id not in config.BOT_OWNER_IDS:
+            await ctx.send(embed=create_error_embed("Error", "You cannot assign roles to users with higher or equal roles."))
+            return
+            
+        # Check if the user already has the prisoner role
+        if prisoner_role in user.roles:
+            await ctx.send(embed=create_error_embed("Error", f"{user.name} is already a prisoner."))
+            return
+            
+        # Store the user's current roles to remember them
+        current_roles = [role for role in user.roles if role.id != user.guild.id]  # Exclude @everyone
+        stored_roles = [role.id for role in current_roles]
+        
+        # Store the roles in recent_actions so they can be restored when unprisoned
+        role_info = {
+            "user_id": user.id,
+            "roles": stored_roles,
+            "imprisoned_by": ctx.author.id,
+            "imprisoned_at": discord.utils.utcnow().isoformat()
+        }
+        self.recent_actions[f"prison_roles_{user.id}_{ctx.guild.id}"] = role_info
+        
+        # Remove all current roles and add prisoner role
+        try:
+            # First remove existing roles
+            if current_roles:
+                await user.remove_roles(*current_roles, reason=f"Roles removed for imprisonment by {ctx.author.name}")
+            
+            # Then add the prisoner role
+            await user.add_roles(prisoner_role, reason=f"Made prisoner by {ctx.author.name}: {reason or 'No reason provided'}")
+            
+            # Try to move the user to the jail channel if they are in a voice channel
+            jail_channel_id = 1356447400255819929  # ID of the jail channel
+            jail_channel = ctx.guild.get_channel(jail_channel_id)
+            
+            moved_from = None
+            if jail_channel and user.voice and user.voice.channel:
+                moved_from = user.voice.channel.name
+                try:
+                    await user.move_to(jail_channel, reason=f"Moved to jail by {ctx.author.name}")
+                    logger.info(f"Moved {user.name} from {moved_from} to jail channel")
+                except Exception as e:
+                    logger.error(f"Failed to move {user.name} to jail channel: {str(e)}")
+            
+            # Send confirmation
+            embed = discord.Embed(
+                title="📋 Prisoner Role Assigned",
+                description=f"{user.mention} has been given the prisoner role and stripped of all other roles.",
+                color=discord.Color.dark_red()
+            )
+            embed.add_field(name="User", value=f"{user.name} ({user.id})", inline=True)
+            embed.add_field(name="Moderator", value=ctx.author.name, inline=True)
+            embed.add_field(name="Roles Removed", value=len(current_roles), inline=True)
+            
+            if moved_from:
+                embed.add_field(name="Voice Channel", value=f"Moved from {moved_from} to jail", inline=True)
+                
+            if reason:
+                embed.add_field(name="Reason", value=reason, inline=False)
+                
+            await ctx.send(embed=embed)
+            logger.info(f"User {user.name} ({user.id}) made prisoner by {ctx.author.name} in server '{ctx.guild.name}'")
+            
+        except discord.Forbidden:
+            await ctx.send(embed=create_error_embed("Error", "I don't have permission to assign roles."))
+        except discord.HTTPException as e:
+            await ctx.send(embed=create_error_embed("Error", f"Failed to assign role: {str(e)}"))
+            
+    @app_commands.command(name="prisoner", description="Assign the prisoner role to a user")
+    @app_commands.describe(
+        user="The user to make a prisoner",
+        reason="Reason for assigning the prisoner role"
+    )
+    @app_commands.default_permissions(manage_roles=True)
+    @app_commands.check(PermissionChecks.slash_is_mod())
+    async def prisoner_slash(self, interaction: discord.Interaction, user: discord.Member, reason: str = None):
+        """Assign the prisoner role to a user"""
+        # Check if the user has appropriate permissions
+        if not interaction.user.guild_permissions.manage_roles and not await PermissionChecks.is_mod().predicate(interaction):
+            await interaction.response.send_message("You need 'Manage Roles' permission to use this command.", ephemeral=True)
+            return
+            
+        # Check if the bot can manage roles
+        if not interaction.guild.me.guild_permissions.manage_roles:
+            await interaction.response.send_message("I don't have permission to manage roles.", ephemeral=True)
+            return
+            
+        # Check if the prisoner role is configured
+        if self.prisoner_role_id == 0:
+            await interaction.response.send_message("The prisoner role ID has not been configured yet.", ephemeral=True)
+            return
+            
+        # Defer the response for potentially slow role operations
+        await interaction.response.defer(ephemeral=False)
+        
+        # Get the prisoner role by ID
+        prisoner_role = interaction.guild.get_role(self.prisoner_role_id)
+        if not prisoner_role:
+            await interaction.followup.send("The prisoner role doesn't exist in this server.")
+            return
+            
+        # Check if the user is trying to assign a role to a user with higher permissions
+        if user.top_role >= interaction.user.top_role and interaction.user.id not in config.BOT_OWNER_IDS:
+            await interaction.followup.send("You cannot assign roles to users with higher or equal roles.")
+            return
+            
+        # Check if the user already has the prisoner role
+        if prisoner_role in user.roles:
+            await interaction.followup.send(f"{user.name} is already a prisoner.")
+            return
+            
+        # Store the user's current roles to remember them
+        current_roles = [role for role in user.roles if role.id != user.guild.id]  # Exclude @everyone
+        stored_roles = [role.id for role in current_roles]
+        
+        # Store the roles in recent_actions so they can be restored when unprisoned
+        role_info = {
+            "user_id": user.id,
+            "roles": stored_roles,
+            "imprisoned_by": interaction.user.id,
+            "imprisoned_at": discord.utils.utcnow().isoformat()
+        }
+        self.recent_actions[f"prison_roles_{user.id}_{interaction.guild.id}"] = role_info
+        
+        # Remove all current roles and add prisoner role
+        try:
+            # First remove existing roles
+            if current_roles:
+                await user.remove_roles(*current_roles, reason=f"Roles removed for imprisonment by {interaction.user.name}")
+            
+            # Then add the prisoner role
+            await user.add_roles(prisoner_role, reason=f"Made prisoner by {interaction.user.name}: {reason or 'No reason provided'}")
+            
+            # Try to move the user to the jail channel if they are in a voice channel
+            jail_channel_id = 1356447400255819929  # ID of the jail channel
+            jail_channel = interaction.guild.get_channel(jail_channel_id)
+            
+            moved_from = None
+            if jail_channel and user.voice and user.voice.channel:
+                moved_from = user.voice.channel.name
+                try:
+                    await user.move_to(jail_channel, reason=f"Moved to jail by {interaction.user.name}")
+                    logger.info(f"Moved {user.name} from {moved_from} to jail channel")
+                except Exception as e:
+                    logger.error(f"Failed to move {user.name} to jail channel: {str(e)}")
+            
+            # Send confirmation
+            embed = discord.Embed(
+                title="📋 Prisoner Role Assigned",
+                description=f"{user.mention} has been given the prisoner role and stripped of all other roles.",
+                color=discord.Color.dark_red()
+            )
+            embed.add_field(name="User", value=f"{user.name} ({user.id})", inline=True)
+            embed.add_field(name="Moderator", value=interaction.user.name, inline=True)
+            embed.add_field(name="Roles Removed", value=len(current_roles), inline=True)
+            
+            if moved_from:
+                embed.add_field(name="Voice Channel", value=f"Moved from {moved_from} to jail", inline=True)
+                
+            if reason:
+                embed.add_field(name="Reason", value=reason, inline=False)
+                
+            await interaction.followup.send(embed=embed)
+            logger.info(f"User {user.name} ({user.id}) made prisoner by {interaction.user.name} in server '{interaction.guild.name}'")
+            
+        except discord.Forbidden:
+            await interaction.followup.send("I don't have permission to assign roles.")
+        except discord.HTTPException as e:
+            await interaction.followup.send(f"Failed to assign role: {str(e)}")
+            
+    @commands.command(name="unprisoner")
+    @commands.check_any(commands.has_permissions(manage_roles=True), PermissionChecks.is_mod())
+    async def unprisoner_prefix(self, ctx, user: discord.Member, *, reason: str = None):
+        """Remove the prisoner role from a user (prefix command)
+        Usage: !unprisoner @user [reason]"""
+        # Check if the bot can manage roles
+        if not ctx.guild.me.guild_permissions.manage_roles:
+            await ctx.send(embed=create_error_embed("Error", "I don't have permission to manage roles."))
+            return
+            
+        # Check if the prisoner role is configured
+        if self.prisoner_role_id == 0:
+            await ctx.send(embed=create_error_embed("Error", "The prisoner role ID has not been configured yet."))
+            return
+            
+        # Get the prisoner role by ID
+        prisoner_role = ctx.guild.get_role(self.prisoner_role_id)
+        if not prisoner_role:
+            await ctx.send(embed=create_error_embed("Error", "The prisoner role doesn't exist in this server."))
+            return
+            
+        # Check if the user has the prisoner role
+        if prisoner_role not in user.roles:
+            await ctx.send(embed=create_error_embed("Error", f"{user.name} is not currently a prisoner."))
+            return
+            
+        # Remove the prisoner role and try to restore previous roles
+        try:
+            # First, remove the prisoner role
+            await user.remove_roles(prisoner_role, reason=f"Removed from prisoner by {ctx.author.name}: {reason or 'No reason provided'}")
+            
+            # Check if we have stored roles for this user
+            stored_data_key = f"prison_roles_{user.id}_{ctx.guild.id}"
+            restored_roles_count = 0
+            
+            if stored_data_key in self.recent_actions:
+                # Get the stored role IDs
+                stored_role_info = self.recent_actions[stored_data_key]
+                stored_role_ids = stored_role_info.get("roles", [])
+                
+                # Get the role objects to restore
+                roles_to_restore = []
+                for role_id in stored_role_ids:
+                    role = ctx.guild.get_role(role_id)
+                    if role and role.id != self.prisoner_role_id:
+                        roles_to_restore.append(role)
+                
+                # Restore the roles if there are any
+                if roles_to_restore:
+                    await user.add_roles(*roles_to_restore, reason=f"Roles restored after being freed from prisoner by {ctx.author.name}")
+                    restored_roles_count = len(roles_to_restore)
+                    
+                # Clean up the stored data
+                del self.recent_actions[stored_data_key]
+            
+            # Send confirmation
+            embed = discord.Embed(
+                title="📋 Prisoner Status Removed",
+                description=f"{user.mention} has been freed from prisoner status.",
+                color=discord.Color.green()
+            )
+            embed.add_field(name="User", value=f"{user.name} ({user.id})", inline=True)
+            embed.add_field(name="Moderator", value=ctx.author.name, inline=True)
+            
+            if restored_roles_count > 0:
+                embed.add_field(name="Roles Restored", value=str(restored_roles_count), inline=True)
+            
+            if reason:
+                embed.add_field(name="Reason", value=reason, inline=False)
+                
+            await ctx.send(embed=embed)
+            logger.info(f"User {user.name} ({user.id}) freed from prisoner by {ctx.author.name} in server '{ctx.guild.name}', restored {restored_roles_count} roles")
+            
+        except discord.Forbidden:
+            await ctx.send(embed=create_error_embed("Error", "I don't have permission to remove roles."))
+        except discord.HTTPException as e:
+            await ctx.send(embed=create_error_embed("Error", f"Failed to remove role: {str(e)}"))
+            
+    @app_commands.command(name="unprisoner", description="Remove the prisoner role from a user")
+    @app_commands.describe(
+        user="The user to free from prisoner status",
+        reason="Reason for removing the prisoner role"
+    )
+    @app_commands.default_permissions(manage_roles=True)
+    @app_commands.check(PermissionChecks.slash_is_mod())
+    async def unprisoner_slash(self, interaction: discord.Interaction, user: discord.Member, reason: str = None):
+        """Remove the prisoner role from a user"""
+        # Check if the user has appropriate permissions
+        if not interaction.user.guild_permissions.manage_roles and not await PermissionChecks.is_mod().predicate(interaction):
+            await interaction.response.send_message("You need 'Manage Roles' permission to use this command.", ephemeral=True)
+            return
+            
+        # Check if the bot can manage roles
+        if not interaction.guild.me.guild_permissions.manage_roles:
+            await interaction.response.send_message("I don't have permission to manage roles.", ephemeral=True)
+            return
+            
+        # Check if the prisoner role is configured
+        if self.prisoner_role_id == 0:
+            await interaction.response.send_message("The prisoner role ID has not been configured yet.", ephemeral=True)
+            return
+            
+        # Defer the response for potentially slow role operations
+        await interaction.response.defer(ephemeral=False)
+        
+        # Get the prisoner role by ID
+        prisoner_role = interaction.guild.get_role(self.prisoner_role_id)
+        if not prisoner_role:
+            await interaction.followup.send("The prisoner role doesn't exist in this server.")
+            return
+            
+        # Check if the user has the prisoner role
+        if prisoner_role not in user.roles:
+            await interaction.followup.send(f"{user.name} is not currently a prisoner.")
+            return
+            
+        # Remove the prisoner role and try to restore previous roles
+        try:
+            # First, remove the prisoner role
+            await user.remove_roles(prisoner_role, reason=f"Removed from prisoner by {interaction.user.name}: {reason or 'No reason provided'}")
+            
+            # Check if we have stored roles for this user
+            stored_data_key = f"prison_roles_{user.id}_{interaction.guild.id}"
+            restored_roles_count = 0
+            
+            if stored_data_key in self.recent_actions:
+                # Get the stored role IDs
+                stored_role_info = self.recent_actions[stored_data_key]
+                stored_role_ids = stored_role_info.get("roles", [])
+                
+                # Get the role objects to restore
+                roles_to_restore = []
+                for role_id in stored_role_ids:
+                    role = interaction.guild.get_role(role_id)
+                    if role and role.id != self.prisoner_role_id:
+                        roles_to_restore.append(role)
+                
+                # Restore the roles if there are any
+                if roles_to_restore:
+                    await user.add_roles(*roles_to_restore, reason=f"Roles restored after being freed from prisoner by {interaction.user.name}")
+                    restored_roles_count = len(roles_to_restore)
+                    
+                # Clean up the stored data
+                del self.recent_actions[stored_data_key]
+            
+            # Send confirmation
+            embed = discord.Embed(
+                title="📋 Prisoner Status Removed",
+                description=f"{user.mention} has been freed from prisoner status.",
+                color=discord.Color.green()
+            )
+            embed.add_field(name="User", value=f"{user.name} ({user.id})", inline=True)
+            embed.add_field(name="Moderator", value=interaction.user.name, inline=True)
+            
+            if restored_roles_count > 0:
+                embed.add_field(name="Roles Restored", value=str(restored_roles_count), inline=True)
+            
+            if reason:
+                embed.add_field(name="Reason", value=reason, inline=False)
+                
+            await interaction.followup.send(embed=embed)
+            logger.info(f"User {user.name} ({user.id}) freed from prisoner by {interaction.user.name} in server '{interaction.guild.name}', restored {restored_roles_count} roles")
+            
+        except discord.Forbidden:
+            await interaction.followup.send("I don't have permission to remove roles.")
+        except discord.HTTPException as e:
+            await interaction.followup.send(f"Failed to remove role: {str(e)}")
+            
+    @commands.command(name="role")
+    @commands.check_any(commands.has_permissions(manage_roles=True), PermissionChecks.is_mod())
+    async def role_prefix(self, ctx, user: discord.Member, role: discord.Role, *, reason: str = None):
+        """Assign a role to a user (prefix command)
+        Usage: !role @user @role [reason]"""
+        # Check if the bot can manage roles
+        if not ctx.guild.me.guild_permissions.manage_roles:
+            await ctx.send(embed=create_error_embed("Error", "I don't have permission to manage roles."))
+            return
+            
+        # Check if the bot can assign the specific role (bot's highest role must be higher than the role to assign)
+        if role >= ctx.guild.me.top_role:
+            await ctx.send(embed=create_error_embed("Error", "I cannot assign a role that is higher than or equal to my highest role."))
+            return
+            
+        # Check if the user is trying to assign a role that is higher than or equal to their highest role
+        if role >= ctx.author.top_role and ctx.author.id not in config.BOT_OWNER_IDS:
+            await ctx.send(embed=create_error_embed("Error", "You cannot assign a role that is higher than or equal to your highest role."))
+            return
+            
+        # Check if the user already has the role
+        if role in user.roles:
+            await ctx.send(embed=create_error_embed("Error", f"{user.name} already has the {role.name} role."))
+            return
+            
+        # Assign the role
+        try:
+            await user.add_roles(role, reason=f"Role assigned by {ctx.author.name}: {reason or 'No reason provided'}")
+            
+            # Send confirmation
+            embed = discord.Embed(
+                title="📋 Role Assigned",
+                description=f"{user.mention} has been given the {role.mention} role.",
+                color=role.color
+            )
+            embed.add_field(name="User", value=f"{user.name} ({user.id})", inline=True)
+            embed.add_field(name="Moderator", value=ctx.author.name, inline=True)
+            if reason:
+                embed.add_field(name="Reason", value=reason, inline=False)
+                
+            await ctx.send(embed=embed)
+            logger.info(f"User {user.name} ({user.id}) given role {role.name} by {ctx.author.name} in server '{ctx.guild.name}'")
+            
+        except discord.Forbidden:
+            await ctx.send(embed=create_error_embed("Error", "I don't have permission to assign roles."))
+        except discord.HTTPException as e:
+            await ctx.send(embed=create_error_embed("Error", f"Failed to assign role: {str(e)}"))
+            
+    @app_commands.command(name="role", description="Assign a role to a user")
+    @app_commands.describe(
+        user="The user to receive the role",
+        role="The role to assign",
+        reason="Reason for assigning the role"
+    )
+    @app_commands.default_permissions(manage_roles=True)
+    @app_commands.check(PermissionChecks.slash_is_mod())
+    async def role_slash(self, interaction: discord.Interaction, user: discord.Member, role: discord.Role, reason: str = None):
+        """Assign a role to a user"""
+        # Check if the user has appropriate permissions
+        if not interaction.user.guild_permissions.manage_roles and not await PermissionChecks.is_mod().predicate(interaction):
+            await interaction.response.send_message("You need 'Manage Roles' permission to use this command.", ephemeral=True)
+            return
+            
+        # Check if the bot can manage roles
+        if not interaction.guild.me.guild_permissions.manage_roles:
+            await interaction.response.send_message("I don't have permission to manage roles.", ephemeral=True)
+            return
+            
+        # Defer the response for potentially slow role operations
+        await interaction.response.defer(ephemeral=False)
+        
+        # Check if the bot can assign the specific role (bot's highest role must be higher than the role to assign)
+        if role >= interaction.guild.me.top_role:
+            await interaction.followup.send("I cannot assign a role that is higher than or equal to my highest role.")
+            return
+            
+        # Check if the user is trying to assign a role that is higher than or equal to their highest role
+        if role >= interaction.user.top_role and interaction.user.id not in config.BOT_OWNER_IDS:
+            await interaction.followup.send("You cannot assign a role that is higher than or equal to your highest role.")
+            return
+            
+        # Check if the user already has the role
+        if role in user.roles:
+            await interaction.followup.send(f"{user.name} already has the {role.name} role.")
+            return
+            
+        # Assign the role
+        try:
+            await user.add_roles(role, reason=f"Role assigned by {interaction.user.name}: {reason or 'No reason provided'}")
+            
+            # Send confirmation
+            embed = discord.Embed(
+                title="📋 Role Assigned",
+                description=f"{user.mention} has been given the {role.mention} role.",
+                color=role.color
+            )
+            embed.add_field(name="User", value=f"{user.name} ({user.id})", inline=True)
+            embed.add_field(name="Moderator", value=interaction.user.name, inline=True)
+            if reason:
+                embed.add_field(name="Reason", value=reason, inline=False)
+                
+            await interaction.followup.send(embed=embed)
+            logger.info(f"User {user.name} ({user.id}) given role {role.name} by {interaction.user.name} in server '{interaction.guild.name}'")
+            
+        except discord.Forbidden:
+            await interaction.followup.send("I don't have permission to assign roles.")
+        except discord.HTTPException as e:
+            await interaction.followup.send(f"Failed to assign role: {str(e)}")
+            
+    @commands.command(name="takerole")
+    @commands.check_any(commands.has_permissions(manage_roles=True), PermissionChecks.is_mod())
+    async def takerole_prefix(self, ctx, user: discord.Member, role: discord.Role, *, reason: str = None):
+        """Remove a role from a user (prefix command)
+        Usage: !takerole @user @role [reason]"""
+        # Check if the bot can manage roles
+        if not ctx.guild.me.guild_permissions.manage_roles:
+            await ctx.send(embed=create_error_embed("Error", "I don't have permission to manage roles."))
+            return
+            
+        # Check if the bot can remove the specific role (bot's highest role must be higher than the role to remove)
+        if role >= ctx.guild.me.top_role:
+            await ctx.send(embed=create_error_embed("Error", "I cannot remove a role that is higher than or equal to my highest role."))
+            return
+            
+        # Check if the user is trying to remove a role that is higher than or equal to their highest role
+        if role >= ctx.author.top_role and ctx.author.id not in config.BOT_OWNER_IDS:
+            await ctx.send(embed=create_error_embed("Error", "You cannot remove a role that is higher than or equal to your highest role."))
+            return
+            
+        # Check if the user has the role
+        if role not in user.roles:
+            await ctx.send(embed=create_error_embed("Error", f"{user.name} doesn't have the {role.name} role."))
+            return
+            
+        # Remove the role
+        try:
+            await user.remove_roles(role, reason=f"Role removed by {ctx.author.name}: {reason or 'No reason provided'}")
+            
+            # Send confirmation
+            embed = discord.Embed(
+                title="📋 Role Removed",
+                description=f"The {role.mention} role has been removed from {user.mention}.",
+                color=role.color
+            )
+            embed.add_field(name="User", value=f"{user.name} ({user.id})", inline=True)
+            embed.add_field(name="Moderator", value=ctx.author.name, inline=True)
+            if reason:
+                embed.add_field(name="Reason", value=reason, inline=False)
+                
+            await ctx.send(embed=embed)
+            logger.info(f"Role {role.name} removed from user {user.name} ({user.id}) by {ctx.author.name} in server '{ctx.guild.name}'")
+            
+        except discord.Forbidden:
+            await ctx.send(embed=create_error_embed("Error", "I don't have permission to remove roles."))
+        except discord.HTTPException as e:
+            await ctx.send(embed=create_error_embed("Error", f"Failed to remove role: {str(e)}"))
+            
+    @app_commands.command(name="takerole", description="Remove a role from a user")
+    @app_commands.describe(
+        user="The user to remove the role from",
+        role="The role to remove",
+        reason="Reason for removing the role"
+    )
+    @app_commands.default_permissions(manage_roles=True)
+    @app_commands.check(PermissionChecks.slash_is_mod())
+    async def takerole_slash(self, interaction: discord.Interaction, user: discord.Member, role: discord.Role, reason: str = None):
+        """Remove a role from a user"""
+        # Check if the user has appropriate permissions
+        if not interaction.user.guild_permissions.manage_roles and not await PermissionChecks.is_mod().predicate(interaction):
+            await interaction.response.send_message("You need 'Manage Roles' permission to use this command.", ephemeral=True)
+            return
+            
+        # Check if the bot can manage roles
+        if not interaction.guild.me.guild_permissions.manage_roles:
+            await interaction.response.send_message("I don't have permission to manage roles.", ephemeral=True)
+            return
+            
+        # Defer the response for potentially slow role operations
+        await interaction.response.defer(ephemeral=False)
+        
+        # Check if the bot can remove the specific role (bot's highest role must be higher than the role to remove)
+        if role >= interaction.guild.me.top_role:
+            await interaction.followup.send("I cannot remove a role that is higher than or equal to my highest role.")
+            return
+            
+        # Check if the user is trying to remove a role that is higher than or equal to their highest role
+        if role >= interaction.user.top_role and interaction.user.id not in config.BOT_OWNER_IDS:
+            await interaction.followup.send("You cannot remove a role that is higher than or equal to your highest role.")
+            return
+            
+        # Check if the user has the role
+        if role not in user.roles:
+            await interaction.followup.send(f"{user.name} doesn't have the {role.name} role.")
+            return
+            
+        # Remove the role
+        try:
+            await user.remove_roles(role, reason=f"Role removed by {interaction.user.name}: {reason or 'No reason provided'}")
+            
+            # Send confirmation
+            embed = discord.Embed(
+                title="📋 Role Removed",
+                description=f"The {role.mention} role has been removed from {user.mention}.",
+                color=role.color
+            )
+            embed.add_field(name="User", value=f"{user.name} ({user.id})", inline=True)
+            embed.add_field(name="Moderator", value=interaction.user.name, inline=True)
+            if reason:
+                embed.add_field(name="Reason", value=reason, inline=False)
+                
+            await interaction.followup.send(embed=embed)
+            logger.info(f"Role {role.name} removed from user {user.name} ({user.id}) by {interaction.user.name} in server '{interaction.guild.name}'")
+            
+        except discord.Forbidden:
+            await interaction.followup.send("I don't have permission to remove roles.")
+        except discord.HTTPException as e:
+            await interaction.followup.send(f"Failed to remove role: {str(e)}")
+    
+    @commands.command(name="setprisoner")
+    @commands.check_any(commands.has_permissions(administrator=True), commands.is_owner())
+    async def set_prisoner_role_prefix(self, ctx, role: discord.Role):
+        """Set the prisoner role for the server (Admin only)
+        Usage: !setprisoner @role"""
+        try:
+            old_id = self.prisoner_role_id
+            self.prisoner_role_id = role.id
+            self._save_prisoner_role_config()
+            
+            embed = discord.Embed(
+                title="⚙️ Prisoner Role Updated",
+                description=f"Prisoner role has been set to {role.mention}",
+                color=discord.Color.green()
+            )
+            embed.add_field(name="Previous Role ID", value=str(old_id) if old_id != 0 else "None", inline=True)
+            embed.add_field(name="New Role ID", value=str(role.id), inline=True)
+            
+            await ctx.send(embed=embed)
+            logger.info(f"Prisoner role updated to {role.name} (ID: {role.id}) by {ctx.author}")
+        except Exception as e:
+            logger.error(f"Error setting prisoner role: {str(e)}")
+            await ctx.send(embed=create_error_embed("Error", f"Failed to set prisoner role: {str(e)}"))
+    
+    @app_commands.command(name="setprisoner", description="Set the prisoner role for the server")
+    @app_commands.describe(role="The role to set as the prisoner role")
+    @app_commands.default_permissions(administrator=True)
+    @app_commands.check(PermissionChecks.slash_is_admin())
+    async def set_prisoner_role_slash(self, interaction: discord.Interaction, role: discord.Role):
+        """Set the prisoner role for the server (Admin only)"""
+        try:
+            old_id = self.prisoner_role_id
+            self.prisoner_role_id = role.id
+            self._save_prisoner_role_config()
+            
+            embed = discord.Embed(
+                title="⚙️ Prisoner Role Updated",
+                description=f"Prisoner role has been set to {role.mention}",
+                color=discord.Color.green()
+            )
+            embed.add_field(name="Previous Role ID", value=str(old_id) if old_id != 0 else "None", inline=True)
+            embed.add_field(name="New Role ID", value=str(role.id), inline=True)
+            
+            await interaction.response.send_message(embed=embed)
+            logger.info(f"Prisoner role updated to {role.name} (ID: {role.id}) by {interaction.user}")
+        except Exception as e:
+            logger.error(f"Error setting prisoner role: {str(e)}")
+            await interaction.response.send_message(
+                embed=create_error_embed("Error", f"Failed to set prisoner role: {str(e)}"),
+                ephemeral=True
+            )
 
 async def setup(bot):
     await bot.add_cog(Moderation(bot))
