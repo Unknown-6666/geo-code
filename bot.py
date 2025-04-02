@@ -54,9 +54,8 @@ class Bot(commands.Bot):
             
             logger.info("All cogs loaded successfully")
             
-            # Check if we should sync commands on startup
-            # Default to False (don't sync) unless explicitly set to true
-            should_sync = os.environ.get('SYNC_COMMANDS_ON_STARTUP', 'false').lower() == 'true'
+            # Always sync commands on startup to prevent command issues
+            should_sync = True
             
             if should_sync:
                 # Always clear commands before syncing to prevent duplicates
