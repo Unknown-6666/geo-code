@@ -12,12 +12,17 @@ from discord.ext import commands
 from utils.embed_helpers import create_embed, create_error_embed
 from utils.ai_preference_manager import ai_preferences
 from models.conversation import Conversation
+from utils.vertex_ai_client import VertexAIClient
 
 logger = logging.getLogger('discord')
 
 # Get Google API key from environment variable
 GOOGLE_API_KEY = os.environ.get('GOOGLE_API')
 USE_GOOGLE_AI = True if GOOGLE_API_KEY else False
+
+# Check if Vertex AI should be used
+USE_VERTEX_AI = os.environ.get('USE_VERTEX_AI', 'false').lower() == 'true'
+VERTEX_AI_PRIORITY = int(os.environ.get('VERTEX_AI_PRIORITY', '1'))  # Priority: 1 = highest, 3 = lowest
 
 class AIChat(commands.Cog):
     def __init__(self, bot):
@@ -26,13 +31,71 @@ class AIChat(commands.Cog):
         # Configure g4f settings
         g4f.debug.logging = False  # Disable debug logging
         
+        # Initialize Vertex AI client if enabled
+        self.vertex_ai_client = None
+        if USE_VERTEX_AI:
+            self.vertex_ai_client = VertexAIClient()
+            if self.vertex_ai_client.initialized:
+                logger.info("AI Chat cog initialized with Google Vertex AI")
+            else:
+                logger.info("Vertex AI initialization failed, falling back to other providers")
+                
         # Log AI provider status
-        if USE_GOOGLE_AI:
+        if USE_GOOGLE_AI and not (USE_VERTEX_AI and self.vertex_ai_client and self.vertex_ai_client.initialized):
             logger.info("AI Chat cog initialized with Google Gemini AI")
-        else:
+        elif not (USE_VERTEX_AI and self.vertex_ai_client and self.vertex_ai_client.initialized):
             logger.info("AI Chat cog initialized with fallback AI providers")
-            logger.info("To use Google's Gemini AI, set the GOOGLE_API environment variable")
+            logger.info("To use Google's AI services, set the GOOGLE_API environment variable or enable Vertex AI")
 
+    async def get_vertex_ai_response(self, prompt, system_prompt=None, user_id=None, include_history=True):
+        """Get a response from Google's Vertex AI API with conversation history support"""
+        if not self.vertex_ai_client or not self.vertex_ai_client.initialized:
+            return None
+            
+        try:
+            # Get conversation history if user_id is provided and include_history is True
+            history = None
+            if user_id and include_history:
+                # Get conversation history
+                history = Conversation.get_formatted_history(user_id, limit=8)  # Get last 8 messages
+                
+                if history:
+                    logger.info(f"Including {len(history)} previous messages in Vertex AI conversation history")
+                    
+            # Default settings from AI preferences
+            temperature = ai_preferences.get_temperature()
+            max_tokens = ai_preferences.get_max_tokens()
+            
+            # Use the provided system prompt or default
+            if not system_prompt:
+                system_prompt = ai_preferences.get_system_prompt()
+                if not system_prompt:
+                    system_prompt = "You are a friendly and helpful chat bot. Keep responses concise and engaging."
+            
+            # Use chat model for conversations with history
+            if history and include_history:
+                response = await self.vertex_ai_client.generate_chat_response(
+                    message=prompt,
+                    history=history,
+                    system_prompt=system_prompt,
+                    temperature=temperature,
+                    max_output_tokens=max_tokens
+                )
+            else:
+                # Use text generation for single prompts
+                response = await self.vertex_ai_client.generate_text(
+                    prompt=prompt,
+                    system_prompt=system_prompt,
+                    temperature=temperature,
+                    max_output_tokens=max_tokens
+                )
+            
+            return response
+            
+        except Exception as e:
+            logger.error(f"Error generating Vertex AI response: {str(e)}")
+            return None
+    
     async def get_google_ai_response(self, prompt, system_prompt=None, user_id=None, include_history=True):
         """Get a response from Google's Gemini AI API with conversation history support"""
         if not GOOGLE_API_KEY:
@@ -161,13 +224,30 @@ class AIChat(commands.Cog):
                 response = custom_response
                 ai_source = "Custom Response"
             
-            # If no custom response, try Google AI if API key is available
-            elif USE_GOOGLE_AI:
-                logger.info("Using Google AI (Gemini) for response")
-                # Get system prompt from preferences
+            # If no custom response, try AI providers based on priority settings
+            elif not response:
+                # Set up system prompt
                 system_prompt = ai_preferences.get_system_prompt()
-                response = await self.get_google_ai_response(question, system_prompt)
-                ai_source = "Google Gemini"
+                
+                # Try Vertex AI if it's the highest priority (1) and available
+                if VERTEX_AI_PRIORITY == 1 and USE_VERTEX_AI and self.vertex_ai_client and self.vertex_ai_client.initialized:
+                    logger.info("Using Vertex AI for response (highest priority)")
+                    user_id = str(interaction.user.id)
+                    response = await self.get_vertex_ai_response(question, system_prompt, user_id)
+                    ai_source = "Google Vertex AI"
+                
+                # Try Google Gemini AI if it's priority 1 or if Vertex AI (priority 1) failed
+                if (VERTEX_AI_PRIORITY != 1 and VERTEX_AI_PRIORITY <= 2 and USE_GOOGLE_AI) or (not response and USE_GOOGLE_AI):
+                    logger.info("Using Google AI (Gemini) for response")
+                    response = await self.get_google_ai_response(question, system_prompt)
+                    ai_source = "Google Gemini"
+                
+                # If Vertex AI is priority 2 and Gemini failed, try Vertex AI now
+                if not response and VERTEX_AI_PRIORITY == 2 and USE_VERTEX_AI and self.vertex_ai_client and self.vertex_ai_client.initialized:
+                    logger.info("Using Vertex AI for response (second priority)")
+                    user_id = str(interaction.user.id)
+                    response = await self.get_vertex_ai_response(question, system_prompt, user_id)
+                    ai_source = "Google Vertex AI"
             
             # Fall back to g4f if Google AI failed or not configured
             if not response:
@@ -300,22 +380,46 @@ class AIChat(commands.Cog):
                 response = custom_response
                 ai_source = "Custom Response"
             
-            # If no custom response, try Google AI if API key is available
-            elif USE_GOOGLE_AI:
-                logger.info("Using Google AI (Gemini) for casual chat")
-                # Get system prompt from preferences or use default
+            # If no custom response, try AI providers based on priority settings
+            elif not response:
+                # Set up system prompt
                 system_prompt = ai_preferences.get_system_prompt()
                 if not system_prompt:
                     system_prompt = "You are a friendly and helpful chat bot. Keep responses concise and engaging."
                 
-                # Pass user_id to include conversation history
-                response = await self.get_google_ai_response(
-                    message, 
-                    system_prompt=system_prompt,
-                    user_id=user_id,
-                    include_history=True
-                )
-                ai_source = "Google Gemini"
+                # Try Vertex AI if it's the highest priority (1) and available
+                if VERTEX_AI_PRIORITY == 1 and USE_VERTEX_AI and self.vertex_ai_client and self.vertex_ai_client.initialized:
+                    logger.info("Using Vertex AI for casual chat (highest priority)")
+                    response = await self.get_vertex_ai_response(
+                        message, 
+                        system_prompt=system_prompt,
+                        user_id=user_id,
+                        include_history=True
+                    )
+                    ai_source = "Google Vertex AI"
+                
+                # Try Google Gemini AI if it's priority 1 or if Vertex AI (priority 1) failed
+                if (VERTEX_AI_PRIORITY != 1 and VERTEX_AI_PRIORITY <= 2 and USE_GOOGLE_AI) or (not response and USE_GOOGLE_AI):
+                    logger.info("Using Google AI (Gemini) for casual chat")
+                    # Pass user_id to include conversation history
+                    response = await self.get_google_ai_response(
+                        message, 
+                        system_prompt=system_prompt,
+                        user_id=user_id,
+                        include_history=True
+                    )
+                    ai_source = "Google Gemini"
+                
+                # If Vertex AI is priority 2 and Gemini failed, try Vertex AI now
+                if not response and VERTEX_AI_PRIORITY == 2 and USE_VERTEX_AI and self.vertex_ai_client and self.vertex_ai_client.initialized:
+                    logger.info("Using Vertex AI for casual chat (second priority)")
+                    response = await self.get_vertex_ai_response(
+                        message, 
+                        system_prompt=system_prompt,
+                        user_id=user_id,
+                        include_history=True
+                    )
+                    ai_source = "Google Vertex AI"
             
             # Fall back to g4f if Google AI failed or not configured
             if not response:
