@@ -206,6 +206,125 @@ class AIChat(commands.Cog):
         # If we got here, all retries failed
         return None
 
+    async def _process_ai_request(self, prompt, user_id=None, include_history=False):
+        """Process an AI request and return the response and source
+        This is a helper method used by both slash commands and prefix commands
+        """
+        response = None
+        ai_source = "Unknown"
+        
+        # First check for custom responses in our preferences
+        custom_response = ai_preferences.get_custom_response(prompt)
+        if custom_response:
+            logger.info(f"Using custom response for query: {prompt[:50]}...")
+            response = custom_response
+            ai_source = "Custom Response"
+        
+        # If no custom response, try AI providers based on priority settings
+        elif not response:
+            # Set up system prompt
+            system_prompt = ai_preferences.get_system_prompt()
+            
+            # Try Vertex AI if it's the highest priority (1) and available
+            if VERTEX_AI_PRIORITY == 1 and USE_VERTEX_AI and self.vertex_ai_client and self.vertex_ai_client.initialized:
+                logger.info("Using Vertex AI for response (highest priority)")
+                if include_history:
+                    logger.info(f"Including conversation history for user {user_id}")
+                response = await self.get_vertex_ai_response(prompt, system_prompt, user_id, include_history)
+                ai_source = "Google Vertex AI"
+            
+            # Try Google Gemini AI if it's priority 1 or if Vertex AI (priority 1) failed
+            if (VERTEX_AI_PRIORITY != 1 and VERTEX_AI_PRIORITY <= 2 and USE_GOOGLE_AI) or (not response and USE_GOOGLE_AI):
+                logger.info("Using Google AI (Gemini) for response")
+                response = await self.get_google_ai_response(prompt, system_prompt, user_id, include_history)
+                ai_source = "Google Gemini"
+            
+            # If Vertex AI is priority 2 and Gemini failed, try Vertex AI now
+            if not response and VERTEX_AI_PRIORITY == 2 and USE_VERTEX_AI and self.vertex_ai_client and self.vertex_ai_client.initialized:
+                logger.info("Using Vertex AI for response (second priority)")
+                response = await self.get_vertex_ai_response(prompt, system_prompt, user_id, include_history)
+                ai_source = "Google Vertex AI"
+        
+        # Fall back to g4f if Google AI failed or not configured
+        if not response:
+            logger.info("Using g4f as fallback for AI response")
+            max_retries = 2
+            retry_delay = 1
+            
+            # Get system prompt from preferences
+            system_prompt = ai_preferences.get_system_prompt()
+            system_messages = [{"role": "system", "content": system_prompt}] if system_prompt else []
+            
+            # Try with FreeGpt provider first
+            for attempt in range(max_retries):
+                try:
+                    response = await asyncio.wait_for(
+                        self.bot.loop.run_in_executor(
+                            None,
+                            lambda: g4f.ChatCompletion.create(
+                                model="gpt-3.5-turbo",  # Use a more compatible model
+                                provider=g4f.Provider.FreeGpt,  # First provider to try
+                                messages=system_messages + [{"role": "user", "content": prompt}]
+                            )
+                        ),
+                        timeout=30.0  # 30 second timeout
+                    )
+                    if response:  # If we got a valid response, break the retry loop
+                        ai_source = "FreeGpt AI"
+                        break
+                except Exception as e:
+                    logger.error(f"Error with FreeGpt attempt {attempt+1}/{max_retries}: {str(e)}")
+                    if attempt < max_retries - 1:
+                        retry_after = retry_delay * (2 ** attempt)
+                        logger.warning(f"Retrying FreeGpt in {retry_after}s")
+                        await asyncio.sleep(retry_after)
+            
+            # Try more providers if needed...
+            # Additional provider attempts can be added here
+            
+            # If all else failed
+            if not response:
+                # Instead of throwing an error, provide a fallback response
+                response = "I'm sorry, I couldn't generate a response right now. It seems our AI services are experiencing difficulties."
+                ai_source = "Fallback System"
+                logger.warning("All AI providers failed, using fallback response")
+                
+        return response, ai_source
+    
+    @commands.command(name="ask")
+    async def ask_prefix(self, ctx, *, question: str):
+        """Ask the AI a question (prefix version)"""
+        logger.info(f"Processing AI request from {ctx.author} (using prefix command): {question}")
+        
+        # Show typing indicator to show the bot is working
+        async with ctx.typing():
+            # Process the AI request
+            response, ai_source = await self._process_ai_request(question, str(ctx.author.id))
+            
+            # Save the AI's response to the conversation history
+            try:
+                user_id = str(ctx.author.id)
+                Conversation.add_message(user_id, "user", question)
+                Conversation.add_message(user_id, "assistant", response)
+                logger.info(f"Added conversation to history for {user_id}")
+            except Exception as e:
+                logger.error(f"Failed to save conversation to history: {str(e)}")
+            
+            # Send the response
+            if response:
+                embed = create_embed(
+                    "🧠 AI Response",
+                    response
+                )
+                embed.set_footer(text=f"AI Provider: {ai_source}")
+                await ctx.send(embed=embed)
+            else:
+                embed = create_error_embed(
+                    "Error",
+                    "Sorry, I couldn't generate a response. Please try again later."
+                )
+                await ctx.send(embed=embed)
+    
     @app_commands.command(name="ask", description="Ask the AI a question")
     @app_commands.describe(question="The question or prompt for the AI")
     async def ask(self, interaction: discord.Interaction, *, question: str):
@@ -354,6 +473,46 @@ class AIChat(commands.Cog):
                 ephemeral=True
             )
 
+    @commands.command(name="chat")
+    async def chat_prefix(self, ctx, *, message: str):
+        """Have a casual conversation with the AI (prefix version)"""
+        logger.info(f"Processing AI chat from {ctx.author} (using prefix command): {message}")
+        user_id = str(ctx.author.id)
+        
+        # Show typing indicator to show the bot is working
+        async with ctx.typing():
+            # Save the user's message to conversation history
+            try:
+                Conversation.add_message(user_id, "user", message)
+                logger.info(f"Added user message to conversation history for {user_id}")
+            except Exception as e:
+                logger.error(f"Failed to save user message to conversation history: {str(e)}")
+            
+            # Process the AI request with conversation history
+            response, ai_source = await self._process_ai_request(message, user_id, include_history=True)
+            
+            # Save the AI's response to the conversation history
+            try:
+                Conversation.add_message(user_id, "assistant", response)
+                logger.info(f"Added AI response to conversation history for {user_id}")
+            except Exception as e:
+                logger.error(f"Failed to save AI response to conversation history: {str(e)}")
+            
+            # Send the response
+            if response:
+                embed = create_embed(
+                    "💬 AI Chat",
+                    response
+                )
+                embed.set_footer(text=f"AI Provider: {ai_source}")
+                await ctx.send(embed=embed)
+            else:
+                embed = create_error_embed(
+                    "Error",
+                    "Sorry, I couldn't generate a response. Please try again later."
+                )
+                await ctx.send(embed=embed)
+    
     @app_commands.command(name="chat", description="Have a casual chat with the AI")
     @app_commands.describe(message="Your message to the AI")
     async def chat(self, interaction: discord.Interaction, *, message: str):
@@ -746,6 +905,31 @@ class AIChat(commands.Cog):
                 ephemeral=True
             )
 
+    @commands.command(name="clear_history")
+    async def clear_history_prefix(self, ctx):
+        """Clear your conversation history with the AI (prefix version)"""
+        user_id = str(ctx.author.id)
+        logger.info(f"Clearing chat history for {ctx.author} (ID: {user_id})")
+        
+        try:
+            # Clear the conversation history
+            Conversation.clear_history(user_id)
+            
+            # Send confirmation
+            embed = create_embed(
+                "🧹 Chat History Cleared",
+                "Your conversation history with the AI has been cleared."
+            )
+            await ctx.send(embed=embed)
+            logger.info(f"Successfully cleared chat history for {user_id}")
+        except Exception as e:
+            logger.error(f"Error clearing chat history: {str(e)}")
+            embed = create_error_embed(
+                "Error",
+                f"Could not clear chat history: {str(e)}"
+            )
+            await ctx.send(embed=embed)
+    
     @app_commands.command(name="clear_chat_history", description="Clear your conversation history with the AI")
     async def clear_chat_history(self, interaction: discord.Interaction):
         """Clear your conversation history with the AI"""
@@ -777,6 +961,53 @@ class AIChat(commands.Cog):
                 embed=create_error_embed("Error", "An error occurred. Please try again later."),
                 ephemeral=True
             )
+    
+    @commands.command(name="history")
+    async def history_prefix(self, ctx):
+        """Show your recent conversation history with the AI (prefix version)"""
+        user_id = str(ctx.author.id)
+        logger.info(f"Showing chat history for {ctx.author} (ID: {user_id})")
+        
+        try:
+            # Get up to 10 most recent messages
+            history = Conversation.get_history(user_id, limit=10)
+            
+            if not history:
+                await ctx.send(
+                    embed=create_embed("Conversation History", "You don't have any recent conversations with the AI.")
+                )
+                return
+            
+            # Format the history
+            embed = create_embed(
+                "💬 Your Recent AI Conversations",
+                f"Here are your {len(history)} most recent messages with the AI:"
+            )
+            
+            # We want them in chronological order (oldest first)
+            history.reverse()
+            
+            # Add each message to the embed
+            for i, msg in enumerate(history, 1):
+                role_icon = "👤" if msg.role == "user" else "🤖"
+                timestamp = msg.timestamp.strftime("%Y-%m-%d %H:%M:%S")
+                content = msg.content[:200] + "..." if len(msg.content) > 200 else msg.content
+                
+                embed.add_field(
+                    name=f"{i}. {role_icon} {msg.role.capitalize()} ({timestamp})",
+                    value=content,
+                    inline=False
+                )
+            
+            await ctx.send(embed=embed)
+            logger.info(f"Successfully showed chat history for {user_id}")
+        except Exception as e:
+            logger.error(f"Error retrieving conversation history: {str(e)}")
+            embed = create_error_embed(
+                "Error",
+                f"Failed to retrieve conversation history: {str(e)}"
+            )
+            await ctx.send(embed=embed)
     
     @app_commands.command(name="show_chat_history", description="Show your recent conversation history with the AI")
     async def show_chat_history(self, interaction: discord.Interaction):

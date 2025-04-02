@@ -1,125 +1,184 @@
 # Discord Bot Documentation
 
-## For Bot Owners
+## Overview
 
-### Command Management System
+This Discord bot is a feature-rich community management and entertainment solution that combines powerful moderation tools, economy features, AI chat capabilities, music playback, and more. The bot supports both modern slash commands and traditional prefix commands for all features.
 
-The bot includes an advanced command management system that **automatically prevents duplicate commands** in Discord servers. This is a major improvement over previous versions where commands could get registered multiple times, causing users to see duplicate options.
+## Setup Instructions
 
-#### Automatic Duplicate Command Prevention
+### Requirements
 
-The bot now automatically clears all commands before syncing them with Discord:
+- Python 3.8+
+- PostgreSQL database
+- Discord Bot Token
+- Google Cloud Project (for Vertex AI)
 
-1. When the bot starts, it automatically clears all registered commands
-2. It then syncs the current command set, ensuring no duplicates are created
-3. All command refresh methods now use this clear-first approach
+### Environment Variables
 
-This means **you should no longer experience duplicate commands** in your Discord servers!
+Set up the following environment variables:
 
-#### Why Command Duplication Happened Previously
+| Variable | Description |
+|----------|-------------|
+| `DISCORD_TOKEN` | Your Discord bot token |
+| `DATABASE_URL` | PostgreSQL database connection string |
+| `GOOGLE_CREDENTIALS` | JSON content of Google Cloud service account key |
+| `GOOGLE_CLOUD_PROJECT` | Your Google Cloud project ID |
+| `VERTEX_LOCATION` | Location for Vertex AI (e.g., `us-central1`) |
+| `USE_VERTEX_AI` | Set to `true` to use Vertex AI as primary AI provider |
+| `VERTEX_AI_PRIORITY` | Priority of Vertex AI (1-3, with 1 being highest) |
 
-Command duplication used to occur due to:
-1. Discord API issues
-2. Bot restarts without proper command clearing
-3. Multiple instances of the bot running simultaneously
-4. Manual command registration without proper syncing
+### Setup Steps
 
-#### Using the Command Refresh System (Backup Option)
+1. Clone the repository
+2. Install dependencies: `pip install -r requirements.txt`
+3. Set environment variables
+4. Run the bot: `python main.py`
 
-While the automatic system should prevent issues, you can still manually refresh commands if needed:
+## Feature Modules
 
-1. **Web Dashboard** - Visit the [Bot Control Panel](https://workspace.jonahpantz.repl.co/bot_control) (no login required) and use the "Refresh Discord Commands" button
-2. **Command Line Scripts**:
-   - `python refresh_commands.py` - Interactive refresh with confirmation
-   - `python refresh_commands.py -y` - Non-interactive refresh (good for automation)
-   - `python sync_commands.py` - Lightweight sync that now includes command clearing
-3. **Discord Commands** (for bot owners only):
-   - `!sync_commands` - Sync commands globally
-   - `!sync_guild_commands` - Sync only in the current server
-   - `!clear_commands` - Clear all commands with confirmation
+The bot is organized into several cogs (modules), each handling different functionality:
 
-For detailed instructions, see [COMMAND_REFRESH_INSTRUCTIONS.md](COMMAND_REFRESH_INSTRUCTIONS.md) and [COMMAND_MANAGEMENT.md](COMMAND_MANAGEMENT.md)
+### AI Chat (cogs/ai_chat.py)
 
-### Bot Lock Files
+Provides AI chat capabilities using:
+- Google Vertex AI (primary, if configured)
+- Google Gemini AI (secondary)
+- G4F (fallback)
 
-The bot uses lock files to prevent multiple instances from running simultaneously:
-- `.discord_bot.lock` - Created when the standalone bot is running
-- `.main_discord_bot.lock` - Created when the bot is run via the main application
+Features:
+- One-time questions with `/ask` or `!ask`
+- Conversation memory with `/chat` or `!chat`
+- Conversation history management
 
-If you encounter issues with the bot not starting, check if these lock files exist. If they do but no bot is running, you can safely delete them.
+See [AI_COMMANDS.md](AI_COMMANDS.md) for detailed commands.
 
-### Configuration
+### Music (cogs/music.py)
 
-Important configuration files:
-- `config.py` - Main configuration including bot token, owner IDs, and status messages
-- `data/profanity_filter.json` - Profanity filter settings
-- `data/youtube_channels.json` - YouTube tracker settings
+Provides music playback from various sources:
+- YouTube
+- SoundCloud
+- Spotify links
 
-### Adding Bot Owners
+Features:
+- Voice channel joining/leaving
+- Song playback with queue management
+- Volume control and playback options
 
-To add multiple bot owners, edit the `BOT_OWNER_IDS` tuple in `config.py`:
+See [MUSIC_COMMANDS.md](MUSIC_COMMANDS.md) for detailed commands.
 
-```python
-BOT_OWNER_IDS = (1003686821600960582, 1296213550917881856, YOUR_ID_HERE)
-```
+### Economy (cogs/economy.py)
 
-### Dashboard Authentication
+Virtual economy system with:
+- Currency earning (daily rewards, work)
+- Banking system
+- Shop with purchasable items
+- Gambling games (coinflip, slots)
 
-The dashboard uses Discord OAuth2 for authentication. Only users with their Discord ID in the `BOT_OWNER_IDS` tuple will see owner controls.
+### Moderation (cogs/moderation.py)
 
-### Restart Process
+Tools for server management:
+- Message clearing
+- Member kick/ban functions
+- Mute/timeout functionality
+- Warning system
 
-If the bot needs a restart:
-1. Stop any running instances
-2. Delete any remaining lock files (`rm .*.lock`)
-3. Start the bot with either:
-   - `python main.py` - Runs both the dashboard and bot
-   - `python bot.py` - Runs only the Discord bot
+### Member Events (cogs/member_events.py)
 
-For more details on specific features, refer to the code documentation in each file.
+Handles member join/leave events with customizable messages.
+
+### Memes (cogs/memes.py)
+
+Fetches and displays random memes from Reddit.
+
+### Profanity Filter (cogs/profanity_filter.py)
+
+Detects and handles messages containing profanity.
+
+### Rules Enforcer (cogs/rules_enforcer.py)
+
+Enforces server rules through automated detection.
+
+### Verification (cogs/verification.py)
+
+Provides user verification functionality.
+
+### YouTube Tracker (cogs/youtube_tracker.py)
+
+Tracks new uploads from specified YouTube channels.
+
+## Database Structure
+
+The bot uses a PostgreSQL database with the following main models:
+
+- **Conversation**: Stores AI chat history
+- **UserEconomy**: Tracks user balances and economy stats
+- **Item**: Represents shop items
+- **Inventory**: Tracks user-owned items
+- **Transaction**: Records economic transactions
 
 ## AI Integration
 
-The bot supports multiple AI providers to power its intelligence, with a flexible fallback system.
+### Vertex AI
 
-### AI Provider Hierarchy
+1. Create a Google Cloud project
+2. Enable Vertex AI API
+3. Create a service account with Vertex AI User role
+4. Generate a JSON key and set as `GOOGLE_CREDENTIALS`
+5. Run `test_vertex_auth.py` to verify setup
 
-The bot uses the following AI providers in order of preference (configurable):
+Vertex AI is used when:
+- `USE_VERTEX_AI` is set to `true`
+- `VERTEX_AI_PRIORITY` is set to a valid priority (1-3)
+- Google credentials are valid
 
-1. **Google Vertex AI** - Enterprise-grade AI from Google Cloud (requires API credentials)
-2. **Google Gemini AI** - Google's Gemini model via direct API integration (requires API key)
-3. **G4F Providers** - Fallback free providers when other options are unavailable
+The bot will fall back to Gemini AI and then G4F if Vertex AI is unavailable.
 
-### Configuring Vertex AI
+## Command Handling
 
-To enable Vertex AI integration:
+The bot implements a dual-command approach:
+- **Slash Commands**: Modern Discord integration with `/command`
+- **Prefix Commands**: Traditional text-based commands with `!command`
 
-1. Create a Google Cloud project and enable Vertex AI API
-2. Create a service account with Vertex AI permissions
-3. Download the service account key JSON file
-4. Configure the following environment variables in Replit:
-   - `GOOGLE_CREDENTIALS` - The full JSON content of your service account key
-   - `GOOGLE_CLOUD_PROJECT` - Your Google Cloud project ID
-   - `VERTEX_LOCATION` - Region for Vertex AI (e.g., us-central1)
-   - `USE_VERTEX_AI` - Set to 'true' to enable Vertex AI
-   - `VERTEX_AI_PRIORITY` - Priority level (1 = highest, 2 = second, 3 = lowest)
+All major features support both command styles for maximum flexibility.
 
-You can verify your Vertex AI setup by running the test script:
-```
-python test_vertex_auth.py
-```
+## Command Syncing
 
-### Configuring Gemini AI
+Use these commands to sync slash commands:
+- `!sync_commands`: Sync commands globally (all servers)
+- `!sync_guild`: Sync commands to current server only
+- `!clear_commands_prefix` or `/clear_commands`: Remove all commands
 
-To use Google's Gemini AI:
+## Dashboard Integration
 
-1. Obtain a Gemini API key from [Google AI Studio](https://ai.google.dev/)
-2. Add the key to Replit Secrets as `GOOGLE_API`
+The bot includes a web dashboard (under `dashboard/`) for:
+- Bot status monitoring
+- Configuration management
+- Command statistics
 
-### AI Conversation History
+Access the dashboard by running the web server component with `python run_all.py`.
 
-The bot maintains conversation history for each user, allowing for contextual conversations. The history is stored in the PostgreSQL database and is used by both Vertex AI and Gemini models when appropriate.
+## Contributing
 
-### Custom AI Responses
+To contribute to this bot:
+1. Set up a development environment following the setup steps
+2. Create a feature branch
+3. Implement your changes
+4. Test thoroughly
+5. Submit a pull request
 
-The bot supports custom responses for specific patterns, configurable through the `/custom_response` command (admin only).
+## Troubleshooting
+
+Common issues:
+- **Bot doesn't respond**: Check if token is valid and bot is online
+- **AI responses fail**: Verify Google credentials and API enablement
+- **Database errors**: Check PostgreSQL connection and schema
+- **Music playback issues**: Ensure ffmpeg is installed correctly
+
+For issues with Vertex AI, run `test_vertex_auth.py` to diagnose authentication problems.
+
+## Command Reference
+
+For a complete list of all commands, see:
+- [BOT_COMMAND_REFERENCE.md](BOT_COMMAND_REFERENCE.md)
+- [AI_COMMANDS.md](AI_COMMANDS.md)
+- [MUSIC_COMMANDS.md](MUSIC_COMMANDS.md)

@@ -217,6 +217,59 @@ class Music(commands.Cog):
             self.queues[guild_id] = deque()
             self._volume[guild_id] = 0.5  # Default volume: 50%
         return self.queues[guild_id]
+        
+    # Legacy prefix command version
+    @commands.command(name="join", help="Join your voice channel")
+    async def join_prefix(self, ctx):
+        """Join the user's voice channel (prefix version)"""
+        if not ctx.author.voice:
+            await ctx.send(embed=create_error_embed("Error", "You must be in a voice channel to use this command."))
+            return
+
+        channel = ctx.author.voice.channel
+        voice_client = ctx.guild.voice_client
+
+        try:
+            # Attempt to reconnect if there's an existing but disconnected voice client
+            if voice_client:
+                if not voice_client.is_connected():
+                    logger.info(f"Voice client exists but is disconnected, cleaning up")
+                    await voice_client.disconnect(force=True)
+                    voice_client = None
+                elif voice_client.channel == channel:
+                    await ctx.send("I'm already in your voice channel!")
+                    return
+            
+            # Connect or move to the specified channel
+            if voice_client:
+                await voice_client.move_to(channel)
+            else:
+                # Use explicit timeout for connection
+                try:
+                    voice_client = await channel.connect(timeout=10.0, reconnect=True)
+                except asyncio.TimeoutError:
+                    logger.error(f"Timed out connecting to voice channel {channel.id}")
+                    await ctx.send(
+                        embed=create_error_embed("Connection Error", "Timed out connecting to voice channel. Please try again or use a different channel.")
+                    )
+                    return
+
+            # Verify connection was successful
+            if voice_client and voice_client.is_connected():
+                logger.info(f"Successfully joined voice channel {channel.id} in guild {ctx.guild.id}")
+                await ctx.send(
+                    embed=create_embed("🎵 Joined Voice", f"Connected to {channel.mention}")
+                )
+            else:
+                logger.error(f"Failed to connect to voice channel {channel.id}")
+                await ctx.send(
+                    embed=create_error_embed("Connection Error", "Could not establish voice connection. This may be due to network restrictions or Discord limitations.")
+                )
+        except Exception as e:
+            logger.error(f"Error joining voice channel: {str(e)}")
+            await ctx.send(
+                embed=create_error_embed("Error", f"Failed to join voice channel: {str(e)}")
+            )
 
     @app_commands.command(name="join", description="Join your voice channel")
     async def join(self, interaction: discord.Interaction):
@@ -295,6 +348,101 @@ class Music(commands.Cog):
                     embed=create_error_embed("Error", f"Failed to join voice channel: {str(e)}"),
                     ephemeral=True
                 )
+
+    # Legacy prefix command version
+    @commands.command(name="play", help="Play a song from YouTube, SoundCloud, or Spotify")
+    async def play_prefix(self, ctx, *, query: str):
+        """Play music with the prefix command (!play)"""
+        try:
+            if not ctx.author.voice:
+                await ctx.send(
+                    embed=create_error_embed("Error", "You must be in a voice channel to use this command.")
+                )
+                return
+                
+        except Exception as e:
+            logger.error(f"Error checking voice state: {str(e)}")
+            return
+
+        logger.info(f"Processing !play command for query: {query}")
+
+        try:
+            voice_client = ctx.guild.voice_client
+            if not voice_client:
+                try:
+                    # Use explicit timeout for connection
+                    voice_client = await ctx.author.voice.channel.connect(timeout=10.0, reconnect=True)
+                except asyncio.TimeoutError:
+                    logger.error(f"Timed out connecting to voice channel in !play command")
+                    await ctx.send(
+                        embed=create_error_embed("Connection Error", "Timed out connecting to voice channel. Please try again or use the !join command first.")
+                    )
+                    return
+                except Exception as connect_error:
+                    logger.error(f"Error connecting to voice channel in !play command: {str(connect_error)}")
+                    await ctx.send(
+                        embed=create_error_embed("Connection Error", f"Could not connect to voice channel: {str(connect_error)}")
+                    )
+                    return
+                    
+            # Verify we have a valid voice connection
+            if not voice_client or not voice_client.is_connected():
+                logger.error("Voice client failed to connect properly in !play command")
+                await ctx.send(
+                    embed=create_error_embed("Connection Error", "Could not establish a stable voice connection. Please try again or use a different voice channel.")
+                )
+                return
+
+            queue = self.get_queue(ctx.guild.id)
+
+            # Use our new search method to handle the query
+            try:
+                data = await YTDLSource.search(query, loop=self.bot.loop)
+                logger.info(f"Successfully found music: {data['title']} from {data.get('extractor', 'unknown source')}")
+            except Exception as e:
+                logger.error(f"Error searching for query '{query}': {str(e)}")
+                await ctx.send(
+                    embed=create_error_embed("Error", "Could not find the requested song. Please check your query and try again.")
+                )
+                return
+
+            # Get source info for display
+            source_type = data.get('extractor', 'Unknown')
+            if 'youtube' in source_type.lower():
+                platform_emoji = "▶️ YouTube"
+            elif 'soundcloud' in source_type.lower():
+                platform_emoji = "☁️ SoundCloud"
+            elif 'spotify' in source_type.lower():
+                platform_emoji = "🎧 Spotify"
+            else:
+                platform_emoji = "🎵 Music"
+
+            # Add to queue - store the original query if it's a URL, otherwise store the specific resource URL
+            if query.startswith(('http://', 'https://', 'www.', 'spotify:', 'soundcloud:')):
+                queue.append(query)
+            else:
+                # For search queries, store the actual URL we found
+                queue.append(data['webpage_url'])
+                
+            logger.info(f"Added song to queue: {data['title']} from {source_type}")
+
+            if not voice_client.is_playing():
+                # If nothing is playing, start playing
+                await self.play_next(ctx.guild, voice_client)
+                await ctx.send(
+                    embed=create_embed(f"{platform_emoji} Now Playing", f"[{data['title']}]({data['webpage_url']})")
+                )
+            else:
+                # Add to queue
+                await ctx.send(
+                    embed=create_embed(f"{platform_emoji} Added to Queue", f"[{data['title']}]({data['webpage_url']})")
+                )
+
+        except Exception as e:
+            logger.error(f"Error playing music: {str(e)}")
+            await ctx.send(
+                embed=create_error_embed("Error", f"An error occurred while trying to play the song: {str(e)}")
+            )
 
     @app_commands.command(name="play", description="Play a song from YouTube, SoundCloud, or Spotify")
     @app_commands.describe(query="URL or search query (prepend with 'soundcloud:' or 'spotify:' to search specific platforms)")
@@ -496,6 +644,26 @@ class Music(commands.Cog):
             except:
                 pass
 
+    # Legacy prefix command version
+    @commands.command(name="stop", help="Stop playing and clear the queue")
+    async def stop_prefix(self, ctx):
+        """Stop playing and clear the queue (prefix version)"""
+        voice_client = ctx.guild.voice_client
+        if not voice_client:
+            await ctx.send(
+                embed=create_error_embed("Error", "I'm not playing anything right now.")
+            )
+            return
+
+        queue = self.get_queue(ctx.guild.id)
+        queue.clear()
+        voice_client.stop()
+        logger.info(f"Stopped playback and cleared queue in guild {ctx.guild.id}")
+
+        await ctx.send(
+            embed=create_embed("⏹️ Stopped", "Music playback stopped and queue cleared.")
+        )
+
     @app_commands.command(name="stop", description="Stop playing and clear the queue")
     async def stop(self, interaction: discord.Interaction):
         """Stop playing and clear the queue"""
@@ -527,6 +695,23 @@ class Music(commands.Cog):
                 embed=create_embed("⏹️ Stopped", "Music playback stopped and queue cleared.")
             )
 
+    # Legacy prefix command version
+    @commands.command(name="skip", help="Skip the current song")
+    async def skip_prefix(self, ctx):
+        """Skip the current song (prefix version)"""
+        voice_client = ctx.guild.voice_client
+        if not voice_client or not voice_client.is_playing():
+            await ctx.send(
+                embed=create_error_embed("Error", "Nothing is playing right now.")
+            )
+            return
+
+        voice_client.stop()  # This will trigger play_next automatically
+        logger.info(f"Skipped song in guild {ctx.guild.id}")
+        await ctx.send(
+            embed=create_embed("⏭️ Skipped", "Skipped the current song.")
+        )
+
     @app_commands.command(name="skip", description="Skip the current song")
     async def skip(self, interaction: discord.Interaction):
         """Skip the current song"""
@@ -554,6 +739,74 @@ class Music(commands.Cog):
             await interaction.followup.send(
                 embed=create_embed("⏭️ Skipped", "Skipped the current song.")
             )
+
+    # Legacy prefix command version
+    @commands.command(name="queue", help="Show the current queue")
+    async def queue_prefix(self, ctx):
+        """Display the current queue (prefix version)"""
+        queue = self.get_queue(ctx.guild.id)
+
+        if not queue and not self.now_playing.get(ctx.guild.id):
+            await ctx.send(
+                embed=create_embed("📋 Queue", "The queue is empty and nothing is playing.")
+            )
+            return
+            
+        embed = create_embed("📋 Queue", "")
+
+        # Add now playing
+        current = self.now_playing.get(ctx.guild.id)
+        if current:
+            # Get platform icon
+            platform = current.platform
+            if 'youtube' in platform.lower():
+                platform_icon = "▶️"
+            elif 'soundcloud' in platform.lower():
+                platform_icon = "☁️"
+            elif 'spotify' in platform.lower():
+                platform_icon = "🎧"
+            else:
+                platform_icon = "🎵"
+                
+            embed.add_field(
+                name=f"{platform_icon} Now Playing",
+                value=f"[{current.title}]({current.webpage_url or current.url})",
+                inline=False
+            )
+
+        # Add queue items
+        if queue:
+            # Get info for first 5 items
+            queue_list = []
+            
+            for i, url in enumerate(list(queue)[:5], 1):
+                try:
+                    # Use our search method for better handling
+                    data = await YTDLSource.search(url, loop=self.bot.loop)
+                    
+                    # Get platform icon
+                    source_type = data.get('extractor', 'Unknown')
+                    if 'youtube' in source_type.lower():
+                        platform_icon = "▶️"
+                    elif 'soundcloud' in source_type.lower():
+                        platform_icon = "☁️"
+                    elif 'spotify' in source_type.lower():
+                        platform_icon = "🎧"
+                    else:
+                        platform_icon = "🎵"
+                        
+                    queue_list.append(f"{i}. {platform_icon} [{data['title']}]({data['webpage_url']})")
+                except Exception as e:
+                    logger.error(f"Error fetching queue item info: {str(e)}")
+                    queue_list.append(f"{i}. 🎵 [Unable to fetch title]({url})")
+
+            embed.add_field(
+                name="Up Next",
+                value="\n".join(queue_list) + (f"\n\n...and {len(queue) - 5} more" if len(queue) > 5 else ""),
+                inline=False
+            )
+
+        await ctx.send(embed=embed)
 
     @app_commands.command(name="queue", description="Show the current queue")
     async def queue(self, interaction: discord.Interaction):
@@ -634,6 +887,28 @@ class Music(commands.Cog):
 
         await interaction.followup.send(embed=embed)
 
+    # Legacy prefix command version
+    @commands.command(name="volume", help="Set the volume (0-100)")
+    async def volume_prefix(self, ctx, volume: int):
+        """Set the volume (prefix version)"""
+        if not 0 <= volume <= 100:
+            await ctx.send(
+                embed=create_error_embed("Error", "Volume must be between 0 and 100.")
+            )
+            return
+
+        self._volume[ctx.guild.id] = volume / 100
+
+        # Adjust volume of currently playing song
+        voice_client = ctx.guild.voice_client
+        if voice_client and voice_client.source:
+            voice_client.source.volume = volume / 100
+
+        logger.info(f"Set volume to {volume}% in guild {ctx.guild.id}")
+        await ctx.send(
+            embed=create_embed("🔊 Volume", f"Set volume to {volume}%")
+        )
+
     @app_commands.command(name="volume", description="Set the volume (0-100)")
     @app_commands.describe(volume="Volume level (0-100)")
     async def volume(self, interaction: discord.Interaction, volume: int):
@@ -666,6 +941,78 @@ class Music(commands.Cog):
         except discord.errors.InteractionResponded:
             await interaction.followup.send(
                 embed=create_embed("🔊 Volume", f"Set volume to {volume}%")
+            )
+
+    # Legacy prefix command version
+    @commands.command(name="search", help="Search for music from YouTube or SoundCloud")
+    async def search_prefix(self, ctx, *, query: str):
+        """Search for music (prefix version)"""
+        # Parse the platform from the query if provided
+        platform = "youtube"  # Default platform
+        if query.lower().startswith("soundcloud:"):
+            platform = "soundcloud"
+            query = query[11:].strip()  # Remove "soundcloud: " prefix
+        
+        logger.info(f"Searching for '{query}' on {platform}")
+        
+        # Prepare search query with platform prefix
+        if platform == "soundcloud":
+            search_query = f"scsearch5:{query}"  # Get top 5 SoundCloud results
+            platform_name = "SoundCloud"
+            platform_emoji = "☁️"
+        else:  # Default to YouTube
+            search_query = f"ytsearch5:{query}"  # Get top 5 YouTube results
+            platform_name = "YouTube"
+            platform_emoji = "▶️"
+            
+        try:
+            # Get search results directly from ytdl
+            loop = asyncio.get_event_loop()
+            data = await loop.run_in_executor(None, lambda: ytdl.extract_info(search_query, download=False))
+            
+            if not data or 'entries' not in data or len(data['entries']) == 0:
+                await ctx.send(
+                    embed=create_error_embed("No Results", f"No results found for '{query}' on {platform_name}.")
+                )
+                return
+                
+            # Create embed with results
+            embed = create_embed(
+                f"{platform_emoji} {platform_name} Search Results", 
+                f"Search results for: **{query}**\nUse `!play` with the URL to play a song."
+            )
+            
+            for i, entry in enumerate(data['entries'], 1):
+                if not entry:
+                    continue  # Skip empty entries
+                    
+                title = entry.get('title', 'Unknown title')
+                url = entry.get('webpage_url', '')
+                duration = entry.get('duration')
+                uploader = entry.get('uploader', 'Unknown uploader')
+                
+                # Format duration if available
+                duration_str = ""
+                if duration:
+                    minutes, seconds = divmod(int(duration), 60)
+                    hours, minutes = divmod(minutes, 60)
+                    if hours > 0:
+                        duration_str = f" • {hours}:{minutes:02d}:{seconds:02d}"
+                    else:
+                        duration_str = f" • {minutes}:{seconds:02d}"
+                
+                embed.add_field(
+                    name=f"{i}. {title}",
+                    value=f"By: {uploader}{duration_str}\n[Link]({url})",
+                    inline=False
+                )
+            
+            await ctx.send(embed=embed)
+            
+        except Exception as e:
+            logger.error(f"Error searching for music: {str(e)}")
+            await ctx.send(
+                embed=create_error_embed("Error", f"An error occurred while searching: {str(e)}")
             )
 
     @app_commands.command(name="search", description="Search for music from different platforms")
@@ -749,6 +1096,27 @@ class Music(commands.Cog):
                 embed=create_error_embed("Error", f"An error occurred while searching: {str(e)}"),
                 ephemeral=True
             )
+
+    # Legacy prefix command version
+    @commands.command(name="leave", help="Leave the voice channel")
+    async def leave_prefix(self, ctx):
+        """Leave the voice channel (prefix version)"""
+        voice_client = ctx.guild.voice_client
+        if not voice_client:
+            await ctx.send(
+                embed=create_error_embed("Error", "I'm not in a voice channel.")
+            )
+            return
+
+        await voice_client.disconnect()
+        # Clear guild data
+        self.queues.pop(ctx.guild.id, None)
+        self.now_playing.pop(ctx.guild.id, None)
+        logger.info(f"Left voice channel in guild {ctx.guild.id}")
+
+        await ctx.send(
+            embed=create_embed("👋 Left Voice", "Disconnected from voice channel.")
+        )
 
     @app_commands.command(name="leave", description="Leave the voice channel")
     async def leave(self, interaction: discord.Interaction):

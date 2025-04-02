@@ -1,117 +1,125 @@
-# Discord Bot Command Management
+# Discord Command Management Guide
 
-This document explains how the Discord bot's command system works and how duplicate commands are now automatically prevented.
+This guide explains how to manage Discord slash commands for the bot, including syncing, clearing, and troubleshooting command registration issues.
 
-## How Discord Commands Work
+## Understanding Discord Slash Commands
 
-Discord slash commands must be registered with Discord's API before they can be used. There are two types of commands:
+Discord slash commands are registered with Discord's API and appear when users type `/` in the chat. Unlike traditional text commands that start with a prefix (like `!`), slash commands:
 
-1. **Global Commands**: These are available in all servers where the bot is installed.
-2. **Guild-Specific Commands**: These are only available in specific servers.
+- Offer parameter auto-completion
+- Provide a user-friendly interface
+- Can be seen in the Discord command menu
+- Require registration with Discord's API
 
-## The Duplicate Command Problem
+## Command Syncing
 
-In the past, you may have experienced duplicate commands appearing in your Discord servers. This happened because:
+When you add, modify, or remove slash commands in your code, you need to sync these changes with Discord. The bot provides several methods to do this:
 
-1. The bot would register commands each time it started
-2. Discord wouldn't automatically remove old commands
-3. Over time, multiple identical commands would appear in the command list
+### Global Command Syncing
 
-## The Solution: Automatic Command Clearing
+Global commands are available in all servers where the bot is present. They take up to an hour to propagate across all servers.
 
-The bot now includes a robust automatic command management system:
-
-### Automatic Prevention on Every Bot Start
-
-The bot now **automatically clears all commands before syncing** them every time it starts up:
-
-```python
-# Always clear commands before syncing to prevent duplicates
-logger.info("Clearing all commands before syncing...")
-try:
-    await self.http.request(
-        discord.http.Route("PUT", "/applications/{application_id}/commands", 
-                          application_id=self.application_id), 
-        json=[]
-    )
-    logger.info("Commands cleared successfully")
-except Exception as e:
-    logger.error(f"Error clearing commands: {str(e)}")
-    logger.info("Continuing with sync despite clearing error")
-    
-# Sync commands after clearing with rate limit handling
-logger.info("Syncing global commands with Discord...")
-rate_limit_count = 0
-max_rate_limits = 3  # Maximum number of rate limit retries
-
-while rate_limit_count < max_rate_limits:
-    try:
-        synced = await self.tree.sync()
-        logger.info(f"Synced {len(synced)} commands globally")
-        break  # Successfully synced, exit the loop
-    except discord.errors.HTTPException as e:
-        if e.status == 429:  # Rate limited
-            rate_limit_count += 1
-            retry_after = e.retry_after if hasattr(e, 'retry_after') else 60
-            
-            logger.warning(f"Rate limited while syncing commands ({rate_limit_count}/{max_rate_limits}). "
-                          f"Retrying in {retry_after:.2f} seconds...")
-            
-            if rate_limit_count >= max_rate_limits:
-                logger.warning(f"Hit rate limit {max_rate_limits} times, stopping command sync.")
-                break
-                
-            # Wait for the rate limit to expire
-            await asyncio.sleep(retry_after)
-        else:
-            # Not a rate limit error, re-raise
-            raise
+To sync global commands:
+```
+!sync_commands
 ```
 
-### Enhanced Manual Refresh System
+This command is restricted to bot owners and will sync all slash commands to Discord globally.
 
-For rare cases where issues persist, you can use the Bot Control Panel to manually refresh commands:
+### Guild-Specific Command Syncing
 
-1. Visit the [Bot Control Panel](https://workspace.jonahpantz.repl.co/bot_control)
-2. Click the "Refresh Discord Commands" button
-3. The system will:
-   - Update you with real-time status
-   - Clear all existing commands
-   - Re-sync the latest commands
-   - Confirm when the process completes
+Guild (server) commands are immediately available but only in the specific server where you run the sync command.
 
-## Additional Command Management Tools
+To sync commands to the current server only:
+```
+!sync_guild
+```
 
-The bot also includes several other command management methods:
+This is useful for testing new commands quickly without waiting for global propagation.
 
-1. **Command Refresh Script**: Running `python refresh_commands.py` from the command line
-2. **Command-Line Flag**: Using `python bot.py --sync-commands` 
-3. **Owner-Only Commands**: Server owners can use the following commands in Discord:
-   - `!sync_commands` - Sync all commands globally
-   - `!sync_guild_commands` - Sync commands for the current server only
-   - `!clear_commands` - Clear all commands (Owner confirmation required)
+## Clearing Commands
 
-## Why You Won't See Duplicates Anymore
+If you need to remove all slash commands (for example, to fix duplication issues), you can use:
 
-With these changes, duplicate commands are now automatically prevented because:
+```
+!clear_commands_prefix
+```
 
-1. **Every bot start** begins with a clean slate by clearing all commands
-2. **All refresh methods** properly clear commands before syncing
-3. **Real-time status tracking** confirms successful updates
-4. **Rate limiting protection** prevents Discord API issues
+or the slash command version:
 
-If you ever encounter command issues in the future, simply restart the bot or use the Bot Control Panel's refresh button.
+```
+/clear_commands
+```
 
-## Additional Information
+Both commands will ask for confirmation before proceeding, as this action removes all slash commands from all servers.
 
-- **Rate Limit Protection**: The bot now automatically handles Discord API rate limits:
-  - Attempts to sync commands up to 3 times when rate limited
-  - Waits for the appropriate time between attempts
-  - Will stop after 3 consecutive rate limits to prevent excessive waiting
-  - Provides clear warning logs about rate limiting status
+## Automatic Command Management
 
-- Discord has rate limits that occasionally cause temporary issues with command syncing
-- Command changes may take up to an hour to propagate across all Discord servers
-- New commands are added automatically when new features are implemented in the bot
+The bot includes automated command management:
 
-For more information, refer to [Discord's documentation on application commands](https://discord.com/developers/docs/interactions/application-commands).
+1. **On Startup**: By default, the bot does not automatically sync commands on startup to prevent accidental duplication. The log message "Skipping command sync on startup" indicates this behavior.
+
+2. **Refresh Script**: To completely refresh commands (clear and re-sync), you can run:
+   ```
+   python refresh_commands.py
+   ```
+   This script will clear all existing commands and then re-register them.
+
+3. **Sync Script**: To only sync commands without clearing, run:
+   ```
+   python sync_commands.py
+   ```
+
+## Common Command Issues
+
+### Duplicate Commands
+
+If you see duplicate commands in your server (multiple versions of the same command), this is usually caused by:
+
+1. Having both global and guild-specific versions registered
+2. Syncing commands multiple times with different code versions
+
+To fix duplicates:
+1. Run `!clear_commands_prefix` to remove all commands
+2. Run `!sync_commands` to register a clean set of commands
+
+### Commands Not Appearing
+
+If slash commands don't appear when typing `/`:
+
+1. **Permission Issues**: Ensure the bot has the `applications.commands` scope
+2. **Propagation Delay**: Global commands can take up to an hour to appear
+3. **Cache Issues**: Discord client sometimes needs a restart to see new commands
+4. **Registration Failure**: Check bot logs for any errors during command sync
+
+### Command Errors
+
+If commands appear but return errors when used:
+
+1. **Code Mismatch**: The registered command doesn't match the current code implementation
+2. **Parameter Issues**: The command is being called with incorrect parameters
+3. **Permission Problems**: The bot lacks necessary permissions in the channel
+
+## Maintaining Command Documentation
+
+When adding or modifying commands, remember to update:
+- `BOT_COMMAND_REFERENCE.md`: The main command reference
+- Feature-specific documentation (e.g., `AI_COMMANDS.md` or `MUSIC_COMMANDS.md`)
+
+## Dual Command System
+
+This bot uses a dual command system that supports both slash commands (`/command`) and prefix commands (`!command`). When adding new features:
+
+1. Implement both command versions for maximum compatibility
+2. Use helper methods to avoid code duplication 
+3. Sync slash commands after adding new features
+
+## Monitoring Command Status
+
+To check the current status of command registration, you can:
+
+1. View the slash command menu in Discord
+2. Check the bot's startup logs for command sync information
+3. View the command refresh status file at `data/command_refresh_status.json`
+
+This status file shows the last command sync operation and its result.
