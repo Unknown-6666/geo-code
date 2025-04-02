@@ -33,99 +33,150 @@ class VoiceChat(commands.Cog):
         else:
             logger.warning("Voice Chat cog initialized without Google Cloud credentials")
 
-    @app_commands.command(name="joinvc", description="Join a voice channel")
-    async def join_vc(self, interaction: discord.Interaction):
-        """Join the user's current voice channel"""
+    async def _join_voice_channel(self, ctx, is_interaction=False):
+        """Helper method for joining a voice channel"""
         try:
+            # For prefix command: ctx is a commands.Context
+            # For slash command: ctx is a discord.Interaction
+            user = ctx.author if not is_interaction else ctx.user
+            guild = ctx.guild
+            guild_id = guild.id
+            
             # Check if user is in a voice channel
-            if not interaction.user.voice:
-                await interaction.response.send_message(
-                    embed=create_error_embed("Error", "You need to be in a voice channel first!"),
-                    ephemeral=True
-                )
-                return
+            if not user.voice:
+                message = create_error_embed("Error", "You need to be in a voice channel first!")
+                if is_interaction:
+                    await ctx.response.send_message(embed=message, ephemeral=True)
+                else:
+                    await ctx.send(embed=message)
+                return False
 
-            voice_channel = interaction.user.voice.channel
-            guild_id = interaction.guild_id
+            voice_channel = user.voice.channel
             
             # Check if already connected to a voice channel in this guild
             if guild_id in self.voice_clients and self.voice_clients[guild_id].is_connected():
-                await interaction.response.send_message(
-                    embed=create_embed("Already Connected", "I'm already in a voice channel. Use /leavevc first to disconnect.", color=0xFFA500),
-                    ephemeral=True
-                )
-                return
+                message = create_embed("Already Connected", "I'm already in a voice channel. Use /leavevc or !leavevc first to disconnect.", color=0xFFA500)
+                if is_interaction:
+                    await ctx.response.send_message(embed=message, ephemeral=True)
+                else:
+                    await ctx.send(embed=message)
+                return False
             
             # Connect to the voice channel
             voice_client = await voice_channel.connect()
             self.voice_clients[guild_id] = voice_client
             
-            await interaction.response.send_message(
-                embed=create_embed("Connected", f"Joined voice channel: {voice_channel.name}", color=0x00FF00),
-                ephemeral=True
-            )
-            logger.info(f"Joined voice channel {voice_channel.name} in guild {interaction.guild.name}")
+            message = create_embed("Connected", f"Joined voice channel: {voice_channel.name}", color=0x00FF00)
+            if is_interaction:
+                await ctx.response.send_message(embed=message, ephemeral=True)
+            else:
+                await ctx.send(embed=message)
+                
+            logger.info(f"Joined voice channel {voice_channel.name} in guild {guild.name}")
+            return True
             
         except Exception as e:
             logger.error(f"Error joining voice channel: {str(e)}")
-            await interaction.response.send_message(
-                embed=create_error_embed("Error", f"Failed to join voice channel: {str(e)}"),
-                ephemeral=True
-            )
+            message = create_error_embed("Error", f"Failed to join voice channel: {str(e)}")
+            if is_interaction:
+                if not ctx.response.is_done():
+                    await ctx.response.send_message(embed=message, ephemeral=True)
+                else:
+                    await ctx.followup.send(embed=message, ephemeral=True)
+            else:
+                await ctx.send(embed=message)
+            return False
+            
+    @commands.command(name="joinvc", aliases=["join"])
+    async def join_vc_prefix(self, ctx):
+        """Join the user's current voice channel (prefix command)"""
+        await self._join_voice_channel(ctx, is_interaction=False)
 
-    @app_commands.command(name="leavevc", description="Leave the voice channel")
-    async def leave_vc(self, interaction: discord.Interaction):
-        """Leave the current voice channel"""
+    @app_commands.command(name="joinvc", description="Join a voice channel")
+    async def join_vc(self, interaction: discord.Interaction):
+        """Join the user's current voice channel (slash command)"""
+        await self._join_voice_channel(interaction, is_interaction=True)
+
+    async def _leave_voice_channel(self, ctx, is_interaction=False):
+        """Helper method for leaving a voice channel"""
         try:
-            guild_id = interaction.guild_id
+            # For prefix command: ctx is a commands.Context
+            # For slash command: ctx is a discord.Interaction
+            guild = ctx.guild
+            guild_id = guild.id
             
             if guild_id in self.voice_clients and self.voice_clients[guild_id].is_connected():
                 await self.voice_clients[guild_id].disconnect()
                 del self.voice_clients[guild_id]
-                await interaction.response.send_message(
-                    embed=create_embed("Disconnected", "Left the voice channel", color=0xFF5733),
-                    ephemeral=True
-                )
-                logger.info(f"Left voice channel in guild {interaction.guild.name}")
+                
+                message = create_embed("Disconnected", "Left the voice channel", color=0xFF5733)
+                if is_interaction:
+                    await ctx.response.send_message(embed=message, ephemeral=True)
+                else:
+                    await ctx.send(embed=message)
+                    
+                logger.info(f"Left voice channel in guild {guild.name}")
+                return True
             else:
-                await interaction.response.send_message(
-                    embed=create_error_embed("Not Connected", "I'm not in a voice channel!"),
-                    ephemeral=True
-                )
+                message = create_error_embed("Not Connected", "I'm not in a voice channel!")
+                if is_interaction:
+                    await ctx.response.send_message(embed=message, ephemeral=True)
+                else:
+                    await ctx.send(embed=message)
+                return False
                 
         except Exception as e:
             logger.error(f"Error leaving voice channel: {str(e)}")
-            await interaction.response.send_message(
-                embed=create_error_embed("Error", f"Failed to leave voice channel: {str(e)}"),
-                ephemeral=True
-            )
-
-    @app_commands.command(name="speak", description="Make the bot speak in the voice channel")
-    @app_commands.describe(text="Text for the bot to speak")
-    async def speak(self, interaction: discord.Interaction, *, text: str):
-        """Speak text using Vertex AI TTS in the voice channel"""
-        try:
-            await interaction.response.defer()
+            message = create_error_embed("Error", f"Failed to leave voice channel: {str(e)}")
+            if is_interaction:
+                if not ctx.response.is_done():
+                    await ctx.response.send_message(embed=message, ephemeral=True)
+                else:
+                    await ctx.followup.send(embed=message, ephemeral=True)
+            else:
+                await ctx.send(embed=message)
+            return False
+    
+    @commands.command(name="leavevc", aliases=["leave"])
+    async def leave_vc_prefix(self, ctx):
+        """Leave the voice channel (prefix command)"""
+        await self._leave_voice_channel(ctx, is_interaction=False)
             
-            guild_id = interaction.guild_id
+    @app_commands.command(name="leavevc", description="Leave the voice channel")
+    async def leave_vc(self, interaction: discord.Interaction):
+        """Leave the current voice channel (slash command)"""
+        await self._leave_voice_channel(interaction, is_interaction=True)
+
+    async def _speak_text(self, ctx, text, is_interaction=False):
+        """Helper method for speaking text in voice channel"""
+        try:
+            guild = ctx.guild
+            guild_id = guild.id
+            
+            # Handle response deferring for interactions
+            if is_interaction:
+                await ctx.response.defer()
+            
             if guild_id not in self.voice_clients or not self.voice_clients[guild_id].is_connected():
-                await interaction.followup.send(
-                    embed=create_error_embed("Not Connected", "I need to join a voice channel first! Use /joinvc"),
-                    ephemeral=True
-                )
-                return
+                message = create_error_embed("Not Connected", "I need to join a voice channel first! Use !joinvc or /joinvc")
+                if is_interaction:
+                    await ctx.followup.send(embed=message, ephemeral=True)
+                else:
+                    await ctx.send(embed=message)
+                return False
                 
             voice_client = self.voice_clients[guild_id]
             
-            # Generate TTS audio using Vertex AI
-            audio_content = await self.generate_speech(text)
+            # Generate TTS audio using Vertex AI with guild voice preferences
+            audio_content = await self.generate_speech(text, guild_id)
             
             if not audio_content:
-                await interaction.followup.send(
-                    embed=create_error_embed("TTS Error", "Failed to generate speech"),
-                    ephemeral=True
-                )
-                return
+                message = create_error_embed("TTS Error", "Failed to generate speech")
+                if is_interaction:
+                    await ctx.followup.send(embed=message, ephemeral=True)
+                else:
+                    await ctx.send(embed=message)
+                return False
                 
             # Save audio content to temporary file
             with tempfile.NamedTemporaryFile(suffix='.mp3', delete=False) as temp_file:
@@ -142,19 +193,37 @@ class VoiceChat(commands.Cog):
                 after=lambda e: self.cleanup_temp_file(temp_path, e)
             )
             
-            await interaction.followup.send(
-                embed=create_embed("Speaking", f"Speaking: {text[:100]}{'...' if len(text) > 100 else ''}", color=0x00FFFF)
-            )
-            logger.info(f"Speaking TTS message in {interaction.guild.name}")
+            message = create_embed("Speaking", f"Speaking: {text[:100]}{'...' if len(text) > 100 else ''}", color=0x00FFFF)
+            if is_interaction:
+                await ctx.followup.send(embed=message)
+            else:
+                await ctx.send(embed=message)
+                
+            logger.info(f"Speaking TTS message in {guild.name}")
+            return True
             
         except Exception as e:
             logger.error(f"Error in speak command: {str(e)}")
-            await interaction.followup.send(
-                embed=create_error_embed("Error", f"Failed to speak: {str(e)}"),
-                ephemeral=True
-            )
+            message = create_error_embed("Error", f"Failed to speak: {str(e)}")
+            
+            if is_interaction:
+                await ctx.followup.send(embed=message, ephemeral=True)
+            else:
+                await ctx.send(embed=message)
+            return False
+            
+    @commands.command(name="speak", aliases=["say", "tts"])
+    async def speak_prefix(self, ctx, *, text: str):
+        """Make the bot speak text in the voice channel (prefix command)"""
+        await self._speak_text(ctx, text, is_interaction=False)
+            
+    @app_commands.command(name="speak", description="Make the bot speak in the voice channel")
+    @app_commands.describe(text="Text for the bot to speak")
+    async def speak(self, interaction: discord.Interaction, *, text: str):
+        """Speak text using Vertex AI TTS in the voice channel (slash command)"""
+        await self._speak_text(interaction, text, is_interaction=True)
 
-    async def generate_speech(self, text):
+    async def generate_speech(self, text, guild_id=None):
         """Generate speech using Google Cloud Text-to-Speech API"""
         try:
             # Import here to avoid errors if the library isn't installed
@@ -166,12 +235,41 @@ class VoiceChat(commands.Cog):
             # Set up the voice parameters
             synthesis_input = texttospeech.SynthesisInput(text=text)
             
+            # Default voice
+            voice_name = "en-US-Neural2-J"  # Default to high quality male voice
+            gender = texttospeech.SsmlVoiceGender.MALE
+            language_code = "en-US"
+            
+            # Check if there's a custom voice config for this guild
+            if guild_id:
+                voice_config_path = f"voice_config_{guild_id}.json"
+                try:
+                    if os.path.exists(voice_config_path):
+                        with open(voice_config_path, 'r') as f:
+                            config = json.load(f)
+                            if "voice_name" in config:
+                                voice_name = config["voice_name"]
+                                
+                                # Set appropriate gender based on voice name
+                                if "female" in voice_name.lower() or voice_name.endswith("-F") or voice_name.endswith("-C"):
+                                    gender = texttospeech.SsmlVoiceGender.FEMALE
+                                
+                                # Set language code based on voice name
+                                if voice_name.startswith("en-GB"):
+                                    language_code = "en-GB"
+                                elif voice_name.startswith("en-US"):
+                                    language_code = "en-US"
+                                
+                                logger.debug(f"Using custom voice: {voice_name}")
+                except Exception as e:
+                    logger.error(f"Error loading voice config: {str(e)}")
+            
             # Note: Voice names are available here:
             # https://cloud.google.com/text-to-speech/docs/voices
             voice = texttospeech.VoiceSelectionParams(
-                language_code="en-US",
-                name="en-US-Neural2-J",  # High quality male voice
-                ssml_gender=texttospeech.SsmlVoiceGender.MALE
+                language_code=language_code,
+                name=voice_name,
+                ssml_gender=gender
             )
             
             # Select the audio file format
@@ -194,7 +292,7 @@ class VoiceChat(commands.Cog):
             
         except ImportError:
             logger.error("Google Cloud Text-to-Speech library not installed")
-            await self.fallback_tts(text)
+            return await self.fallback_tts(text)
         except Exception as e:
             logger.error(f"Error generating speech: {str(e)}")
             return None
@@ -225,29 +323,33 @@ class VoiceChat(commands.Cog):
         except Exception as e:
             logger.error(f"Error cleaning up temp file: {str(e)}")
 
-    @app_commands.command(name="speakai", description="Get AI response and speak it in voice channel")
-    @app_commands.describe(question="Question or prompt for the AI")
-    async def speak_ai(self, interaction: discord.Interaction, *, question: str):
-        """Ask the AI a question and have it respond in voice"""
+    async def _speak_ai_response(self, ctx, question, is_interaction=False):
+        """Helper method for getting AI response and speaking it"""
         try:
-            await interaction.response.defer()
+            guild = ctx.guild
+            guild_id = guild.id
             
-            guild_id = interaction.guild_id
+            # Handle response deferring for interactions
+            if is_interaction:
+                await ctx.response.defer()
+            
             if guild_id not in self.voice_clients or not self.voice_clients[guild_id].is_connected():
-                await interaction.followup.send(
-                    embed=create_error_embed("Not Connected", "I need to join a voice channel first! Use /joinvc"),
-                    ephemeral=True
-                )
-                return
+                message = create_error_embed("Not Connected", "I need to join a voice channel first! Use !joinvc or /joinvc")
+                if is_interaction:
+                    await ctx.followup.send(embed=message, ephemeral=True)
+                else:
+                    await ctx.send(embed=message)
+                return False
             
             # Find the AI Chat cog to use its AI response functionality
             ai_cog = self.bot.get_cog("AIChat")
             if not ai_cog:
-                await interaction.followup.send(
-                    embed=create_error_embed("Error", "AI Chat functionality is not available"),
-                    ephemeral=True
-                )
-                return
+                message = create_error_embed("Error", "AI Chat functionality is not available")
+                if is_interaction:
+                    await ctx.followup.send(embed=message, ephemeral=True)
+                else:
+                    await ctx.send(embed=message)
+                return False
                 
             # Get AI response using the existing AI logic
             logger.info(f"Getting AI response for voice: {question}")
@@ -258,29 +360,32 @@ class VoiceChat(commands.Cog):
                 response = await ai_cog.get_google_ai_response(question, system_prompt)
             else:
                 # Fallback to direct AI response
-                await interaction.followup.send(
-                    embed=create_error_embed("AI Error", "AI response generation method not available"),
-                    ephemeral=True
-                )
-                return
+                message = create_error_embed("AI Error", "AI response generation method not available")
+                if is_interaction:
+                    await ctx.followup.send(embed=message, ephemeral=True)
+                else:
+                    await ctx.send(embed=message)
+                return False
             
             if not response:
-                await interaction.followup.send(
-                    embed=create_error_embed("AI Error", "Couldn't generate an AI response"),
-                    ephemeral=True
-                )
-                return
+                message = create_error_embed("AI Error", "Couldn't generate an AI response")
+                if is_interaction:
+                    await ctx.followup.send(embed=message, ephemeral=True)
+                else:
+                    await ctx.send(embed=message)
+                return False
                 
-            # Generate TTS for the AI response
+            # Generate TTS for the AI response with guild voice preferences
             voice_client = self.voice_clients[guild_id]
-            audio_content = await self.generate_speech(response)
+            audio_content = await self.generate_speech(response, guild_id)
             
             if not audio_content:
-                await interaction.followup.send(
-                    embed=create_error_embed("TTS Error", "Failed to generate speech for AI response"),
-                    ephemeral=True
-                )
-                return
+                message = create_error_embed("TTS Error", "Failed to generate speech for AI response")
+                if is_interaction:
+                    await ctx.followup.send(embed=message, ephemeral=True)
+                else:
+                    await ctx.send(embed=message)
+                return False
                 
             # Stop any currently playing audio
             if voice_client.is_playing():
@@ -304,16 +409,104 @@ class VoiceChat(commands.Cog):
             )
             embed.add_field(name="Your Question", value=question)
             
-            await interaction.followup.send(embed=embed)
-            logger.info(f"Speaking AI response in {interaction.guild.name}")
+            if is_interaction:
+                await ctx.followup.send(embed=embed)
+            else:
+                await ctx.send(embed=embed)
+                
+            logger.info(f"Speaking AI response in {guild.name}")
+            return True
             
         except Exception as e:
             logger.error(f"Error in speak_ai command: {str(e)}")
-            await interaction.followup.send(
-                embed=create_error_embed("Error", f"Failed to get or speak AI response: {str(e)}"),
-                ephemeral=True
-            )
+            message = create_error_embed("Error", f"Failed to get or speak AI response: {str(e)}")
+            if is_interaction:
+                await ctx.followup.send(embed=message, ephemeral=True)
+            else:
+                await ctx.send(embed=message)
+            return False
+    
+    @commands.command(name="speakai", aliases=["askai", "askvoice"])
+    async def speak_ai_prefix(self, ctx, *, question: str):
+        """Ask the AI a question and have it respond in voice (prefix command)"""
+        await self._speak_ai_response(ctx, question, is_interaction=False)
+            
+    @app_commands.command(name="speakai", description="Get AI response and speak it in voice channel")
+    @app_commands.describe(question="Question or prompt for the AI")
+    async def speak_ai(self, interaction: discord.Interaction, *, question: str):
+        """Ask the AI a question and have it respond in voice (slash command)"""
+        await self._speak_ai_response(interaction, question, is_interaction=True)
 
+    # List of available voice choices
+    VOICE_CHOICES = {
+        "male": "en-US-Neural2-J",     # Default male
+        "female": "en-US-Neural2-F",   # Default female
+        "deep": "en-US-Neural2-D",     # Deep male
+        "soft": "en-US-Wavenet-F",     # Soft female
+        "british-male": "en-GB-Neural2-B", # British male
+        "british-female": "en-GB-Neural2-C" # British female
+    }
+    
+    @commands.command(name="voicestyle", aliases=["voice"])
+    async def voice_style_prefix(self, ctx, style: str = None):
+        """Change the bot's voice style (prefix command)
+        
+        Available styles: male, female, deep, soft, british-male, british-female
+        Example: !voicestyle female
+        """
+        if not style:
+            # Show available styles
+            styles_list = "\n".join([f"• `{name}`: {desc}" for name, desc in {
+                "male": "Default male voice",
+                "female": "Default female voice",
+                "deep": "Deep male voice",
+                "soft": "Soft female voice",
+                "british-male": "British male accent",
+                "british-female": "British female accent"
+            }.items()])
+            
+            embed = create_embed(
+                "Available Voice Styles",
+                f"Use `!voicestyle <style>` to change the voice.\n\n{styles_list}",
+                color=0x00FFFF
+            )
+            await ctx.send(embed=embed)
+            return
+            
+        style = style.lower()
+        if style not in self.VOICE_CHOICES:
+            await ctx.send(
+                embed=create_error_embed(
+                    "Invalid Style", 
+                    f"'{style}' is not a valid voice style. Use `!voicestyle` to see options."
+                )
+            )
+            return
+            
+        voice_name = self.VOICE_CHOICES[style]
+        
+        try:
+            # Create a file to store the voice preference
+            voice_config_path = f"voice_config_{ctx.guild.id}.json"
+            
+            config = {
+                "voice_name": voice_name
+            }
+            
+            with open(voice_config_path, 'w') as f:
+                json.dump(config, f)
+                
+            await ctx.send(
+                embed=create_embed("Voice Updated", f"Bot voice style changed to: {style}", color=0x00FF00)
+            )
+            logger.info(f"Changed voice style to {voice_name} in guild {ctx.guild.name}")
+            
+        except Exception as e:
+            logger.error(f"Error changing voice style: {str(e)}")
+            await ctx.send(
+                embed=create_error_embed("Error", f"Failed to change voice style: {str(e)}")
+            )
+    
     @app_commands.command(
         name="voicestyle", 
         description="Change the bot's voice style"
@@ -327,7 +520,7 @@ class VoiceChat(commands.Cog):
         app_commands.Choice(name="British Female", value="en-GB-Neural2-C")
     ])
     async def voice_style(self, interaction: discord.Interaction, voice: str):
-        """Change the bot's voice style"""
+        """Change the bot's voice style (slash command)"""
         try:
             # Create a file to store the voice preference
             voice_config_path = f"voice_config_{interaction.guild_id}.json"
