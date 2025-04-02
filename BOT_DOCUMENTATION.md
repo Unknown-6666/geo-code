@@ -77,3 +77,49 @@ If the bot needs a restart:
    - `python bot.py` - Runs only the Discord bot
 
 For more details on specific features, refer to the code documentation in each file.
+
+## AI Integration
+
+The bot supports multiple AI providers to power its intelligence, with a flexible fallback system.
+
+### AI Provider Hierarchy
+
+The bot uses the following AI providers in order of preference (configurable):
+
+1. **Google Vertex AI** - Enterprise-grade AI from Google Cloud (requires API credentials)
+2. **Google Gemini AI** - Google's Gemini model via direct API integration (requires API key)
+3. **G4F Providers** - Fallback free providers when other options are unavailable
+
+### Configuring Vertex AI
+
+To enable Vertex AI integration:
+
+1. Create a Google Cloud project and enable Vertex AI API
+2. Create a service account with Vertex AI permissions
+3. Download the service account key JSON file
+4. Configure the following environment variables in Replit:
+   - `GOOGLE_CREDENTIALS` - The full JSON content of your service account key
+   - `GOOGLE_CLOUD_PROJECT` - Your Google Cloud project ID
+   - `VERTEX_LOCATION` - Region for Vertex AI (e.g., us-central1)
+   - `USE_VERTEX_AI` - Set to 'true' to enable Vertex AI
+   - `VERTEX_AI_PRIORITY` - Priority level (1 = highest, 2 = second, 3 = lowest)
+
+You can verify your Vertex AI setup by running the test script:
+```
+python test_vertex_auth.py
+```
+
+### Configuring Gemini AI
+
+To use Google's Gemini AI:
+
+1. Obtain a Gemini API key from [Google AI Studio](https://ai.google.dev/)
+2. Add the key to Replit Secrets as `GOOGLE_API`
+
+### AI Conversation History
+
+The bot maintains conversation history for each user, allowing for contextual conversations. The history is stored in the PostgreSQL database and is used by both Vertex AI and Gemini models when appropriate.
+
+### Custom AI Responses
+
+The bot supports custom responses for specific patterns, configurable through the `/custom_response` command (admin only).
