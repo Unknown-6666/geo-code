@@ -52,7 +52,7 @@ class AIChat(commands.Cog):
         for attempt in range(max_retries):
             try:
                 # Gemini API endpoint for text generation - using one of the available 1.5 models
-                url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key={GOOGLE_API_KEY}"
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro-latest:generateContent?key={GOOGLE_API_KEY}"
                 
                 # Prepare conversation history for context if user_id is provided and include_history is True
                 history_contents = []

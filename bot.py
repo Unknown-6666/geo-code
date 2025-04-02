@@ -44,7 +44,8 @@ class Bot(commands.Bot):
                 "cogs.profanity_filter",
                 "cogs.rules_enforcer",  # Rules enforcement cog
                 "cogs.verification",    # Added new server verification cog
-                "cogs.ai_chat"          # AI Chat cog
+                "cogs.ai_chat",         # AI Chat cog
+                "cogs.voice_chat"       # Voice Chat with TTS cog
             ]
             
             for cog in cogs:
@@ -201,7 +202,8 @@ async def sync_commands_only():
             "cogs.profanity_filter",
             "cogs.rules_enforcer",
             "cogs.verification",
-            "cogs.ai_chat"
+            "cogs.ai_chat",
+            "cogs.voice_chat"
         ]
         
         # Load each cog with error handling
