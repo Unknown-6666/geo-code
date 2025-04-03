@@ -42,7 +42,6 @@ def install_dependencies():
         "pynacl>=1.5.0",
         "g4f>=0.4.8.6",
         "psutil>=7.0.0",
-        "google-cloud-aiplatform",
         "gtts",
         "speechrecognition"
     ]

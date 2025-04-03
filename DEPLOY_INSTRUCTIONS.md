@@ -40,6 +40,10 @@ If you encounter issues:
    - Try running the sync commands script manually with `python sync_commands.py`
    - Check the database status from the dashboard
    - Restart the deployment
+4. If you're having dependency resolution issues:
+   - See the `DEPLOYMENT_FIX.md` file for information about optional dependencies
+   - The `google-cloud-aiplatform` package is now optional and not included in default requirements
+   - The bot will automatically use g4f fallback for AI responses
 
 ## Deployment Configuration
 
