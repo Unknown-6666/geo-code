@@ -157,12 +157,46 @@ class Bot(commands.Bot):
 def init_db():
     """Initialize database tables"""
     from dashboard.app import app
-    from models.economy import initialize_shop
+    from models.economy import initialize_shop, UserEconomy, Item, Inventory, Transaction
     from models.conversation import Conversation  # Import Conversation model
+    
+    # Add enhanced economy debugging
+    debug_logger = logging.getLogger('economy_debug')
+    debug_logger.info("Initializing database and economy system...")
+    
     with app.app_context():
+        # Create all tables
         db.create_all()
-        initialize_shop()  # Initialize shop items
+        
+        # Verify economy tables exist
+        debug_logger.info("Verifying economy tables...")
+        
+        # Check UserEconomy table
+        try:
+            user_count = UserEconomy.query.count()
+            debug_logger.info(f"UserEconomy table verified: Contains {user_count} records")
+        except Exception as e:
+            debug_logger.error(f"Error verifying UserEconomy table: {e}")
+            
+        # Check Item table
+        try:
+            item_count = Item.query.count()
+            debug_logger.info(f"Item table verified: Contains {item_count} records")
+        except Exception as e:
+            debug_logger.error(f"Error verifying Item table: {e}")
+        
+        # Initialize shop items
+        initialize_shop()
+        
         logger.info("Database tables and shop items created successfully")
+        
+    # Print environment info for debugging
+    debug_logger.info(f"Discord token length: {len(os.environ.get('DISCORD_TOKEN', ''))}")
+    debug_logger.info(f"Database URL available: {'yes' if os.environ.get('DATABASE_URL') else 'no'}")
+    
+    # Force SYNC_COMMANDS_ON_STARTUP to true
+    debug_logger.info("Setting SYNC_COMMANDS_ON_STARTUP=true to ensure economy commands are registered")
+    os.environ['SYNC_COMMANDS_ON_STARTUP'] = 'true'
 
 async def main():
     """Main function to run the bot"""

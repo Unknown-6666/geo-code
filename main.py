@@ -6,8 +6,16 @@ import logging
 import signal
 
 # Set up logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG, 
+                   format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger('main')
+
+# Set up enhanced debug logger for economy troubleshooting
+debug_logger = logging.getLogger('economy_debug')
+debug_logger.setLevel(logging.DEBUG)
+handler = logging.StreamHandler()
+handler.setFormatter(logging.Formatter('ECONOMY DEBUG - %(message)s'))
+debug_logger.addHandler(handler)
 
 # Import the Flask app - this is needed for Gunicorn
 from dashboard.app import app

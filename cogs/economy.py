@@ -1,6 +1,7 @@
 import discord
 import logging
 import random
+import traceback
 from discord import app_commands
 from discord.ext import commands
 from datetime import datetime, timedelta
@@ -10,6 +11,13 @@ from database import db
 from typing import Literal
 
 logger = logging.getLogger('discord')
+
+# Set up enhanced logging for economy debugging
+debug_logger = logging.getLogger('economy_debug')
+debug_logger.setLevel(logging.DEBUG)
+handler = logging.StreamHandler()
+handler.setFormatter(logging.Formatter('ECONOMY DEBUG - %(message)s'))
+debug_logger.addHandler(handler)
 
 class Economy(commands.Cog):
     def __init__(self, bot):
@@ -1010,4 +1018,34 @@ class Economy(commands.Cog):
                 await interaction.followup.send(f"An error occurred: {str(e)}", ephemeral=True)
 
 async def setup(bot):
-    await bot.add_cog(Economy(bot))
+    try:
+        # Add detailed logging for setup process
+        debug_logger.info("Starting Economy cog setup...")
+        
+        # Register economy commands in app_commands
+        debug_logger.info("Creating Economy cog instance...")
+        economy_cog = Economy(bot)
+        
+        debug_logger.info("Adding Economy cog to bot...")
+        await bot.add_cog(economy_cog)
+        
+        # Verify slash commands are registered
+        debug_logger.info("Checking registered commands...")
+        all_commands = bot.tree.get_commands()
+        command_names = [cmd.name for cmd in all_commands]
+        debug_logger.info(f"Registered global commands: {', '.join(command_names)}")
+        
+        # Check if economy commands are registered
+        economy_commands = ['balance', 'daily', 'work', 'deposit', 'withdraw', 'rob', 'shop', 'buy', 'inventory']
+        missing_commands = [cmd for cmd in economy_commands if cmd not in command_names]
+        
+        if missing_commands:
+            debug_logger.warning(f"Missing economy commands in global tree: {', '.join(missing_commands)}")
+        else:
+            debug_logger.info("All economy commands registered successfully")
+            
+        debug_logger.info("Economy cog setup complete")
+    except Exception as e:
+        debug_logger.error(f"Error in Economy cog setup: {e}")
+        debug_logger.error(f"Traceback: {traceback.format_exc()}")
+        raise
