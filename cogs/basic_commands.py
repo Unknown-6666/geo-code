@@ -37,10 +37,11 @@ class BasicCommands(commands.Cog):
         """Slash command version of help"""
         embed = discord.Embed(
             title="Bot Help",
-            description="Here are all available commands:",
+            description="Here are all available slash commands:",
             color=COLORS["PRIMARY"]
         )
 
+        # Basic Commands
         embed.add_field(
             name="Basic Commands",
             value="""
@@ -52,6 +53,47 @@ class BasicCommands(commands.Cog):
             inline=False
         )
 
+        # Admin Commands
+        if is_bot_owner(interaction.user.id):
+            embed.add_field(
+                name="Admin Commands",
+                value="""
+                `/clear_commands` - Clear all slash commands (Bot Owner Only)
+                """,
+                inline=False
+            )
+        
+        # AI Chat Commands
+        embed.add_field(
+            name="AI Chat Commands",
+            value="""
+            `/ask [question]` - Ask the AI a one-time question
+            `/chat [message]` - Have a casual conversation with the AI (with memory)
+            `/clear_chat_history` - Clear your conversation history with the AI
+            `/show_chat_history` - Show your recent conversation history with the AI
+            """,
+            inline=False
+        )
+
+        # Economy Commands
+        embed.add_field(
+            name="Economy Commands",
+            value="""
+            `/balance` - Check your wallet and bank balance
+            `/daily` - Collect daily rewards
+            `/work` - Work to earn coins
+            `/deposit [amount]` - Deposit money into your bank
+            `/withdraw [amount]` - Withdraw money from your bank
+            `/coinflip [amount] [choice]` - Gamble coins on a coin flip
+            `/slots [amount]` - Play the slot machine
+            `/shop` - View available items in the shop
+            `/buy [item_name]` - Buy an item from the shop
+            `/inventory` - View your inventory
+            """,
+            inline=False
+        )
+
+        # YouTube Commands
         embed.add_field(
             name="YouTube Commands",
             value="""
@@ -60,21 +102,50 @@ class BasicCommands(commands.Cog):
             inline=False
         )
 
+        # Music Commands
         embed.add_field(
             name="Music Commands",
             value="""
             `/play [query]` - Play a song from YouTube
+            `/pause` - Pause the current song
+            `/resume` - Resume the paused song
+            `/skip` - Skip to the next song
+            `/queue` - Show the current music queue
             `/stop` - Stop playing and clear queue
-            `/skip` - Skip current song
-            `/queue` - Show current queue
+            `/now_playing` - Show the current song
             `/volume [0-100]` - Set volume
             `/join` - Join voice channel
             `/leave` - Leave voice channel
             """,
             inline=False
         )
+        
+        # Moderation Commands
+        embed.add_field(
+            name="Moderation Commands",
+            value="""
+            `/kick [user] [reason]` - Kick a member from the server
+            `/ban [user] [reason]` - Ban a member from the server
+            `/unban [username#tag]` - Unban a member from the server
+            `/mute [user] [duration] [reason]` - Mute a member
+            `/unmute [user]` - Unmute a member
+            `/clear [amount]` - Clear messages from a channel
+            `/slowmode [seconds]` - Set slowmode in a channel
+            """,
+            inline=False
+        )
+        
+        # Meme Commands
+        embed.add_field(
+            name="Meme Commands",
+            value="""
+            `/meme` - Get a random meme
+            `/memedump [count]` - Get multiple random memes at once
+            """,
+            inline=False
+        )
 
-        embed.set_footer(text="Use / for commands")
+        embed.set_footer(text="Use / for slash commands or !help to see prefix commands")
         await interaction.response.send_message(embed=embed)
 
     @commands.command(name="info")
@@ -138,10 +209,11 @@ class BasicCommands(commands.Cog):
         """Helper method for help command"""
         embed = discord.Embed(
             title="Bot Help",
-            description="Here are all available commands:",
+            description="Here are all available commands (prefix version):",
             color=COLORS["PRIMARY"]
         )
 
+        # Basic Commands
         embed.add_field(
             name="Basic Commands",
             value="""
@@ -152,8 +224,89 @@ class BasicCommands(commands.Cog):
             """,
             inline=False
         )
+        
+        # Admin Commands (for bot owners)
+        embed.add_field(
+            name="Admin Commands",
+            value="""
+            `!sync` - Sync slash commands across all servers (Bot Owner Only)
+            `!sync_guild` - Sync slash commands for the current server only (Bot Owner Only)
+            `!clear_commands` - Clear all slash commands from all servers (Bot Owner Only)
+            """,
+            inline=False
+        )
+        
+        # AI Chat Commands
+        embed.add_field(
+            name="AI Chat Commands",
+            value="""
+            `!ask [question]` - Ask the AI a one-time question
+            `!chat [message]` - Have a casual conversation with the AI (with memory)
+            `!clear_history` - Clear your conversation history with the AI
+            `!history` - Show your recent conversation history with the AI
+            """,
+            inline=False
+        )
+        
+        # Economy Commands
+        embed.add_field(
+            name="Economy Commands",
+            value="""
+            `!balance` - Check your wallet and bank balance
+            `!daily` - Collect daily rewards
+            `!work` - Work to earn coins
+            `!deposit [amount]` - Deposit money into your bank
+            `!withdraw [amount]` - Withdraw money from your bank
+            `!shop` - View available items in the shop
+            `!buy [item_name]` - Buy an item from the shop
+            `!inventory` - View your inventory
+            """,
+            inline=False
+        )
+        
+        # Music Commands
+        embed.add_field(
+            name="Music Commands",
+            value="""
+            `!play [query]` - Play a song from YouTube
+            `!pause` - Pause the current song
+            `!resume` - Resume the paused song
+            `!skip` - Skip to the next song
+            `!queue` - Show the current music queue
+            `!stop` - Stop playing and clear the queue
+            `!leave` - Disconnect the bot from voice channel
+            `!volume [1-100]` - Adjust the volume
+            `!now` - Show the currently playing song
+            """,
+            inline=False
+        )
+        
+        # Moderation Commands
+        embed.add_field(
+            name="Moderation Commands",
+            value="""
+            `!kick [@user] [reason]` - Kick a member from the server
+            `!ban [@user] [reason]` - Ban a member from the server
+            `!unban [user#1234]` - Unban a member from the server
+            `!mute [@user] [duration] [reason]` - Mute a member
+            `!unmute [@user]` - Unmute a member
+            `!clear [amount]` - Clear a number of messages from a channel
+            `!slowmode [seconds]` - Set slowmode in a channel
+            """,
+            inline=False
+        )
+        
+        # Meme Commands
+        embed.add_field(
+            name="Meme Commands",
+            value="""
+            `!meme` - Get a random meme
+            `!memedump [count]` - Get multiple random memes at once
+            """,
+            inline=False
+        )
 
-        embed.set_footer(text="Use ! prefix or / for commands")
+        embed.set_footer(text="Type '!help' to see this message again or use / for slash commands")
         await ctx.send(embed=embed)
 
     async def _show_server_info(self, ctx):
