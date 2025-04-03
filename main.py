@@ -4,18 +4,27 @@ import threading
 import importlib
 import logging
 import signal
+import traceback
 
 # Set up logging
-logging.basicConfig(level=logging.DEBUG, 
+logging.basicConfig(level=logging.INFO, 
                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger('main')
 
 # Set up enhanced debug logger for economy troubleshooting
 debug_logger = logging.getLogger('economy_debug')
-debug_logger.setLevel(logging.DEBUG)
+debug_logger.setLevel(logging.INFO)
 handler = logging.StreamHandler()
 handler.setFormatter(logging.Formatter('ECONOMY DEBUG - %(message)s'))
 debug_logger.addHandler(handler)
+
+# Configure other loggers to reduce noise
+logging.getLogger('discord').setLevel(logging.WARNING)
+logging.getLogger('discord.http').setLevel(logging.WARNING)
+logging.getLogger('discord.gateway').setLevel(logging.WARNING)
+logging.getLogger('werkzeug').setLevel(logging.WARNING)
+logging.getLogger('urllib3').setLevel(logging.WARNING)
+logging.getLogger('google.auth').setLevel(logging.WARNING)
 
 # Import the Flask app - this is needed for Gunicorn
 from dashboard.app import app
@@ -39,6 +48,18 @@ def run_discord_bot():
             f.write(str(os.getpid()))
             logger.info(f"Created main application lock file with PID {os.getpid()}")
         
+        # Check if DISCORD_TOKEN is available
+        if not os.environ.get('DISCORD_TOKEN'):
+            logger.error("DISCORD_TOKEN environment variable is not set!")
+            logger.error("Please make sure your Discord token is properly configured in the Secrets")
+            return
+            
+        # Check if we need to set up a fallback API for AI
+        if not os.environ.get('GOOGLE_AI_API_KEY'):
+            logger.warning("GOOGLE_AI_API_KEY not found. Using g4f fallback for AI responses.")
+            # Set a flag to use fallback mode
+            os.environ['USE_AI_FALLBACK'] = 'true'
+        
         # Set environment variable to disable command syncing on startup
         # This can be changed to 'true' when you want to sync commands
         os.environ['SYNC_COMMANDS_ON_STARTUP'] = 'false'
@@ -46,16 +67,25 @@ def run_discord_bot():
         # No need for deployment flags anymore - the bot now clears commands
         # on every startup to prevent duplication issues
                 
-        # Run the bot
-        asyncio.run(bot.main())
+        # Run the bot with better error handling
+        try:
+            asyncio.run(bot.main())
+        except KeyboardInterrupt:
+            logger.info("Bot interrupted by user")
+        except Exception as e:
+            logger.error(f"Error in bot.main(): {e}")
+            logger.error(traceback.format_exc())
     except Exception as e:
         logger.error(f"Error in Discord bot thread: {e}")
-        # Clean up lock file on error
-        try:
-            if os.path.exists(".main_discord_bot.lock"):
-                os.remove(".main_discord_bot.lock")
-        except:
-            pass
+        logger.error(traceback.format_exc())
+    
+    # Clean up lock file on exit (either success or error)
+    try:
+        if os.path.exists(".main_discord_bot.lock"):
+            os.remove(".main_discord_bot.lock")
+            logger.info("Removed bot lock file")
+    except Exception as cleanup_error:
+        logger.error(f"Error cleaning up lock file: {cleanup_error}")
 
 def signal_handler(sig, frame):
     """Handle termination signals gracefully"""
@@ -145,6 +175,7 @@ def main():
     # Run just the Discord bot
     elif args.mode == "bot":
         logger.info("Starting Discord bot only...")
+        import asyncio
         asyncio.run(bot.main())
     
     # Run just the web dashboard

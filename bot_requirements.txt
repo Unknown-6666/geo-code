@@ -18,6 +18,6 @@ yt-dlp>=2025.2.19
 pynacl>=1.5.0
 g4f>=0.4.8.6
 psutil>=7.0.0
-google-cloud-aiplatform
+google-cloud-aiplatform<1.38.0
 gtts
 speechrecognition

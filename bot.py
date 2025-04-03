@@ -201,9 +201,33 @@ def init_db():
 async def main():
     """Main function to run the bot"""
     logger.info("Starting bot...")
-    init_db()  # Initialize database tables
-    async with Bot() as bot:
-        await bot.start(TOKEN)
+    
+    # Validate that the token exists before attempting to start the bot
+    if not TOKEN:
+        logger.error("No Discord token found in environment variables")
+        logger.error("The bot cannot start without a valid token")
+        logger.error("Please set the DISCORD_TOKEN environment variable and restart")
+        return
+    
+    # Initialize database tables
+    try:
+        init_db()
+    except Exception as db_error:
+        logger.error(f"Database initialization failed: {str(db_error)}")
+        logger.error("Attempting to continue despite database error")
+    
+    try:
+        async with Bot() as bot:
+            await bot.start(TOKEN)
+    except discord.LoginFailure:
+        logger.error("Invalid Discord token. Please check your DISCORD_TOKEN environment variable.")
+    except discord.HTTPException as e:
+        logger.error(f"HTTP error connecting to Discord: {str(e)}")
+        logger.error("This could be a temporary network issue, try again later.")
+    except Exception as e:
+        logger.error(f"Critical error starting the bot: {str(e)}")
+        import traceback
+        logger.error(traceback.format_exc())
 
 async def sync_commands_only():
     """Function to only sync commands without starting the full bot"""
