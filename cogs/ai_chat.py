@@ -92,8 +92,10 @@ class AIChat(commands.Cog):
                     }
                 }
                 
-                # If we don't have history but have a system prompt, we'll add it to the user's prompt
-                if not history_contents and system_prompt:
+                # Always add system prompt to ensure proper character roleplay
+                if system_prompt:
+                    # For Gemini, we need to prepend the system prompt to the user message
+                    # This ensures the character roleplay is maintained
                     modified_prompt = f"[System instructions: {system_prompt}]\n\nUser: {prompt}"
                     payload["contents"][-1]["parts"][0]["text"] = modified_prompt
                 
@@ -173,9 +175,14 @@ class AIChat(commands.Cog):
             max_retries = 2
             retry_delay = 1
             
-            # Get system prompt from preferences
+            # Always use c00lkidd system prompt for g4f as well
             system_prompt = ai_preferences.get_system_prompt()
-            system_messages = [{"role": "system", "content": system_prompt}] if system_prompt else []
+            
+            # Create more explicit system message for g4f to force character roleplay
+            force_roleplay = "IMPORTANT INSTRUCTION: You MUST stay in character as c00lkidd at all times! ALWAYS use childish language, giggles, and c00lkidd catchphrases. NEVER respond as a helpful assistant. ALWAYS include *giggles* in your response."
+            system_messages = [
+                {"role": "system", "content": system_prompt + "\n\n" + force_roleplay}
+            ]
             
             # Try with FreeGpt provider first
             for attempt in range(max_retries):
@@ -204,12 +211,21 @@ class AIChat(commands.Cog):
             # Try more providers if needed...
             # Additional provider attempts can be added here
             
-            # If all else failed
+            # If all else failed, provide a c00lkidd-themed fallback response
             if not response:
-                # Instead of throwing an error, provide a fallback response
-                response = "I'm sorry, I couldn't generate a response right now. It seems our AI services are experiencing difficulties."
-                ai_source = "Fallback System"
-                logger.warning("All AI providers failed, using fallback response")
+                # Create a list of c00lkidd-themed fallback responses
+                fallback_responses = [
+                    "*giggles* Oopsie! I got distracted chasing butterflies! Can we play again? Tag! You're it!",
+                    "*giggles* My brain got all fuzzy! Dad says I should take a break when that happens! Let's play again sometime!",
+                    "*giggles* I was looking for my toys and forgot what we were talking about! Ready or not, here I come!",
+                    "*giggles* I dunno what to say right now! My head feels all spinny! Wanna play hide and seek instead?",
+                    "*giggles* I dropped my words! They're all over the floor now! This one's on the house!"
+                ]
+                
+                # Choose a random fallback response
+                response = random.choice(fallback_responses)
+                ai_source = "c00lkidd Fallback"
+                logger.warning("All AI providers failed, using c00lkidd fallback response")
                 
         return response, ai_source
     
@@ -242,10 +258,13 @@ class AIChat(commands.Cog):
                 embed.set_footer(text=f"*giggles* Hahaha! Let's play again sometime!")
                 await ctx.send(embed=embed)
             else:
-                embed = create_error_embed(
-                    "Error",
-                    "Sorry, I couldn't generate a response. Please try again later."
+                # c00lkidd-themed error message
+                embed = create_embed(
+                    "💬 c00lkidd",
+                    "*giggles* Oopsie! I got distracted and dropped my words! Can we play again? Tag! You're it!",
+                    color=0xFF3333  # Red color for c00lkidd
                 )
+                embed.set_footer(text=f"*giggles* Hahaha! Let's try again!")
                 await ctx.send(embed=embed)
     
     @app_commands.command(name="ask", description="Ask the AI a question")
@@ -330,10 +349,13 @@ class AIChat(commands.Cog):
                 embed.set_footer(text=f"*giggles* I'm it, I'm it, I'M IT!")
                 await ctx.send(embed=embed)
             else:
-                embed = create_error_embed(
-                    "Error",
-                    "Sorry, I couldn't generate a response. Please try again later."
+                # c00lkidd-themed error message
+                embed = create_embed(
+                    "💬 c00lkidd",
+                    "*giggles* I lost my train of thought! Silly me! Wanna play again? I love playing games with my friends!",
+                    color=0xFF3333  # Red color for c00lkidd
                 )
+                embed.set_footer(text=f"*giggles* Oops! I dropped my words!")
                 await ctx.send(embed=embed)
     
     @app_commands.command(name="chat", description="Have a casual chat with the AI")
