@@ -39,5 +39,11 @@ COLORS = {
 
 # Bot status messages
 STATUS_MESSAGES = [
-    "Looking for survivors"
+    "Looking for survivors",
+    "Ready or not, here I come!",
+    "Tag! You're it!",
+    "Watching dad's house",
+    "Finding new friends",
+    "Giggling in the shadows",
+    "Playing hide and seek"
 ]
