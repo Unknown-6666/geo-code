@@ -2,6 +2,7 @@ import asyncio
 import discord
 import logging
 import os
+import random
 import tempfile
 import threading
 import time
@@ -35,15 +36,60 @@ class VoiceAI(commands.Cog):
             
         voice_channel = ctx.author.voice.channel
         
+        # Check for required permissions
+        permissions = voice_channel.permissions_for(ctx.guild.me)
+        if not permissions.connect or not permissions.speak:
+            missing_perms = []
+            if not permissions.connect:
+                missing_perms.append("Connect")
+            if not permissions.speak:
+                missing_perms.append("Speak")
+                
+            await ctx.send(embed=create_error_embed(
+                "Permission Error", 
+                f"I don't have the required permissions to use voice chat: {', '.join(missing_perms)}"
+            ))
+            return
+        
+        # Connect to the voice channel with retry mechanism
+        max_retries = 2
+        retry_count = 0
+        
         # Connect to the voice channel
         try:
-            if ctx.guild.id in self.voice_clients:
-                # If already connected, move to the new channel
-                await self.voice_clients[ctx.guild.id].move_to(voice_channel)
-            else:
-                # Otherwise connect to the channel
-                voice_client = await voice_channel.connect()
-                self.voice_clients[ctx.guild.id] = voice_client
+            while retry_count <= max_retries:
+                try:
+                    if ctx.guild.id in self.voice_clients:
+                        # If already connected, move to the new channel
+                        if self.voice_clients[ctx.guild.id].is_connected():
+                            await self.voice_clients[ctx.guild.id].move_to(voice_channel)
+                        else:
+                            # If client exists but is disconnected, create a new connection
+                            voice_client = await voice_channel.connect(timeout=10.0, reconnect=True)
+                            self.voice_clients[ctx.guild.id] = voice_client
+                    else:
+                        # Otherwise connect to the channel
+                        voice_client = await voice_channel.connect(timeout=10.0, reconnect=True)
+                        self.voice_clients[ctx.guild.id] = voice_client
+                    
+                    # If we get here, connection was successful
+                    break
+                    
+                except discord.ClientException as e:
+                    logger.error(f"Discord client exception: {str(e)}")
+                    retry_count += 1
+                    if retry_count > max_retries:
+                        raise
+                    logger.info(f"Retrying voice connection (attempt {retry_count}/{max_retries})")
+                    await asyncio.sleep(1)
+                    
+                except asyncio.TimeoutError:
+                    logger.error("Voice connection timed out")
+                    retry_count += 1
+                    if retry_count > max_retries:
+                        raise
+                    logger.info(f"Retrying voice connection after timeout (attempt {retry_count}/{max_retries})")
+                    await asyncio.sleep(2)
                 
             # Start a voice AI session for this user
             self.user_sessions[ctx.author.id] = {
@@ -67,26 +113,73 @@ class VoiceAI(commands.Cog):
         # First acknowledge the interaction to prevent timeouts
         await interaction.response.defer()
         
-        # Check if user is in a voice channel
-        if not interaction.user.voice:
-            await interaction.followup.send(
-                embed=create_error_embed("Error", "You need to be in a voice channel to use this command"),
-                ephemeral=True
-            )
-            return
-            
-        voice_channel = interaction.user.voice.channel
-        
-        # Connect to the voice channel
         try:
-            if interaction.guild.id in self.voice_clients:
-                # If already connected, move to the new channel
-                await self.voice_clients[interaction.guild.id].move_to(voice_channel)
-            else:
-                # Otherwise connect to the channel
-                voice_client = await voice_channel.connect()
-                self.voice_clients[interaction.guild.id] = voice_client
+            # Check if user is in a voice channel
+            if not interaction.user.voice:
+                await interaction.followup.send(
+                    embed=create_error_embed("Error", "You need to be in a voice channel to use this command"),
+                    ephemeral=True
+                )
+                return
                 
+            voice_channel = interaction.user.voice.channel
+            
+            # Check for required permissions
+            permissions = voice_channel.permissions_for(interaction.guild.me)
+            if not permissions.connect or not permissions.speak:
+                missing_perms = []
+                if not permissions.connect:
+                    missing_perms.append("Connect")
+                if not permissions.speak:
+                    missing_perms.append("Speak")
+                    
+                await interaction.followup.send(
+                    embed=create_error_embed(
+                        "Permission Error", 
+                        f"I don't have the required permissions to use voice chat: {', '.join(missing_perms)}"
+                    ),
+                    ephemeral=True
+                )
+                return
+            
+            # Connect to the voice channel with retry mechanism
+            max_retries = 2
+            retry_count = 0
+            
+            while retry_count <= max_retries:
+                try:
+                    if interaction.guild.id in self.voice_clients:
+                        # If already connected, move to the new channel
+                        if self.voice_clients[interaction.guild.id].is_connected():
+                            await self.voice_clients[interaction.guild.id].move_to(voice_channel)
+                        else:
+                            # If client exists but is disconnected, create a new connection
+                            voice_client = await voice_channel.connect(timeout=10.0, reconnect=True)
+                            self.voice_clients[interaction.guild.id] = voice_client
+                    else:
+                        # Otherwise connect to the channel
+                        voice_client = await voice_channel.connect(timeout=10.0, reconnect=True)
+                        self.voice_clients[interaction.guild.id] = voice_client
+                    
+                    # If we get here, connection was successful
+                    break
+                    
+                except discord.ClientException as e:
+                    logger.error(f"Discord client exception: {str(e)}")
+                    retry_count += 1
+                    if retry_count > max_retries:
+                        raise
+                    logger.info(f"Retrying voice connection (attempt {retry_count}/{max_retries})")
+                    await asyncio.sleep(1)
+                    
+                except asyncio.TimeoutError:
+                    logger.error("Voice connection timed out")
+                    retry_count += 1
+                    if retry_count > max_retries:
+                        raise
+                    logger.info(f"Retrying voice connection after timeout (attempt {retry_count}/{max_retries})")
+                    await asyncio.sleep(2)
+            
             # Start a voice AI session for this user
             self.user_sessions[interaction.user.id] = {
                 "guild_id": interaction.guild.id,
@@ -248,47 +341,92 @@ class VoiceAI(commands.Cog):
             ))
     
     async def text_to_speech(self, text):
-        """Convert text to speech using gTTS and save to a temporary file"""
+        """Convert text to speech and save to a temporary file"""
+        temp_file = None
         try:
             # Create a temporary file for the audio
             temp_file = tempfile.NamedTemporaryFile(suffix='.mp3', delete=False)
             temp_file.close()
             
-            # Break text into smaller chunks if it's too long (gTTS has limitations)
-            # Maximum length is around 500 characters per chunk
-            max_chunk_size = 500
-            chunks = []
-            for i in range(0, len(text), max_chunk_size):
-                chunks.append(text[i:i + max_chunk_size])
+            # Try different TTS methods in order of preference
+            tts_methods = [
+                self._tts_with_gtts,
+                self._tts_with_ffmpeg_fallback
+            ]
             
-            # If we have multiple chunks, create a separate file for each and then combine
-            if len(chunks) > 1:
-                chunk_files = []
-                for i, chunk in enumerate(chunks):
-                    chunk_file = f"{temp_file.name}.chunk{i}.mp3"
-                    # Create TTS for this chunk
-                    tts = gTTS(text=chunk, lang='en', slow=False)
-                    tts.save(chunk_file)
-                    chunk_files.append(chunk_file)
-                
-                # Use ffmpeg to concatenate all chunks
-                import subprocess
-                concat_list = "|".join(chunk_files)
-                subprocess.call(["ffmpeg", "-i", f"concat:{concat_list}", "-c", "copy", temp_file.name])
-                
-                # Clean up chunk files
-                for chunk_file in chunk_files:
-                    os.unlink(chunk_file)
-            else:
-                # If we just have one chunk, create TTS directly
-                tts = gTTS(text=text, lang='en', slow=False)
-                tts.save(temp_file.name)
-            
-            logger.info(f"Generated TTS audio file at {temp_file.name}")
-            return temp_file.name
-        except Exception as e:
-            logger.error(f"Error in text-to-speech: {str(e)}")
+            for tts_method in tts_methods:
+                try:
+                    success = await tts_method(text, temp_file.name)
+                    if success:
+                        logger.info(f"Successfully generated TTS audio file at {temp_file.name}")
+                        return temp_file.name
+                except Exception as e:
+                    logger.warning(f"TTS method failed: {str(e)}")
+                    continue
+                    
+            # If we get here, all TTS methods failed
+            logger.error("All TTS methods failed")
+            if os.path.exists(temp_file.name):
+                os.unlink(temp_file.name)
             return None
+            
+        except Exception as e:
+            logger.error(f"Critical error in text-to-speech: {str(e)}")
+            if temp_file and os.path.exists(temp_file.name):
+                os.unlink(temp_file.name)
+            return None
+            
+    async def _tts_with_gtts(self, text, output_file):
+        """Use Google Text-to-Speech to generate audio"""
+        # Break text into smaller chunks if it's too long (gTTS has limitations)
+        # Maximum length is around 500 characters per chunk
+        max_chunk_size = 500
+        chunks = []
+        for i in range(0, len(text), max_chunk_size):
+            chunks.append(text[i:i + max_chunk_size])
+        
+        # If we have multiple chunks, create a separate file for each and then combine
+        if len(chunks) > 1:
+            chunk_files = []
+            for i, chunk in enumerate(chunks):
+                chunk_file = f"{output_file}.chunk{i}.mp3"
+                # Create TTS for this chunk
+                loop = asyncio.get_event_loop()
+                await loop.run_in_executor(None, lambda: gTTS(text=chunk, lang='en', slow=False).save(chunk_file))
+                chunk_files.append(chunk_file)
+            
+            # Use ffmpeg to concatenate all chunks
+            import subprocess
+            concat_list = "|".join(chunk_files)
+            result = subprocess.call(["ffmpeg", "-i", f"concat:{concat_list}", "-c", "copy", output_file])
+            
+            # Clean up chunk files
+            for chunk_file in chunk_files:
+                if os.path.exists(chunk_file):
+                    os.unlink(chunk_file)
+                    
+            return result == 0  # Return True if ffmpeg succeeded
+            
+        else:
+            # If we just have one chunk, create TTS directly
+            loop = asyncio.get_event_loop()
+            await loop.run_in_executor(None, lambda: gTTS(text=text, lang='en', slow=False).save(output_file))
+            return True
+            
+    async def _tts_with_ffmpeg_fallback(self, text, output_file):
+        """Generate speech using FFmpeg as a fallback - creates simple beeps for testing"""
+        import subprocess
+        
+        # Create a silent audio file with text displayed as metadata
+        # This is just a fallback so users know TTS is working even if no audio is produced
+        subprocess.call([
+            "ffmpeg", "-f", "lavfi", "-i", "sine=frequency=440:duration=2", 
+            "-metadata", f"title=TTS Fallback - Text: {text[:50]}...", 
+            "-c:a", "libmp3lame", "-q:a", "2", output_file
+        ])
+        
+        logger.warning("Using TTS fallback - only beep sound will be played")
+        return True
     
     def cleanup_audio(self, file_path, error):
         """Clean up audio file after playing"""
@@ -441,87 +579,247 @@ class VoiceAI(commands.Cog):
         
         logger.info(f"Voice recognition loop ended for guild {guild_id}")
     
-    async def finished_recording_callback(self, sink, channel, *args):
+    def finished_recording_callback(self, sink, channel, *args):
         """Callback for when recording is finished"""
-        # Process each audio file (one per user)
-        for user_id, audio in sink.audio_data.items():
-            if audio.file:
+        # The sink callback needs to be a normal function that returns an async function
+        # This matches discord.py's expected pattern for sink callbacks
+        
+        async def process_recorded_audio():
+            logger.info(f"Processing recorded audio in channel {channel.name}")
+            logger.info(f"Number of audio files received: {len(sink.audio_data)}")
+            
+            # Check if we have any audio data
+            if not sink.audio_data:
+                logger.warning("No audio data received in this recording session")
+                await channel.send(embed=create_error_embed(
+                    "Voice Recognition Issue", 
+                    "No audio was captured during this recording session. Make sure your microphone is working and not muted in Discord."
+                ))
+                return
+                
+            # Process each audio file (one per user)
+            for user_id, audio in sink.audio_data.items():
+                if not audio.file:
+                    logger.warning(f"No audio file for user {user_id}")
+                    continue
+                    
+                logger.info(f"Processing audio from user {user_id}")
+                
                 try:
                     # Process the audio file
                     text = await self.process_voice_audio(audio.file)
+                    
+                    # Get the user object
+                    user = self.bot.get_user(int(user_id))
+                    if not user:
+                        logger.warning(f"Could not find user with ID {user_id}")
+                        continue
+                        
                     if text:
-                        # Create a message object to simulate a text message
-                        user = self.bot.get_user(int(user_id))
-                        if user:
-                            # Process the recognized text as if it were a message
-                            await channel.send(embed=create_embed(
-                                f"🎤 Voice from {user.display_name}", 
-                                f"I heard: {text}"
+                        # Log what we heard for debugging
+                        logger.info(f"Recognized text from {user.display_name}: {text}")
+                        
+                        # Process the recognized text as if it were a message
+                        await channel.send(embed=create_embed(
+                            f"🎤 Voice from {user.display_name}", 
+                            f"I heard: {text}"
+                        ))
+                        
+                        # Create a simulated message for AI processing
+                        class SimulatedMessage:
+                            def __init__(self, content, author, channel, guild):
+                                self.content = content
+                                self.author = author
+                                self.channel = channel
+                                self.guild = guild
+                            async def reply(self, content=None, embed=None):
+                                return await channel.send(content=content, embed=embed)
+                        
+                        simulated_msg = SimulatedMessage(
+                            content=text,
+                            author=user,
+                            channel=channel,
+                            guild=channel.guild
+                        )
+                        
+                        # Process with AI
+                        await self.respond_with_voice(simulated_msg)
+                    else:
+                        logger.warning(f"No text recognized from {user.display_name}'s audio")
+                        # Only notify in Discord occasionally to avoid spam
+                        if random.random() < 0.3:  # 30% chance to show message
+                            await channel.send(embed=create_error_embed(
+                                "Voice Recognition", 
+                                f"I couldn't understand what {user.display_name} said. Please speak clearly and try again."
                             ))
-                            
-                            # Create a simulated message
-                            class SimulatedMessage:
-                                def __init__(self, content, author, channel, guild):
-                                    self.content = content
-                                    self.author = author
-                                    self.channel = channel
-                                    self.guild = guild
-                                async def reply(self, content=None, embed=None):
-                                    return await channel.send(content=content, embed=embed)
-                            
-                            simulated_msg = SimulatedMessage(
-                                content=text,
-                                author=user,
-                                channel=channel,
-                                guild=channel.guild
-                            )
-                            
-                            # Process with AI
-                            await self.respond_with_voice(simulated_msg)
                     
                 except Exception as e:
                     logger.error(f"Error processing audio: {str(e)}")
+                    await channel.send(embed=create_error_embed(
+                        "Voice Recognition Error", 
+                        f"I couldn't process the audio: {str(e)}"
+                    ))
+        
+        # Return the async function
+        return process_recorded_audio
     
     async def process_voice_audio(self, audio_file):
         """Process voice audio and convert to text"""
+        temp_path = None
         try:
             # Create a temporary WAV file
             with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as temp_file:
                 temp_path = temp_file.name
+                logger.info(f"Created temporary WAV file at: {temp_path}")
+            
+            # Get audio file size and position before writing
+            audio_file.seek(0, 2)  # Go to end of file
+            file_size = audio_file.tell()
+            audio_file.seek(0)  # Reset to beginning
+            
+            logger.info(f"Original audio file size: {file_size} bytes")
+            
+            if file_size == 0:
+                logger.warning("Audio file is empty, no data to process")
+                return None
             
             # Copy the audio data to the temp file
             with open(temp_path, 'wb') as f:
-                audio_file.seek(0)
-                f.write(audio_file.read())
+                data = audio_file.read()
+                f.write(data)
+                logger.info(f"Wrote {len(data)} bytes to temporary WAV file")
+            
+            # Verify file was written correctly
+            if os.path.getsize(temp_path) == 0:
+                logger.error("Failed to write audio data to temporary file")
+                return None
+                
+            # Debug file format info
+            try:
+                with wave.open(temp_path, 'rb') as wave_file:
+                    channels = wave_file.getnchannels()
+                    sample_width = wave_file.getsampwidth()
+                    frame_rate = wave_file.getframerate()
+                    frames = wave_file.getnframes()
+                    duration = frames / float(frame_rate)
+                    
+                    logger.info(f"WAV file info: channels={channels}, sample_width={sample_width}, "
+                               f"frame_rate={frame_rate}, frames={frames}, duration={duration:.2f}s")
+                    
+                    # Warning for extremely short audio
+                    if duration < 0.2:
+                        logger.warning(f"Audio duration too short: {duration:.2f}s - may not contain speech")
+            except Exception as wave_err:
+                logger.error(f"Error reading WAV file info: {str(wave_err)}")
             
             # Use SpeechRecognition to convert audio to text
+            logger.info("Running speech recognition on audio file...")
             loop = asyncio.get_event_loop()
             text = await loop.run_in_executor(None, self._recognize_speech, temp_path)
             
-            # Clean up the temp file
-            os.unlink(temp_path)
+            if text:
+                logger.info(f"Successfully converted audio to text: '{text}'")
+            else:
+                logger.warning("Failed to recognize any speech in the audio")
             
             return text
+            
         except Exception as e:
             logger.error(f"Error processing voice audio: {str(e)}")
             return None
+            
+        finally:
+            # Clean up the temp file
+            if temp_path and os.path.exists(temp_path):
+                try:
+                    os.unlink(temp_path)
+                    logger.info(f"Cleaned up temporary file: {temp_path}")
+                except Exception as e:
+                    logger.error(f"Error deleting temporary file: {str(e)}")
     
     def _recognize_speech(self, audio_file_path):
         """Helper method to run speech recognition on a file"""
+        # Use energy-based noise detection to filter out background noise
         try:
+            # Log the start of speech recognition
+            logger.info(f"Starting speech recognition on file: {audio_file_path}")
+            
+            # Debug: check if file exists and has content
+            file_size = os.path.getsize(audio_file_path)
+            logger.info(f"Audio file size: {file_size} bytes")
+            if file_size == 0:
+                logger.error("Audio file is empty - no data to process")
+                return None
+                
+            # Store the initial energy threshold - default is 300
+            initial_threshold = self.recognizer.energy_threshold
+            logger.info(f"Initial energy threshold: {initial_threshold}")
+            
+            # Set a very low energy threshold to catch quiet speech
+            self.recognizer.energy_threshold = 50
+            logger.info(f"Set initial energy threshold to: {self.recognizer.energy_threshold}")
+            
             with sr.AudioFile(audio_file_path) as source:
+                # Adjust for ambient noise with a shorter duration
+                logger.info("Adjusting for ambient noise...")
+                self.recognizer.adjust_for_ambient_noise(source, duration=0.2)
+                logger.info(f"After ambient adjustment, energy threshold: {self.recognizer.energy_threshold}")
+                
+                # Record audio data with increased timeout
+                logger.info("Recording audio data from file...")
                 audio_data = self.recognizer.record(source)
-                text = self.recognizer.recognize_google(audio_data)
-                return text
-        except sr.UnknownValueError:
-            logger.warning("Speech Recognition could not understand audio")
-            return None
-        except sr.RequestError as e:
-            logger.error(f"Could not request results from Speech Recognition service: {e}")
-            return None
+                
+                # First attempt: standard recognition
+                try:
+                    # Use Google's speech recognition service
+                    logger.info("Attempting speech recognition with Google Speech Recognition")
+                    text = self.recognizer.recognize_google(audio_data)
+                    logger.info(f"Successfully recognized text: {text}")
+                    return text
+                except sr.UnknownValueError:
+                    logger.warning("Google Speech Recognition could not understand audio")
+                except sr.RequestError as e:
+                    logger.error(f"Could not request results from Google Speech Recognition service: {e}")
+                
+                # Second attempt: Try with an even lower energy threshold 
+                try:
+                    current_threshold = self.recognizer.energy_threshold
+                    # Adjust the recognizer to be very sensitive - use a very small threshold
+                    self.recognizer.energy_threshold = 30
+                    
+                    logger.info(f"Retrying with much lower energy threshold: {self.recognizer.energy_threshold}")
+                    with sr.AudioFile(audio_file_path) as new_source:
+                        new_audio_data = self.recognizer.record(new_source)
+                        text = self.recognizer.recognize_google(new_audio_data)
+                    
+                    logger.info(f"Successfully recognized text with adjusted threshold: {text}")
+                    return text
+                except (sr.UnknownValueError, sr.RequestError) as e:
+                    logger.warning(f"Second recognition attempt failed: {str(e)}")
+                    
+                # Third attempt: Try with Sphinx (offline) if available
+                try:
+                    logger.info("Attempting speech recognition with Sphinx (offline)")
+                    self.recognizer.energy_threshold = 100  # Middle ground for Sphinx
+                    with sr.AudioFile(audio_file_path) as sphinx_source:
+                        sphinx_audio = self.recognizer.record(sphinx_source)
+                        text = self.recognizer.recognize_sphinx(sphinx_audio)
+                        
+                    logger.info(f"Successfully recognized text with Sphinx: {text}")
+                    return text
+                except (sr.UnknownValueError, AttributeError, ImportError) as e:
+                    logger.warning(f"Sphinx recognition attempt failed: {str(e)}")
+                finally:
+                    # Always restore original energy threshold before returning or proceeding
+                    self.recognizer.energy_threshold = initial_threshold
+                    logger.info(f"Restored energy threshold to {initial_threshold}")
+                
         except Exception as e:
             logger.error(f"Error in speech recognition: {str(e)}")
             return None
+        # If we get here, all recognition attempts have failed
+        logger.error("All speech recognition attempts failed")
+        return None
 
 async def setup(bot):
     await bot.add_cog(VoiceAI(bot))

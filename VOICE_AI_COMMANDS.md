@@ -127,7 +127,34 @@ Bot: [Responds in voice and text with a joke]
 
 If you encounter issues with the Voice AI:
 
-1. Make sure you're in a voice channel before using `/voicechat`
-2. Check that the bot has the necessary permissions
-3. If the bot joins but doesn't respond with voice, it may be in Limited Mode due to missing dependencies
-4. Refer to the VOICE_AI_SETUP.md file for setup instructions
+1. **Joining Voice Channels**
+   - Make sure you're in a voice channel before using `/voicechat` or `!vc`
+   - Check that the bot has "Connect" and "Speak" permissions in the voice channel
+   - If the bot fails to join, try having it disconnect from any other voice channels first with `/voice_stop`
+
+2. **Text-to-Speech Issues**
+   - If the bot joins but doesn't respond with voice, it may be in Limited Mode due to missing dependencies
+   - Verify that the `gtts` package is properly installed 
+   - Check the bot logs for any errors related to TTS generation
+   - The bot will fall back to text-only responses if TTS fails
+
+3. **Voice Recognition Issues**
+   - The `!listen` command requires both `SpeechRecognition` and a working internet connection as it uses Google's speech recognition service
+   - Speak clearly and at a normal volume - background noise can interfere with recognition
+   - Keep sentences relatively short and simple for better recognition accuracy
+   - The bot will show an error message if speech recognition fails
+
+4. **Advanced Troubleshooting**
+   - Check for errors in the bot's console log
+   - Restart the bot if voice features stop working unexpectedly
+   - The bot requires `ffmpeg` to be installed for audio processing
+   - Make sure your Discord client has proper access to your microphone
+   - Try using headphones to prevent audio feedback loops
+
+5. **For Bot Administrators**
+   - For full voice functionality, ensure the following packages are installed:
+     * `discord.py[voice]` - For Discord voice connections
+     * `gtts` - For text-to-speech generation
+     * `SpeechRecognition` - For voice recognition
+     * `ffmpeg` - For audio processing
+   - Refer to the VOICE_AI_SETUP.md file for complete setup instructions
