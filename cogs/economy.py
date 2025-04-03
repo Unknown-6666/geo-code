@@ -247,6 +247,10 @@ class Economy(commands.Cog):
             debug_logger.info(f"Processing balance command for user ID: {interaction.user.id}")
             
             # Query database directly inside app context for fresh data
+            wallet = 0
+            bank = 0
+            bank_capacity = 1000
+            
             with self.app.app_context():
                 user = UserEconomy.query.filter_by(user_id=str(interaction.user.id)).first()
                 if not user:
@@ -258,17 +262,26 @@ class Economy(commands.Cog):
                         bank_capacity=1000
                     )
                     db.session.add(user)
+                    debug_logger.info("Committing new user profile")
                     db.session.commit()
+                    # Re-fetch the user to ensure we have the latest data
+                    user = UserEconomy.query.filter_by(user_id=str(interaction.user.id)).first()
                 
-                debug_logger.info(f"User balance - wallet: {user.wallet}, bank: {user.bank}, capacity: {user.bank_capacity}")
+                # Store values locally to avoid session issues
+                wallet = user.wallet
+                bank = user.bank
+                bank_capacity = user.bank_capacity
+                debug_logger.info(f"User balance - wallet: {wallet}, bank: {bank}, capacity: {bank_capacity}")
             
+            # Use the local variables instead of the user object (which might be detached from session)
             embed = create_embed(
                 "💰 Balance",
-                f"Wallet: {user.wallet} coins\nBank: {user.bank}/{user.bank_capacity} coins"
+                f"Wallet: {wallet} coins\nBank: {bank}/{bank_capacity} coins"
             )
             await interaction.followup.send(embed=embed)
         except Exception as e:
             logger.error(f"Error in balance command: {str(e)}")
+            logger.error(f"Traceback: {traceback.format_exc()}")
             # If we haven't responded yet, respond with the error
             if not interaction.response.is_done():
                 await interaction.response.send_message(f"An error occurred: {str(e)}", ephemeral=True)
@@ -447,57 +460,81 @@ class Economy(commands.Cog):
             await interaction.response.defer()
             
             debug_logger.info(f"Processing work command for user ID: {interaction.user.id}")
-            user = await self.get_user_economy(interaction.user.id)
-            debug_logger.info(f"Current wallet: {user.wallet}, bank: {user.bank}")
-
+            
+            # Check for cooldown and fetch latest data in same transaction
             now = datetime.utcnow()
-            if user.last_work and now - user.last_work < timedelta(hours=1):
-                time_left = timedelta(hours=1) - (now - user.last_work)
-                minutes, seconds = divmod(time_left.seconds, 60)
-                debug_logger.info(f"User on cooldown, {minutes}m {seconds}s remaining")
-                embed = create_error_embed(
-                    "Work",
-                    f"You can work again in {minutes}m {seconds}s"
-                )
-                await interaction.followup.send(embed=embed)
-                return
-
-            # Use app context for database operations
+            earnings = 0  # Default value in case we need it
+            wallet_amount = 0  # For storing the final wallet amount
+            
             with self.app.app_context():
-                earnings = random.randint(10, 50)
-                debug_logger.info(f"Earnings generated: {earnings}")
-                
-                # Get fresh user data to avoid stale references
+                # Get fresh user data directly in this context
                 fresh_user = UserEconomy.query.filter_by(user_id=str(interaction.user.id)).first()
+                if not fresh_user:
+                    debug_logger.info(f"Creating new economy profile for user {interaction.user.id}")
+                    fresh_user = UserEconomy(
+                        user_id=str(interaction.user.id),
+                        wallet=0,
+                        bank=0,
+                        bank_capacity=1000
+                    )
+                    db.session.add(fresh_user)
+                    db.session.commit()
+                    # Re-fetch after creation
+                    fresh_user = UserEconomy.query.filter_by(user_id=str(interaction.user.id)).first()
+                    
                 debug_logger.info(f"Fresh user data - wallet: {fresh_user.wallet}, bank: {fresh_user.bank}")
                 
-                # Update wallet and work timestamp
-                fresh_user.wallet += earnings
-                fresh_user.last_work = now
-                debug_logger.info(f"Updated wallet: {fresh_user.wallet}")
-
-                # Record transaction
-                transaction = Transaction(
-                    user_id=str(interaction.user.id),
-                    amount=earnings,
-                    description="Work earnings"
+                # Check cooldown inside the same session
+                if fresh_user.last_work and now - fresh_user.last_work < timedelta(hours=1):
+                    time_left = timedelta(hours=1) - (now - fresh_user.last_work)
+                    minutes, seconds = divmod(time_left.seconds, 60)
+                    debug_logger.info(f"User on cooldown, {minutes}m {seconds}s remaining")
+                    
+                    # Create a snapshot of cooldown data
+                    cooldown_minutes = minutes
+                    cooldown_seconds = seconds
+                    on_cooldown = True
+                else:
+                    on_cooldown = False
+                    # Not on cooldown, so process work
+                    earnings = random.randint(10, 50)
+                    debug_logger.info(f"Earnings generated: {earnings}")
+                    
+                    # Update wallet and work timestamp
+                    fresh_user.wallet += earnings
+                    fresh_user.last_work = now
+                    debug_logger.info(f"Updated wallet: {fresh_user.wallet}")
+    
+                    # Record transaction
+                    transaction = Transaction(
+                        user_id=str(interaction.user.id),
+                        amount=earnings,
+                        description="Work earnings"
+                    )
+                    db.session.add(transaction)
+                    
+                    # Explicitly commit changes
+                    debug_logger.info("Committing changes to database...")
+                    db.session.commit()
+                    debug_logger.info("Database commit successful")
+                    
+                    # Store the new wallet amount for use outside this context
+                    wallet_amount = fresh_user.wallet
+            
+            # Respond based on cooldown status
+            if on_cooldown:
+                embed = create_error_embed(
+                    "Work",
+                    f"You can work again in {cooldown_minutes}m {cooldown_seconds}s"
                 )
-                db.session.add(transaction)
+            else:
+                embed = create_embed(
+                    "💼 Work",
+                    f"You worked hard and earned {earnings} coins!",
+                    color=0x43B581
+                )
+                debug_logger.info(f"Work complete. New wallet balance: {wallet_amount}")
                 
-                # Explicitly commit changes
-                debug_logger.info("Committing changes to database...")
-                db.session.commit()
-                debug_logger.info("Database commit successful")
-
-            # Get the latest user data after commit
-            updated_user = await self.get_user_economy(interaction.user.id)
-            debug_logger.info(f"Updated wallet after commit: {updated_user.wallet}")
-
-            embed = create_embed(
-                "💼 Work",
-                f"You worked hard and earned {earnings} coins!",
-                color=0x43B581
-            )
             await interaction.followup.send(embed=embed)
         except Exception as e:
             logger.error(f"Error in work command: {str(e)}")
