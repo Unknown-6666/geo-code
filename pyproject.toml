@@ -25,6 +25,8 @@ dependencies = [
     "g4f>=0.4.8.6",
     "psutil>=7.0.0",
     "google-cloud-aiplatform",
+    "gtts",
+    "speechrecognition",
 ]
 
 [[tool.uv.index]]

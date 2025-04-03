@@ -20,6 +20,13 @@ This document provides a complete reference of all commands available in the bot
 | `/clear_chat_history` | `!clear_history` | Clear your conversation history with the AI |
 | `/show_chat_history` | `!history` | Show your recent conversation with the AI |
 
+## Voice AI Commands
+
+| Slash Command | Prefix Command | Description |
+|--------------|---------------|-------------|
+| `/voicechat` | `!voicechat`, `!vc` | Join your voice channel and enable AI voice chat |
+| `/voice_stop` | `!voice_stop`, `!vc_stop` | Stop AI voice chat and disconnect from the voice channel |
+
 ## Music Commands
 
 | Slash Command | Prefix Command | Description |
@@ -86,6 +93,13 @@ This document provides a complete reference of all commands available in the bot
 - The `/chat` command maintains conversation history between you and the AI
 - You can view your conversation history with `!history` or clear it with `!clear_history`
 
+### Voice AI Features
+
+- Join a voice channel before using `/voicechat` or `!voicechat`
+- After activating, simply type messages in the text channel
+- The bot will respond both with text and voice
+- Use `/voice_stop` or `!vc_stop` when you're done
+
 ### Using Music Commands
 
 The bot supports various music sources:
@@ -107,4 +121,12 @@ Some commands require specific permissions to use:
 - Moderation commands require appropriate moderation permissions
 - Admin commands require administrator permissions
 - Music commands can be used by anyone with access to the voice channels
+- Voice AI commands require permissions to connect to and speak in voice channels
 - Economy commands are available to all members
+
+The bot itself needs these permissions:
+- Send Messages, Embed Links, Attach Files
+- Read Message History
+- Connect to Voice Channels, Speak
+- Use Voice Activity
+- For moderation: Manage Messages, Kick/Ban Members, Manage Roles

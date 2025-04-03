@@ -12,6 +12,8 @@ This Discord bot is a feature-rich community management and entertainment soluti
 - PostgreSQL database
 - Discord Bot Token
 - Google Cloud Project (for Vertex AI)
+- FFmpeg (for music playback and voice AI)
+- gTTS and PyAudio (for voice AI functionality)
 
 ### Environment Variables
 
@@ -51,6 +53,22 @@ Features:
 - Conversation history management
 
 See [AI_COMMANDS.md](AI_COMMANDS.md) for detailed commands.
+
+### Voice AI (cogs/voice_ai.py)
+
+Provides voice-based AI interaction in Discord voice channels:
+- Joins voice channels on command
+- Listens for text messages and responds with voice
+- Uses the same AI backend as the text-based AI chat
+- Text-to-speech conversion for AI responses
+
+Features:
+- Voice channel joining with `/voicechat` or `!voicechat`
+- Voice chat responses to text messages
+- Text and voice responses to user messages
+- Voice channel management
+
+See [VOICE_AI_COMMANDS.md](VOICE_AI_COMMANDS.md) for detailed commands.
 
 ### Music (cogs/music.py)
 
@@ -173,12 +191,20 @@ Common issues:
 - **AI responses fail**: Verify Google credentials and API enablement
 - **Database errors**: Check PostgreSQL connection and schema
 - **Music playback issues**: Ensure ffmpeg is installed correctly
+- **Voice AI issues**: Verify the bot has permission to connect to and speak in voice channels
+- **Text-to-speech fails**: Check that gtts library is properly installed
 
 For issues with Vertex AI, run `test_vertex_auth.py` to diagnose authentication problems.
+
+For voice-related issues, ensure that the bot has the following permissions in Discord:
+- Connect (to voice channels)
+- Speak
+- Use Voice Activity
 
 ## Command Reference
 
 For a complete list of all commands, see:
 - [BOT_COMMAND_REFERENCE.md](BOT_COMMAND_REFERENCE.md)
 - [AI_COMMANDS.md](AI_COMMANDS.md)
+- [VOICE_AI_COMMANDS.md](VOICE_AI_COMMANDS.md)
 - [MUSIC_COMMANDS.md](MUSIC_COMMANDS.md)
