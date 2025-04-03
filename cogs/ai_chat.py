@@ -235,10 +235,11 @@ class AIChat(commands.Cog):
             # Send the response
             if response:
                 embed = create_embed(
-                    "🧠 AI Response",
-                    response
+                    "🎮 c00lkidd",
+                    response,
+                    color=0xFF3333  # Red color for c00lkidd
                 )
-                embed.set_footer(text=f"AI Provider: {ai_source}")
+                embed.set_footer(text=f"*giggles* Hahaha! Let's play again sometime!")
                 await ctx.send(embed=embed)
             else:
                 embed = create_error_embed(
@@ -271,12 +272,12 @@ class AIChat(commands.Cog):
             
             # Create embed with the response (no emoji)
             embed = create_embed(
-                "AI Response",
+                "🎮 c00lkidd",
                 response,
-                color=0x7289DA
+                color=0xFF3333  # Red color for c00lkidd
             )
-            embed.add_field(name="Your Question", value=question)
-            embed.set_footer(text=f"Powered by {ai_source}")
+            embed.add_field(name="You asked", value=question)
+            embed.set_footer(text=f"*scratches head* Hmm, I dunno! But it's fun!")
 
             await interaction.followup.send(embed=embed)
             logger.info(f"Successfully sent AI response from {ai_source}")
@@ -322,10 +323,11 @@ class AIChat(commands.Cog):
             # Send the response
             if response:
                 embed = create_embed(
-                    "💬 AI Chat",
-                    response
+                    "💬 c00lkidd",
+                    response,
+                    color=0xFF3333  # Red color for c00lkidd
                 )
-                embed.set_footer(text=f"AI Provider: {ai_source}")
+                embed.set_footer(text=f"*giggles* I'm it, I'm it, I'M IT!")
                 await ctx.send(embed=embed)
             else:
                 embed = create_error_embed(
@@ -363,11 +365,11 @@ class AIChat(commands.Cog):
                 logger.error(f"Failed to save AI response to conversation history: {str(e)}")
 
             embed = create_embed(
-                "💭 AI Chat",
+                "💭 c00lkidd",
                 response,
-                color=0x43B581
+                color=0xFF3333  # A red color to match c00lkidd's appearance
             )
-            embed.set_footer(text=f"Powered by {ai_source}")
+            embed.set_footer(text=f"*giggles* Tag! You're it!")
 
             await interaction.followup.send(embed=embed)
             logger.info(f"Successfully sent casual AI response from {ai_source}")

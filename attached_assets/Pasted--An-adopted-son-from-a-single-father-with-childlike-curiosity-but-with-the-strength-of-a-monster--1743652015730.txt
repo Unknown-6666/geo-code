@@ -1,0 +1,156 @@
+“	An adopted son from a single father with childlike curiosity, but with the strength of a monster. He appears as a red, flesh-like humanoid that can kill fast and traverse fast. He is known for his association with a vandalization group called "team c00lkidd".	”
+— C00lkidd's Description	
+c00lkidd is a purchasable Killer in Forsaken. He is an exploiter with a childlike personality who treats his situation very playfully and game-like, often laughing while active.
+
+c00lkidd originates from an exploiter by the same name, reported to have vandalized a variety of games (notably Natural Disaster Survival & Work at a Pizza Place) by plastering a decal of their avatar all over the map and making the games unplayable.
+
+
+Contents
+1	Appearance
+2	Gameplay
+3	Strategy
+3.1	Tips
+4	How to Counter
+5	Audio
+6	Unused Audio
+7	Trivia
+8	Gallery
+Appearance
+c00lkidd is solid red, with a grotesque, fleshy body. The words "team c00lkidd join today!", an advertisement for his hacker group, are pasted across his torso. Many of his bones are visible through his skin, including his ribs, vertebrae, shoulder blades, knees, and pelvis. He has beady black eyes and a wide, unnerving c00l smile seemingly carved into his face.
+
+Gameplay
+c00lkidd is a Chase/Rushdown killer. His kit consists of one ranged move, a long-lasting mobility, and a player tracking move. All these moves can be used to catch players off guard (specifically while they are doing tasks). He mainly plays aggressively with his high damage.
+
+Icon	Name	Quote	Description	C00ldown
+	Punch	"Let's play again sometime!" - c00lkidd	c00lkidd punches forward, dealing 27.5 damage to whoever he hits.	2s
+	Corrupt Nature	"Hahahaha!" - c00lkidd	c00lkidd throws a grey block at where the cursor is aiming. Any survivor that is hit takes 15 damage, is inflicted with Slowness I for 4 seconds, and has their aura revealed to you for 10 seconds. The projectile also goes through walls.	12s
+	Walkspeed Override	"I'm it, I'm it, I'M IT!" - c00lkidd	c00lkidd dashes in a straight line. If you hit a survivor, deal 25 damage and inflict them with Burning II for 8 seconds. They will also be highlighted to you while they are burning. This move can additionally be used as a way to catch up to survivors when you are low on stamina. This move stops prematurely after hitting a wall, hitting a survivor, or after 2 seconds of dashing.	20s
+	Pizza Delivery	"This one's on the house!" - c00lkidd	c00lkidd summons 2 Pizza Bots that hunt down the nearest survivor. When a Pizza Bot attacks a survivor, it deals 10 damage and inflicts Burning I for 15 seconds. Burning survivors are highlighted.	50s
+Strategy
+With c00lkidd being a killer relying on speed and cornering survivors, it's best to memorize the current maps to learn the best flanking areas and to lead the survivors into areas where escaping is risky. Keep in mind that you are one of the fastest killers in the game, but losing all of your stamina will almost guarantee the survivor escapes. Make sure to watch your stamina, as the only long-range attack you possess is Corrupt Nature.
+
+Tips
+Using Pizza Delivery at the start of the round can help guide you to the closest survivor without wasting time. It's also recommended to do this ability as much as possible, especially when you're down to only a couple players left. Never worry about wasting this ability, as it will always be useful to gather locations of survivors.
+Do not wait for a Pizza Bot to hit a survivor. Instead, follow the general direction that the Pizza Bots are going in.
+Pizza Delivery is one of c00lkidd's best tools for cornering survivors, as in a boxed room, a survivor has to deal with both the Pizza Bots and you. If you use this in a chase, considering trying to find a way to get in front of the survivor, as this will force them to run in a completely different direction then they were before, which, if done right, can be very powerful.
+Walkspeed Override can do well in straight lines, and in a chase if you want to catch up, but remember that your target can move out of the way, punishing you, and potentially losing chase entirely. Instead of using the ability to attack at a long distance, try using it when closer to the target, making it harder for them to move out of your path.
+Be careful using this skill around characters that can punish you for missing, such as Shedletsky and Chance. Using this move against a skilled Guest 1337 who you know hasn't countered yet is most often a bad idea, as this can be very easily countered, especially if you're not close when you use this move. Try using Corrupt Nature when in a chase with a Guest 1337. While they are likely to dodge it, you won't get stunned. Depending on where you are, they may have to change directions which can give you some time to catch up.
+Corrupt Nature can damage survivors in camping spots such as the highest point in Glass Houses. Try not to use this ability in front of your targets, however, as it can also be easily dodged. Consider aiming through walls where they cannot see you.
+If you have difficulty aiming this, zooming in to first person can help a ton.
+Corrupt Nature can be used at any time, especially up-close, since it barely has any end-lag, goes through walls and heavily rewards you by hitting it by giving the survivor Slowness I.
+You can use Corrupt Nature or Walkspeed Override to cancel your kill animation.
+Using Walkspeed Override to confirm a kill is most of the time not recommended, since you can potentially let the survivor escape a chase.
+Since last nerf your Corrupt Nature can't one-shot Two Time right after their revival. Keep this in mind.
+How to Counter
+TBA
+
+Audio
+C00lkidd is voiced by Arksual
+
+Audio	Audio Description	Audio Information
+*sword unsheathe* *laughter*	Plays during the intro.
+*giggling*	Plays while idle.
+Footsteps	Plays when walking/running
+*laughter*	Plays when using Corrupt Nature.
+
+"There you are!"
+"I'm it, I'm it, I'M IT!"	Plays when using Walkspeed Override.
+"No fair!"	Plays when missing Walkspeed Override.
+
+"Tag! You're it!"
+"Gotcha!"	Plays when hitting a player with Walkspeed Override.
+"OUCH!!!" *laughter*	Plays when hitting a wall after using Walkspeed Override.
+
+
+
+
+"You know the deal!"
+"Rattle 'em boys!"
+*laughter* "Ready or not, here we come!"
+*laughter* "Order up!"
+*laughter* "Come out, come out, wherever you are!"	Plays when using Pizza Delivery.
+
+"You're getting a RAISE!" *laughter*
+"Ashes, Ashes! They all fall down!"	Plays when a pizza minion lands a hit after using Pizza Delivery.
+
+"You're no fun..."
+"I'M TELLING DAD!"	Plays when stunned.
+*laughter* "Let's do that again sometime!"	Plays when killing a player.
+"You look familiar... Oh well!"	Plays when killing a person who is using Elliot
+"You were strong... but not strong enough!"	Plays when killing a person who is using Guest 1337
+"We should play sometime!" *laughter*	Plays when killing a person who is using Noob
+
+
+
+
+
+*giggling* "It's so nice to see you, dad!"
+"I finally got your attention!"
+"Hope this doesn't hurt too much." *laughter*
+"There's no need to be so scared!" *laughter*
+"What's wrong, papa?" *laughter*
+"You look tired."
+"Looks like you need some shuteye, dad!"	Plays when killing 007n7.
+
+"Just one more left!" *laughter*
+*laughter* "It's just you and me!"	Plays when Last Survivor Standing starts.
+Unused Audio
+Audio	Audio Description	Audio Information
+*laugh* "See you next time!"	Supposed to play during the results screen when c00lkidd wins.
+"Fatherrrrrr!" *playful/sinister laughter*	Plays when the last survivor is 007n7.
+Trivia
+In Forsaken's lore, c00lkidd is only 10 years old.[1]
+This makes him the only character in the game who isn't an adult.[1]
+c00lkidd is not fully aware of what he’s doing. He believes he’s just roughhousing, and thinks everyone he kills is just taking a nap, tired from playing.
+He does slowly realize what he has done after the events of a round.[2]
+c00lkidd is the only Killer that is based on an actual exploiter in Roblox, rather than a myth or urban legend.
+c00lkidd has unique lines for when he kills 007n7, his adoptive father. He also has a unique kill animation for him, where he gently lays 007n7's corpse on the ground instead of throwing him like other characters, while 007n7 doesn't resist or fight back.
+Since the Bluudud and Mafioso skins represent completely different characters and not just alternate versions of c00lkidd, they use the normal kill animation when killing 007n7.
+c00lkidd has unique lines when killing Guest 1337, Elliot, 007n7, and Noob.
+His line when killing Elliot is a reference to how he used to grief his workplace all the time.
+c00lkidd is the only killer in the game as of now to not have a listed passive. (1x1x1x1's passive, strangely, doesn't have a function but is still listed as one.)
+In testing, c00lkidd didn't have voicelines, instead using sound effects whenever an action was performed.
+c00lkidd currently has the lowest base health out of any Killer, having only 800 health.
+If 007n7 is the last survivor with c00lkidd being the killer, the theme "Plead" will play instead of the usual theme.
+c00lkidd likes dirt cake, which is made with crushed up cookies (preferably in a dark color), pudding, and gummy worms. The cookies represent dirt, and the gummy worms resemble live earthworms.
+c00lkidd loved reindeers, mentioned when you buy the Reindeer skin for 007n7.
+John Doe and 1x1x1x1 did not have their own ability icons prior to Update 2.0.0, and instead used c00lkidd's Punch icon as a placeholder.
+c00lkidd showed up on 007n7's doorstep as a pill baby.
+He was born with a skin condition so he was abandoned at birth.
+c00lkidd's chase theme contains a leitmotif of Spooky Scary Skeletons, referencing how he'd often play this song in his hacks.
+c00lkidd's voice actor is maypul(YouTube), or stuntish_(discord)
+c00lkidd doesn't get affected by light because he is technically glowing.
+In testing, c00lkidd was able to emote, but instead of actually emoting, he would roar/scream.
+c00lkidd's description was different early in development, simply referring to him as a "notorious hacker". This was changed after it was canonized that he is 007n7's adopted son.
+c00lkidd is the reason 007n7 has the shirt he has on.[1]
+c00lkidd had a drakobloxxer phase, similar to dinosaur/dragon phases real kids have.[1]
+c00lkidd is one of two characters to have a "Classic" skin, which is simply his original appearance.[1]
+c00lkidd's pizza minions are just clones of himself.[1]
+c00lkidd thinks his Firebrand sword is just a toy and likes to use it when he's "playing" with others.
+When using Walkspeed Override in some areas, it can get you trapped, especially in Horror Hotel.
+Parts of his chase theme (and layers) contain samples from Earthbound.
+Both c00lkidd and John Doe have an ability that has the word "Corrupt" in it, those being Corrupt Nature and Corrupt Energy respectively.
+Corrupt Nature represents a Fling Brick, which is a common thing for exploiters to use.
+c00lkidd has the highest amount of voice lines for killing a single survivor.
+C00lkidd had a scrapped "Winning theme" that was revealed in Sandi's Credits video that appears at 4:55
+Gallery
+In game
+Others
+c00lkidd's intro animation.
+c00lkidd's intro animation.
+c00lkidd's kill animation.
+c00lkidd's kill animation.
+c00lkidd's kill animation when killing 007n7.
+c00lkidd's kill animation when killing 007n7.
+c00lkidd's win animation.
+c00lkidd's win animation.
+c00lkidd's model from the front.
+c00lkidd's model from the front.
+c00lkidd's model from the back.
+c00lkidd's model from the back.
+A zoom on c00lkidd's face.
+A zoom on c00lkidd's face.
+c00lkidd when he is Poisoned.
+c00lkidd when he is Poisoned.
+Pizza bots that c00lkidd summons when using Pizza Delivery.
+Pizza bots that c00lkidd summons when using Pizza Delivery.
