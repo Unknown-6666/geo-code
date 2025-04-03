@@ -12,17 +12,9 @@ from discord.ext import commands
 from utils.embed_helpers import create_embed, create_error_embed
 from utils.ai_preference_manager import ai_preferences
 from models.conversation import Conversation
-from utils.vertex_ai_client import VertexAIClient
+from config import GOOGLE_API_KEY, USE_GOOGLE_AI
 
 logger = logging.getLogger('discord')
-
-# Get Google API key from environment variable
-GOOGLE_API_KEY = os.environ.get('GOOGLE_API')
-USE_GOOGLE_AI = True if GOOGLE_API_KEY else False
-
-# Check if Vertex AI should be used
-USE_VERTEX_AI = os.environ.get('USE_VERTEX_AI', 'false').lower() == 'true'
-VERTEX_AI_PRIORITY = int(os.environ.get('VERTEX_AI_PRIORITY', '1'))  # Priority: 1 = highest, 3 = lowest
 
 class AIChat(commands.Cog):
     def __init__(self, bot):
@@ -31,70 +23,14 @@ class AIChat(commands.Cog):
         # Configure g4f settings
         g4f.debug.logging = False  # Disable debug logging
         
-        # Initialize Vertex AI client if enabled
-        self.vertex_ai_client = None
-        if USE_VERTEX_AI:
-            self.vertex_ai_client = VertexAIClient()
-            if self.vertex_ai_client.initialized:
-                logger.info("AI Chat cog initialized with Google Vertex AI")
-            else:
-                logger.info("Vertex AI initialization failed, falling back to other providers")
-                
         # Log AI provider status
-        if USE_GOOGLE_AI and not (USE_VERTEX_AI and self.vertex_ai_client and self.vertex_ai_client.initialized):
-            logger.info("AI Chat cog initialized with Google Gemini AI")
-        elif not (USE_VERTEX_AI and self.vertex_ai_client and self.vertex_ai_client.initialized):
+        if USE_GOOGLE_AI:
+            logger.info("AI Chat cog initialized with Google Gemini 1.5 Pro")
+        else:
             logger.info("AI Chat cog initialized with fallback AI providers")
-            logger.info("To use Google's AI services, set the GOOGLE_API environment variable or enable Vertex AI")
+            logger.info("To use Google's AI services, set the GOOGLE_API environment variable")
 
-    async def get_vertex_ai_response(self, prompt, system_prompt=None, user_id=None, include_history=True):
-        """Get a response from Google's Vertex AI API with conversation history support"""
-        if not self.vertex_ai_client or not self.vertex_ai_client.initialized:
-            return None
-            
-        try:
-            # Get conversation history if user_id is provided and include_history is True
-            history = None
-            if user_id and include_history:
-                # Get conversation history
-                history = Conversation.get_formatted_history(user_id, limit=8)  # Get last 8 messages
-                
-                if history:
-                    logger.info(f"Including {len(history)} previous messages in Vertex AI conversation history")
-                    
-            # Default settings from AI preferences
-            temperature = ai_preferences.get_temperature()
-            max_tokens = ai_preferences.get_max_tokens()
-            
-            # Use the provided system prompt or default
-            if not system_prompt:
-                system_prompt = ai_preferences.get_system_prompt()
-                if not system_prompt:
-                    system_prompt = "You are a friendly and helpful chat bot. Keep responses concise and engaging."
-            
-            # Use chat model for conversations with history
-            if history and include_history:
-                response = await self.vertex_ai_client.generate_chat_response(
-                    message=prompt,
-                    history=history,
-                    system_prompt=system_prompt,
-                    temperature=temperature,
-                    max_output_tokens=max_tokens
-                )
-            else:
-                # Use text generation for single prompts
-                response = await self.vertex_ai_client.generate_text(
-                    prompt=prompt,
-                    system_prompt=system_prompt,
-                    temperature=temperature,
-                    max_output_tokens=max_tokens
-                )
-            
-            return response
-            
-        except Exception as e:
-            logger.error(f"Error generating Vertex AI response: {str(e)}")
-            return None
+
     
     async def get_google_ai_response(self, prompt, system_prompt=None, user_id=None, include_history=True):
         """Get a response from Google's Gemini AI API with conversation history support"""
@@ -220,30 +156,16 @@ class AIChat(commands.Cog):
             response = custom_response
             ai_source = "Custom Response"
         
-        # If no custom response, try AI providers based on priority settings
+        # If no custom response, try Gemini AI
         elif not response:
             # Set up system prompt
             system_prompt = ai_preferences.get_system_prompt()
             
-            # Try Vertex AI if it's the highest priority (1) and available
-            if VERTEX_AI_PRIORITY == 1 and USE_VERTEX_AI and self.vertex_ai_client and self.vertex_ai_client.initialized:
-                logger.info("Using Vertex AI for response (highest priority)")
-                if include_history:
-                    logger.info(f"Including conversation history for user {user_id}")
-                response = await self.get_vertex_ai_response(prompt, system_prompt, user_id, include_history)
-                ai_source = "Google Vertex AI"
-            
-            # Try Google Gemini AI if it's priority 1 or if Vertex AI (priority 1) failed
-            if (VERTEX_AI_PRIORITY != 1 and VERTEX_AI_PRIORITY <= 2 and USE_GOOGLE_AI) or (not response and USE_GOOGLE_AI):
-                logger.info("Using Google AI (Gemini) for response")
+            # Try Google Gemini AI if API key is available
+            if USE_GOOGLE_AI:
+                logger.info("Using Google AI (Gemini 1.5 Pro) for response")
                 response = await self.get_google_ai_response(prompt, system_prompt, user_id, include_history)
-                ai_source = "Google Gemini"
-            
-            # If Vertex AI is priority 2 and Gemini failed, try Vertex AI now
-            if not response and VERTEX_AI_PRIORITY == 2 and USE_VERTEX_AI and self.vertex_ai_client and self.vertex_ai_client.initialized:
-                logger.info("Using Vertex AI for response (second priority)")
-                response = await self.get_vertex_ai_response(prompt, system_prompt, user_id, include_history)
-                ai_source = "Google Vertex AI"
+                ai_source = "Google Gemini 1.5 Pro"
         
         # Fall back to g4f if Google AI failed or not configured
         if not response:
@@ -332,111 +254,10 @@ class AIChat(commands.Cog):
         try:
             await interaction.response.defer()  # This might take a while
             logger.info(f"Processing AI request from {interaction.user}: {question}")
+            user_id = str(interaction.user.id)
             
-            response = None
-            ai_source = "Unknown"
-            
-            # First check for custom responses in our preferences
-            custom_response = ai_preferences.get_custom_response(question)
-            if custom_response:
-                logger.info(f"Using custom response for query: {question[:50]}...")
-                response = custom_response
-                ai_source = "Custom Response"
-            
-            # If no custom response, try AI providers based on priority settings
-            elif not response:
-                # Set up system prompt
-                system_prompt = ai_preferences.get_system_prompt()
-                
-                # Try Vertex AI if it's the highest priority (1) and available
-                if VERTEX_AI_PRIORITY == 1 and USE_VERTEX_AI and self.vertex_ai_client and self.vertex_ai_client.initialized:
-                    logger.info("Using Vertex AI for response (highest priority)")
-                    user_id = str(interaction.user.id)
-                    response = await self.get_vertex_ai_response(question, system_prompt, user_id)
-                    ai_source = "Google Vertex AI"
-                
-                # Try Google Gemini AI if it's priority 1 or if Vertex AI (priority 1) failed
-                if (VERTEX_AI_PRIORITY != 1 and VERTEX_AI_PRIORITY <= 2 and USE_GOOGLE_AI) or (not response and USE_GOOGLE_AI):
-                    logger.info("Using Google AI (Gemini) for response")
-                    response = await self.get_google_ai_response(question, system_prompt)
-                    ai_source = "Google Gemini"
-                
-                # If Vertex AI is priority 2 and Gemini failed, try Vertex AI now
-                if not response and VERTEX_AI_PRIORITY == 2 and USE_VERTEX_AI and self.vertex_ai_client and self.vertex_ai_client.initialized:
-                    logger.info("Using Vertex AI for response (second priority)")
-                    user_id = str(interaction.user.id)
-                    response = await self.get_vertex_ai_response(question, system_prompt, user_id)
-                    ai_source = "Google Vertex AI"
-            
-            # Fall back to g4f if Google AI failed or not configured
-            if not response:
-                logger.info("Using g4f as fallback for AI response")
-                max_retries = 2
-                retry_delay = 1
-                
-                # Get system prompt from preferences
-                system_prompt = ai_preferences.get_system_prompt()
-                system_messages = [{"role": "system", "content": system_prompt}] if system_prompt else []
-                
-                # Try with FreeGpt provider first
-                for attempt in range(max_retries):
-                    try:
-                        response = await asyncio.wait_for(
-                            self.bot.loop.run_in_executor(
-                                None,
-                                lambda: g4f.ChatCompletion.create(
-                                    model="gpt-3.5-turbo",  # Use a more compatible model
-                                    provider=g4f.Provider.FreeGpt,  # First provider to try
-                                    messages=system_messages + [{"role": "user", "content": question}]
-                                )
-                            ),
-                            timeout=30.0  # 30 second timeout
-                        )
-                        if response:  # If we got a valid response, break the retry loop
-                            ai_source = "FreeGpt AI"
-                            break
-                    except Exception as e:
-                        logger.error(f"Error with FreeGpt attempt {attempt+1}/{max_retries}: {str(e)}")
-                        if attempt < max_retries - 1:
-                            retry_after = retry_delay * (2 ** attempt)
-                            logger.warning(f"Retrying FreeGpt in {retry_after}s")
-                            await asyncio.sleep(retry_after)
-                
-                # If FreeGpt failed, try with You.com provider
-                if not response:
-                    logger.info("FreeGpt failed, trying You.com provider")
-                    for attempt in range(max_retries):
-                        try:
-                            response = await asyncio.wait_for(
-                                self.bot.loop.run_in_executor(
-                                    None,
-                                    lambda: g4f.ChatCompletion.create(
-                                        model="gemini-1-5-pro",  # Use a model supported by You.com
-                                        provider=g4f.Provider.You,  # Second provider to try
-                                        messages=[{"role": "user", "content": question}]  # You.com doesn't support system messages
-                                    )
-                                ),
-                                timeout=30.0  # 30 second timeout
-                            )
-                            if response:  # If we got a valid response, break the retry loop
-                                ai_source = "You.com AI"
-                                break
-                        except Exception as e:
-                            logger.error(f"Error with You.com attempt {attempt+1}/{max_retries}: {str(e)}")
-                            if attempt < max_retries - 1:
-                                retry_after = retry_delay * (2 ** attempt)
-                                logger.warning(f"Retrying You.com in {retry_after}s")
-                                await asyncio.sleep(retry_after)
-                
-                # If all else failed
-                if not response:
-                    ai_source = "Alternative AI"
-
-            if not response:
-                # Instead of throwing an error, provide a fallback response
-                response = "I'm sorry, I couldn't generate a response right now. It seems our AI services are experiencing difficulties."
-                ai_source = "Fallback System"
-                logger.warning("All AI providers failed, using fallback response")
+            # Process the AI request using the common method
+            response, ai_source = await self._process_ai_request(question, user_id)
 
             logger.info(f"AI Response generated successfully: {response[:100]}...")  # Log first 100 chars
 
@@ -448,9 +269,9 @@ class AIChat(commands.Cog):
             except Exception as e:
                 logger.error(f"Failed to save AI response to conversation history: {str(e)}")
             
-            # Create embed with the response
+            # Create embed with the response (no emoji)
             embed = create_embed(
-                f"🤖 AI Response",
+                "AI Response",
                 response,
                 color=0x7289DA
             )
@@ -529,132 +350,8 @@ class AIChat(commands.Cog):
             except Exception as e:
                 logger.error(f"Failed to save user message to conversation history: {str(e)}")
             
-            response = None
-            ai_source = "Unknown"
-            
-            # First check for custom responses in our preferences
-            custom_response = ai_preferences.get_custom_response(message)
-            if custom_response:
-                logger.info(f"Using custom response for casual chat: {message[:50]}...")
-                response = custom_response
-                ai_source = "Custom Response"
-            
-            # If no custom response, try AI providers based on priority settings
-            elif not response:
-                # Set up system prompt
-                system_prompt = ai_preferences.get_system_prompt()
-                if not system_prompt:
-                    system_prompt = "You are a friendly and helpful chat bot. Keep responses concise and engaging."
-                
-                # Try Vertex AI if it's the highest priority (1) and available
-                if VERTEX_AI_PRIORITY == 1 and USE_VERTEX_AI and self.vertex_ai_client and self.vertex_ai_client.initialized:
-                    logger.info("Using Vertex AI for casual chat (highest priority)")
-                    response = await self.get_vertex_ai_response(
-                        message, 
-                        system_prompt=system_prompt,
-                        user_id=user_id,
-                        include_history=True
-                    )
-                    ai_source = "Google Vertex AI"
-                
-                # Try Google Gemini AI if it's priority 1 or if Vertex AI (priority 1) failed
-                if (VERTEX_AI_PRIORITY != 1 and VERTEX_AI_PRIORITY <= 2 and USE_GOOGLE_AI) or (not response and USE_GOOGLE_AI):
-                    logger.info("Using Google AI (Gemini) for casual chat")
-                    # Pass user_id to include conversation history
-                    response = await self.get_google_ai_response(
-                        message, 
-                        system_prompt=system_prompt,
-                        user_id=user_id,
-                        include_history=True
-                    )
-                    ai_source = "Google Gemini"
-                
-                # If Vertex AI is priority 2 and Gemini failed, try Vertex AI now
-                if not response and VERTEX_AI_PRIORITY == 2 and USE_VERTEX_AI and self.vertex_ai_client and self.vertex_ai_client.initialized:
-                    logger.info("Using Vertex AI for casual chat (second priority)")
-                    response = await self.get_vertex_ai_response(
-                        message, 
-                        system_prompt=system_prompt,
-                        user_id=user_id,
-                        include_history=True
-                    )
-                    ai_source = "Google Vertex AI"
-            
-            # Fall back to g4f if Google AI failed or not configured
-            if not response:
-                logger.info("Using g4f as fallback for casual chat")
-                max_retries = 2
-                retry_delay = 1
-                
-                # Get system prompt from preferences or use default
-                system_prompt = ai_preferences.get_system_prompt()
-                if not system_prompt:
-                    system_prompt = "You are a friendly and helpful chat bot. Keep responses concise and engaging."
-                
-                # Try with FreeGpt provider first
-                for attempt in range(max_retries):
-                    try:
-                        response = await asyncio.wait_for(
-                            self.bot.loop.run_in_executor(
-                                None,
-                                lambda: g4f.ChatCompletion.create(
-                                    model="gpt-3.5-turbo",  # Use a more compatible model
-                                    provider=g4f.Provider.FreeGpt,  # First provider to try
-                                    messages=[
-                                        {"role": "system", "content": system_prompt},
-                                        {"role": "user", "content": message}
-                                    ]
-                                )
-                            ),
-                            timeout=30.0  # 30 second timeout
-                        )
-                        if response:  # If we got a valid response, break the retry loop
-                            ai_source = "FreeGpt AI"
-                            break
-                    except Exception as e:
-                        logger.error(f"Error with FreeGpt chat attempt {attempt+1}/{max_retries}: {str(e)}")
-                        if attempt < max_retries - 1:
-                            retry_after = retry_delay * (2 ** attempt)
-                            logger.warning(f"Retrying FreeGpt chat in {retry_after}s")
-                            await asyncio.sleep(retry_after)
-                
-                # If FreeGpt failed, try with You.com provider
-                if not response:
-                    logger.info("FreeGpt failed, trying You.com provider for chat")
-                    for attempt in range(max_retries):
-                        try:
-                            response = await asyncio.wait_for(
-                                self.bot.loop.run_in_executor(
-                                    None,
-                                    lambda: g4f.ChatCompletion.create(
-                                        model="gemini-1-5-pro",  # Use a model supported by You.com 
-                                        provider=g4f.Provider.You,  # Second provider to try
-                                        messages=[
-                                            {"role": "user", "content": message}
-                                        ]  # You.com doesn't support system messages
-                                    )
-                                ),
-                                timeout=30.0  # 30 second timeout
-                            )
-                            if response:  # If we got a valid response, break the retry loop
-                                ai_source = "You.com AI"
-                                break
-                        except Exception as e:
-                            logger.error(f"Error with You.com chat attempt {attempt+1}/{max_retries}: {str(e)}")
-                            if attempt < max_retries - 1:
-                                retry_after = retry_delay * (2 ** attempt)
-                                logger.warning(f"Retrying You.com chat in {retry_after}s")
-                                await asyncio.sleep(retry_after)
-                
-                # If all else failed
-                if not response:
-                    ai_source = "Alternative AI"
-
-            if not response:
-                # Instead of throwing an error, provide a fallback response
-                response = "I'm sorry, I couldn't generate a response right now. It seems our AI services are experiencing difficulties."
-                ai_source = "Fallback System"
-                logger.warning("All AI providers failed, using fallback response")
+            # Process the AI request with conversation history
+            response, ai_source = await self._process_ai_request(message, user_id, include_history=True)
 
             logger.info(f"Casual AI Response generated successfully: {response[:100]}...")  # Log first 100 chars
 
@@ -765,7 +462,7 @@ class AIChat(commands.Cog):
                 
                 # Create embed with list of categories
                 embed = create_embed(
-                    "🤖 Custom AI Responses",
+                    "Custom AI Responses",
                     f"There are {len(custom_responses)} custom response categories configured.",
                     color=0x3498DB
                 )
@@ -989,12 +686,13 @@ class AIChat(commands.Cog):
             
             # Add each message to the embed
             for i, msg in enumerate(history, 1):
-                role_icon = "👤" if msg.role == "user" else "🤖"
+                # Format role name without emoji
+                role_name = "You" if msg.role == "user" else "AI"
                 timestamp = msg.timestamp.strftime("%Y-%m-%d %H:%M:%S")
                 content = msg.content[:200] + "..." if len(msg.content) > 200 else msg.content
                 
                 embed.add_field(
-                    name=f"{i}. {role_icon} {msg.role.capitalize()} ({timestamp})",
+                    name=f"{i}. {role_name} ({timestamp})",
                     value=content,
                     inline=False
                 )
@@ -1039,12 +737,13 @@ class AIChat(commands.Cog):
                 
                 # Add each message to the embed
                 for i, msg in enumerate(history, 1):
-                    role_icon = "👤" if msg.role == "user" else "🤖"
+                    # Format role name without emoji
+                    role_name = "You" if msg.role == "user" else "AI"
                     timestamp = msg.timestamp.strftime("%Y-%m-%d %H:%M:%S")
                     content = msg.content[:200] + "..." if len(msg.content) > 200 else msg.content
                     
                     embed.add_field(
-                        name=f"{i}. {role_icon} {msg.role.capitalize()} ({timestamp})",
+                        name=f"{i}. {role_name} ({timestamp})",
                         value=content,
                         inline=False
                     )

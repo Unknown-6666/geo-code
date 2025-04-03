@@ -131,7 +131,10 @@ class Bot(commands.Bot):
         try:
             status = random.choice(STATUS_MESSAGES)
             logger.info(f'Changing status to: {status}')
-            await self.change_presence(activity=discord.Game(status))
+            # Use Activity.custom to display just the status without "Playing"
+            await self.change_presence(
+                activity=discord.CustomActivity(name=status)
+            )
         except Exception as e:
             logger.error(f"Error changing status: {str(e)}")
 
