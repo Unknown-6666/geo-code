@@ -262,7 +262,7 @@ class AIChat(commands.Cog):
                 ]
                 
                 embed = create_embed(
-                    "🎮 c00lkidd",
+                    "c00lkidd",
                     response,
                     color=0xFF3333  # Red color for c00lkidd
                 )
@@ -289,7 +289,7 @@ class AIChat(commands.Cog):
                 
                 # c00lkidd-themed error message
                 embed = create_embed(
-                    "💬 c00lkidd",
+                    "c00lkidd",
                     random.choice(fallback_messages),
                     color=0xFF3333  # Red color for c00lkidd
                 )
