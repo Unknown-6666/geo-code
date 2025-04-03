@@ -194,9 +194,9 @@ def init_db():
     debug_logger.info(f"Discord token length: {len(os.environ.get('DISCORD_TOKEN', ''))}")
     debug_logger.info(f"Database URL available: {'yes' if os.environ.get('DATABASE_URL') else 'no'}")
     
-    # Force SYNC_COMMANDS_ON_STARTUP to true
-    debug_logger.info("Setting SYNC_COMMANDS_ON_STARTUP=true to ensure economy commands are registered")
-    os.environ['SYNC_COMMANDS_ON_STARTUP'] = 'true'
+    # Do not force SYNC_COMMANDS_ON_STARTUP to avoid Discord rate limiting
+    debug_logger.info("Using default command sync settings to avoid Discord rate limiting")
+    # os.environ['SYNC_COMMANDS_ON_STARTUP'] = 'true'
 
 async def main():
     """Main function to run the bot"""
