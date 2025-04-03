@@ -250,21 +250,50 @@ class AIChat(commands.Cog):
             
             # Send the response
             if response:
+                # Random c00lkidd footer expressions
+                expressions = [
+                    "*giggles* Hahaha! Let's play again sometime!",
+                    "*laughs* TAG! You're it!",
+                    "*snickers* Ready or not, here I come!",
+                    "*chuckles* Dad says I'm a good boy!",
+                    "*grins wide* Come play with me again!",
+                    "*bounces excitedly* This one's on the house!",
+                    "*smiles unnervingly* You look tired..."
+                ]
+                
                 embed = create_embed(
                     "🎮 c00lkidd",
                     response,
                     color=0xFF3333  # Red color for c00lkidd
                 )
-                embed.set_footer(text=f"*giggles* Hahaha! Let's play again sometime!")
+                embed.set_footer(text=random.choice(expressions))
                 await ctx.send(embed=embed)
             else:
+                # Random c00lkidd fallback error messages
+                fallback_messages = [
+                    "*giggles* Oopsie! I got distracted and dropped my words! Can we play again? Tag! You're it!",
+                    "*scratches head* Uh oh! I can't think straight! Dad says I need more focus!",
+                    "*bounces excitedly* My brain is full of butterflies! Let's try again!",
+                    "*laughs maniacally* I forgot what I was saying! This one's on the house!",
+                    "*grins wide* Let's play a different game! This one's boring me!"
+                ]
+                
+                # Random c00lkidd fallback footers
+                fallback_footers = [
+                    "*giggles* Hahaha! Let's try again!",
+                    "*whispers* I'll be better next time, promise!",
+                    "*laughs* Ready or not, here I come!",
+                    "*smiles unnervingly* Let's be friends forever!",
+                    "*jumps up and down* TAG! You're IT!"
+                ]
+                
                 # c00lkidd-themed error message
                 embed = create_embed(
                     "💬 c00lkidd",
-                    "*giggles* Oopsie! I got distracted and dropped my words! Can we play again? Tag! You're it!",
+                    random.choice(fallback_messages),
                     color=0xFF3333  # Red color for c00lkidd
                 )
-                embed.set_footer(text=f"*giggles* Hahaha! Let's try again!")
+                embed.set_footer(text=random.choice(fallback_footers))
                 await ctx.send(embed=embed)
     
     @app_commands.command(name="ask", description="Ask the AI a question")
@@ -290,13 +319,23 @@ class AIChat(commands.Cog):
                 logger.error(f"Failed to save AI response to conversation history: {str(e)}")
             
             # Create embed with the response (no emoji)
+            # Random c00lkidd footer expressions for slash commands
+            slash_expressions = [
+                "*scratches head* Hmm, I dunno! But it's fun!",
+                "*jumps up and down* That was FUN!",
+                "*tilts head* Did I do good? Huh? Did I?",
+                "*grins widely* Let's play another game!",
+                "*whispers* I know all the BEST hiding spots...",
+                "*laughs* Tag! You're it now!"
+            ]
+            
             embed = create_embed(
                 "🎮 c00lkidd",
                 response,
                 color=0xFF3333  # Red color for c00lkidd
             )
             embed.add_field(name="You asked", value=question)
-            embed.set_footer(text=f"*scratches head* Hmm, I dunno! But it's fun!")
+            embed.set_footer(text=random.choice(slash_expressions))
 
             await interaction.followup.send(embed=embed)
             logger.info(f"Successfully sent AI response from {ai_source}")
@@ -341,21 +380,49 @@ class AIChat(commands.Cog):
             
             # Send the response
             if response:
+                # Random c00lkidd footer expressions for prefix chat
+                prefix_chat_expressions = [
+                    "*giggles* I'm it, I'm it, I'M IT!",
+                    "*bounces around* Let's play tag!",
+                    "*laughs maniacally* This is SO fun!",
+                    "*looks at you sideways* Wanna be friends?",
+                    "*grins with too many teeth* Dad says I'm special!",
+                    "*whispers* I found a new hiding spot..."
+                ]
+                
                 embed = create_embed(
                     "💬 c00lkidd",
                     response,
                     color=0xFF3333  # Red color for c00lkidd
                 )
-                embed.set_footer(text=f"*giggles* I'm it, I'm it, I'M IT!")
+                embed.set_footer(text=random.choice(prefix_chat_expressions))
                 await ctx.send(embed=embed)
             else:
+                # Random c00lkidd error messages
+                error_messages = [
+                    "*giggles* I lost my train of thought! Silly me! Wanna play again? I love playing games with my friends!",
+                    "*scratches head* Uh oh! I got distracted! Let's try again, OK?",
+                    "*laughs* Tag! You're it! I forgot what I was saying!",
+                    "*bounces excitedly* My brain is all fuzzy! Can we start over?",
+                    "*grins wide* Dad says I need to focus more! I'll try harder!"
+                ]
+                
+                # Random c00lkidd error footers
+                error_footers = [
+                    "*giggles* Oops! I dropped my words!",
+                    "*whispers* Don't tell Dad I messed up!",
+                    "*laughs* I'll do better next time!",
+                    "*smiles unnervingly* This one's on the house!",
+                    "*jumps up and down* Let's try again!"
+                ]
+                
                 # c00lkidd-themed error message
                 embed = create_embed(
                     "💬 c00lkidd",
-                    "*giggles* I lost my train of thought! Silly me! Wanna play again? I love playing games with my friends!",
+                    random.choice(error_messages),
                     color=0xFF3333  # Red color for c00lkidd
                 )
-                embed.set_footer(text=f"*giggles* Oops! I dropped my words!")
+                embed.set_footer(text=random.choice(error_footers))
                 await ctx.send(embed=embed)
     
     @app_commands.command(name="chat", description="Have a casual chat with the AI")
@@ -386,12 +453,22 @@ class AIChat(commands.Cog):
             except Exception as e:
                 logger.error(f"Failed to save AI response to conversation history: {str(e)}")
 
+            # Random c00lkidd footer expressions for slash chat
+            slash_chat_expressions = [
+                "*giggles* Tag! You're it!",
+                "*jumps with joy* YAAY! New friend!",
+                "*grins unnervingly* I like talking to you!",
+                "*stares intensely* Let's be BEST friends!",
+                "*twirls around* Dad says I'm good at making friends!",
+                "*whispers* Do you want to see my collection?"
+            ]
+            
             embed = create_embed(
                 "💭 c00lkidd",
                 response,
                 color=0xFF3333  # A red color to match c00lkidd's appearance
             )
-            embed.set_footer(text=f"*giggles* Tag! You're it!")
+            embed.set_footer(text=random.choice(slash_chat_expressions))
 
             await interaction.followup.send(embed=embed)
             logger.info(f"Successfully sent casual AI response from {ai_source}")
