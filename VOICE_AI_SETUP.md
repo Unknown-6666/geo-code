@@ -73,10 +73,78 @@ To enable full Voice AI functionality, follow these steps:
 
 If you encounter issues with the Voice AI feature:
 
-1. Check that the required packages are installed correctly
-2. Ensure the bot has permission to connect to and speak in voice channels
-3. Verify that FFmpeg is installed and accessible
-4. Check the bot's logs for specific error messages
+### General Issues
+1. **Package Installation**
+   - Verify that all required packages are installed correctly:
+     ```
+     pip show gtts speechrecognition
+     ```
+   - If any package is missing, reinstall it:
+     ```
+     pip install --force-reinstall gtts SpeechRecognition
+     ```
+
+2. **Discord Permissions**
+   - Ensure the bot has the following permissions in your server:
+     - Connect (to join voice channels)
+     - Speak (to send audio to the voice channel)
+     - Use Voice Activity (to detect speech)
+   - Check these permissions in your Discord server settings → Roles
+
+3. **FFmpeg Installation**
+   - Verify FFmpeg is installed and accessible:
+     ```
+     ffmpeg -version
+     ```
+   - If FFmpeg is not installed, install it using your system's package manager:
+     - For Debian/Ubuntu: `apt-get install ffmpeg`
+     - For CentOS/RHEL: `yum install ffmpeg`
+     - For macOS: `brew install ffmpeg`
+
+### Text-to-Speech Issues
+1. **No Voice Output**
+   - Check if the bot is actually in the voice channel
+   - Verify your client's volume settings for the bot
+   - Check the bot's logs for gTTS errors
+   - Try sending a simple, short message first to test
+
+2. **Distorted Audio**
+   - This can happen with very long text responses
+   - Try sending shorter messages
+   - Check if your internet connection is stable
+
+### Voice Recognition Issues
+1. **Bot Not Responding to Voice**
+   - Make sure you're using the `!listen` command after joining
+   - Speak clearly and at a reasonable volume
+   - Check if your microphone is working properly
+   - Check if Discord has permission to access your microphone
+
+2. **Frequent Misunderstandings**
+   - Speak more slowly and clearly
+   - Reduce background noise in your environment
+   - Use a headset or dedicated microphone instead of built-in mic
+   - Keep messages short and use simple language
+
+### Advanced Troubleshooting
+1. **Check Bot Logs**
+   - Look for specific error messages in the console
+   - Common errors include:
+     - "FFmpeg not found" - Install FFmpeg
+     - "Could not request results from Speech Recognition service" - Check internet connection
+     - "Unable to connect to voice channel" - Check Discord permissions
+
+2. **Debug Mode**
+   - Enable more verbose logging by adding this at the top of the bot.py file:
+     ```python
+     logging.basicConfig(level=logging.DEBUG)
+     ```
+   - Restart the bot and check for more detailed error messages
+
+3. **Internet Connection Issues**
+   - Both gTTS and Google's speech recognition require internet access
+   - Check if your bot's host has a stable internet connection
+   - Some networks might block access to Google's services
 
 ## Notes
 

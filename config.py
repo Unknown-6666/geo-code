@@ -31,5 +31,5 @@ COLORS = {
 
 # Bot status messages
 STATUS_MESSAGES = [
-    "Ranked Gooning"
+    "Looking for survivors"
 ]
