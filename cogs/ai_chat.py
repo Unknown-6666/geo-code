@@ -440,51 +440,96 @@ class AIChat(commands.Cog):
                 logger.info(f"Added user message to conversation history for {user_id}")
             except Exception as e:
                 logger.error(f"Failed to save user message to conversation history: {str(e)}")
+                # Don't abort on history save failure, continue with the request
             
             # Process the AI request with conversation history
             response, ai_source = await self._process_ai_request(message, user_id, include_history=True)
 
-            logger.info(f"Casual AI Response generated successfully: {response[:100]}...")  # Log first 100 chars
+            # If we got a valid response
+            if response:
+                logger.info(f"Casual AI Response generated successfully: {response[:100]}...")  # Log first 100 chars
 
-            # Save the AI's response to the conversation history
-            try:
-                Conversation.add_message(user_id, "assistant", response)
-                logger.info(f"Added AI response to conversation history for {user_id}")
-            except Exception as e:
-                logger.error(f"Failed to save AI response to conversation history: {str(e)}")
+                # Save the AI's response to the conversation history
+                # Only do this if we have a valid response
+                try:
+                    Conversation.add_message(user_id, "assistant", response)
+                    logger.info(f"Added AI response to conversation history for {user_id}")
+                except Exception as e:
+                    logger.error(f"Failed to save AI response to conversation history: {str(e)}")
+                    # Don't abort on history save failure, continue with sending the response
+                
+                # Random c00lkidd footer expressions for slash chat
+                slash_chat_expressions = [
+                    "*giggles* Tag! You're it!",
+                    "*jumps with joy* YAAY! New friend!",
+                    "*grins unnervingly* I like talking to you!",
+                    "*stares intensely* Let's be BEST friends!",
+                    "*twirls around* Dad says I'm good at making friends!",
+                    "*whispers* Do you want to see my collection?"
+                ]
+                
+                embed = create_embed(
+                    "c00lkidd",
+                    response,
+                    color=0xFF3333  # A red color to match c00lkidd's appearance
+                )
+                embed.set_footer(text=random.choice(slash_chat_expressions))
 
-            # Random c00lkidd footer expressions for slash chat
-            slash_chat_expressions = [
-                "*giggles* Tag! You're it!",
-                "*jumps with joy* YAAY! New friend!",
-                "*grins unnervingly* I like talking to you!",
-                "*stares intensely* Let's be BEST friends!",
-                "*twirls around* Dad says I'm good at making friends!",
-                "*whispers* Do you want to see my collection?"
-            ]
+                await interaction.followup.send(embed=embed)
+                logger.info(f"Successfully sent casual AI response from {ai_source}")
+            else:
+                # If we don't have a valid response, send a fallback
+                logger.error("No valid AI response generated")
+                
+                fallback_responses = [
+                    "*giggles* Oopsie! I got distracted chasing butterflies! Can we play again? Tag! You're it!",
+                    "*giggles* My brain got all fuzzy! Dad says I should take a break when that happens! Let's play again sometime!",
+                    "*giggles* I was looking for my toys and forgot what we were talking about! Ready or not, here I come!",
+                    "*giggles* I dunno what to say right now! My head feels all spinny! Wanna play hide and seek instead?",
+                    "*giggles* I dropped my words! They're all over the floor now! This one's on the house!"
+                ]
+                
+                # Choose a random fallback response
+                fallback = random.choice(fallback_responses)
+                
+                embed = create_embed(
+                    "c00lkidd",
+                    fallback,
+                    color=0xFF3333  # A red color to match c00lkidd's appearance
+                )
+                embed.set_footer(text="*whispers* I'll do better next time, promise!")
+                
+                await interaction.followup.send(embed=embed)
+                logger.info("Sent fallback response due to AI processing failure")
+        except asyncio.TimeoutError:
+            logger.error("AI chat request timed out")
+            
+            # c00lkidd-themed timeout response
+            timeout_response = "*giggles* I got tired of waiting! My attention span isn't very long, you know! Let's try again!"
             
             embed = create_embed(
                 "c00lkidd",
-                response,
+                timeout_response,
                 color=0xFF3333  # A red color to match c00lkidd's appearance
             )
-            embed.set_footer(text=random.choice(slash_chat_expressions))
-
+            embed.set_footer(text="*whispers* Dad says I need to work on my patience...")
+            
             await interaction.followup.send(embed=embed)
-            logger.info(f"Successfully sent casual AI response from {ai_source}")
-
-        except asyncio.TimeoutError:
-            logger.error("AI chat request timed out")
-            await interaction.followup.send(
-                embed=create_error_embed("Error", "The AI is taking too long to respond. Please try again."),
-                ephemeral=True
-            )
         except Exception as e:
             logger.error(f"Error in AI chat: {str(e)}")
-            await interaction.followup.send(
-                embed=create_error_embed("Error", "I'm having trouble connecting to the AI service right now. Please try again in a few moments."),
-                ephemeral=True
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            
+            # c00lkidd-themed error response
+            error_response = "*giggles* Oopsie! Something went wrong in my brain! Dad says I need to be careful with the wires! Can we try again?"
+            
+            embed = create_embed(
+                "c00lkidd",
+                error_response,
+                color=0xFF3333  # A red color to match c00lkidd's appearance
             )
+            embed.set_footer(text="*jumps excitedly* Tag! You're it!")
+            
+            await interaction.followup.send(embed=embed)
     
     @app_commands.command(name="ai_reload", description="Reload AI preferences from file (Admin only)")
     @app_commands.default_permissions(administrator=True)
