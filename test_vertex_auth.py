@@ -18,6 +18,8 @@ async def test_vertex_ai_connection():
     except ImportError:
         print("❌ google-cloud-aiplatform package is not installed")
         print("  Run: pip install google-cloud-aiplatform")
+        print("\nNote: This package is now optional and not included in default requirements.")
+        print("The bot will automatically use the g4f fallback for AI responses when this package is not available.")
         return False
     
     # Check if credentials are available
