@@ -32,10 +32,14 @@ class Economy(commands.Cog):
 
     def initialize_shop(self):
         """Initialize the shop with default items"""
-        logger.info("Initializing shop items...")
+        debug_logger.info("Initializing shop items...")
         try:
             # Check if items exist
-            if Item.query.count() == 0:
+            item_count = Item.query.count()
+            debug_logger.info(f"Found {item_count} existing shop items")
+            
+            if item_count == 0:
+                debug_logger.info("No shop items found, adding default items")
                 default_items = [
                     {
                         'name': 'Fishing Rod',
@@ -64,24 +68,31 @@ class Economy(commands.Cog):
                 ]
 
                 for item_data in default_items:
+                    debug_logger.info(f"Adding item: {item_data['name']} - {item_data['price']} coins")
                     item = Item(**item_data)
                     db.session.add(item)
 
+                debug_logger.info("Committing shop items to database...")
                 db.session.commit()
-                logger.info("Shop items initialized successfully")
+                debug_logger.info(f"Successfully added {len(default_items)} default shop items")
             else:
-                logger.info("Shop items already exist")
+                debug_logger.info("Shop items already exist, verifying...")
+                items = Item.query.all()
+                for item in items:
+                    debug_logger.info(f"Found shop item: {item.name} - {item.price} coins, emoji: {item.emoji}")
         except Exception as e:
-            logger.error(f"Error initializing shop items: {str(e)}")
+            debug_logger.error(f"Error initializing shop items: {str(e)}")
+            debug_logger.error(f"Traceback: {traceback.format_exc()}")
             db.session.rollback()
 
     async def get_user_economy(self, user_id: str) -> UserEconomy:
         """Get or create user economy profile"""
         try:
+            debug_logger.info(f"get_user_economy called for user_id: {user_id}")
             with self.app.app_context():
                 user = UserEconomy.query.filter_by(user_id=str(user_id)).first()
                 if not user:
-                    logger.info(f"Creating new economy profile for user {user_id}")
+                    debug_logger.info(f"Creating new economy profile for user {user_id}")
                     user = UserEconomy(
                         user_id=str(user_id),
                         wallet=0,
@@ -89,10 +100,15 @@ class Economy(commands.Cog):
                         bank_capacity=1000
                     )
                     db.session.add(user)
+                    debug_logger.info("Committing new user profile to database...")
                     db.session.commit()
+                    debug_logger.info("New user profile created successfully")
+                else:
+                    debug_logger.info(f"Found existing profile - wallet: {user.wallet}, bank: {user.bank}, capacity: {user.bank_capacity}")
                 return user
         except Exception as e:
-            logger.error(f"Error in get_user_economy: {str(e)}")
+            debug_logger.error(f"Error in get_user_economy: {str(e)}")
+            debug_logger.error(f"Traceback: {traceback.format_exc()}")
             raise
 
     @app_commands.command(name="rob", description="Attempt to steal coins from another user")
@@ -228,7 +244,24 @@ class Economy(commands.Cog):
             # First acknowledge the interaction to prevent timeouts
             await interaction.response.defer()
             
-            user = await self.get_user_economy(interaction.user.id)
+            debug_logger.info(f"Processing balance command for user ID: {interaction.user.id}")
+            
+            # Query database directly inside app context for fresh data
+            with self.app.app_context():
+                user = UserEconomy.query.filter_by(user_id=str(interaction.user.id)).first()
+                if not user:
+                    debug_logger.info(f"Creating new economy profile for user {interaction.user.id}")
+                    user = UserEconomy(
+                        user_id=str(interaction.user.id),
+                        wallet=0,
+                        bank=0,
+                        bank_capacity=1000
+                    )
+                    db.session.add(user)
+                    db.session.commit()
+                
+                debug_logger.info(f"User balance - wallet: {user.wallet}, bank: {user.bank}, capacity: {user.bank_capacity}")
+            
             embed = create_embed(
                 "💰 Balance",
                 f"Wallet: {user.wallet} coins\nBank: {user.bank}/{user.bank_capacity} coins"
@@ -292,25 +325,45 @@ class Economy(commands.Cog):
             # First acknowledge the interaction to prevent timeouts
             await interaction.response.defer()
             
-            user = await self.get_user_economy(interaction.user.id)
-
-            now = datetime.utcnow()
-            if user.last_daily and now - user.last_daily < timedelta(days=1):
-                time_left = timedelta(days=1) - (now - user.last_daily)
-                hours, remainder = divmod(time_left.seconds, 3600)
-                minutes, _ = divmod(remainder, 60)
-                embed = create_error_embed(
-                    "Daily Reward",
-                    f"You can claim your next daily reward in {hours}h {minutes}m"
-                )
-                await interaction.followup.send(embed=embed)
-                return
-
-            # Use app context for database operations
+            debug_logger.info(f"Processing daily command for user ID: {interaction.user.id}")
+            
+            # Get fresh user data inside app context
             with self.app.app_context():
+                user = UserEconomy.query.filter_by(user_id=str(interaction.user.id)).first()
+                if not user:
+                    debug_logger.info(f"Creating new economy profile for user {interaction.user.id}")
+                    user = UserEconomy(
+                        user_id=str(interaction.user.id),
+                        wallet=0,
+                        bank=0,
+                        bank_capacity=1000
+                    )
+                    db.session.add(user)
+                    db.session.commit()
+                
+                debug_logger.info(f"User data - wallet: {user.wallet}, last_daily: {user.last_daily}")
+                
+                now = datetime.utcnow()
+                if user.last_daily and now - user.last_daily < timedelta(days=1):
+                    time_left = timedelta(days=1) - (now - user.last_daily)
+                    hours, remainder = divmod(time_left.seconds, 3600)
+                    minutes, _ = divmod(remainder, 60)
+                    debug_logger.info(f"User on cooldown, {hours}h {minutes}m remaining")
+                    
+                    embed = create_error_embed(
+                        "Daily Reward",
+                        f"You can claim your next daily reward in {hours}h {minutes}m"
+                    )
+                    await interaction.followup.send(embed=embed)
+                    return
+                
+                # Generate reward and update user data
                 reward = random.randint(100, 200)
+                debug_logger.info(f"Daily reward generated: {reward}")
+                
                 user.wallet += reward
                 user.last_daily = now
+                debug_logger.info(f"Updated wallet: {user.wallet}")
 
                 # Record transaction
                 transaction = Transaction(
@@ -319,7 +372,16 @@ class Economy(commands.Cog):
                     description="Daily reward"
                 )
                 db.session.add(transaction)
+                
+                # Explicitly commit changes
+                debug_logger.info("Committing changes to database...")
                 db.session.commit()
+                debug_logger.info("Database commit successful")
+
+            # Get the latest user data after commit for verification
+            with self.app.app_context():
+                updated_user = UserEconomy.query.filter_by(user_id=str(interaction.user.id)).first()
+                debug_logger.info(f"Updated wallet after commit: {updated_user.wallet}")
 
             embed = create_embed(
                 "📅 Daily Reward",
@@ -384,12 +446,15 @@ class Economy(commands.Cog):
             # First acknowledge the interaction to prevent timeouts
             await interaction.response.defer()
             
+            debug_logger.info(f"Processing work command for user ID: {interaction.user.id}")
             user = await self.get_user_economy(interaction.user.id)
+            debug_logger.info(f"Current wallet: {user.wallet}, bank: {user.bank}")
 
             now = datetime.utcnow()
             if user.last_work and now - user.last_work < timedelta(hours=1):
                 time_left = timedelta(hours=1) - (now - user.last_work)
                 minutes, seconds = divmod(time_left.seconds, 60)
+                debug_logger.info(f"User on cooldown, {minutes}m {seconds}s remaining")
                 embed = create_error_embed(
                     "Work",
                     f"You can work again in {minutes}m {seconds}s"
@@ -400,8 +465,16 @@ class Economy(commands.Cog):
             # Use app context for database operations
             with self.app.app_context():
                 earnings = random.randint(10, 50)
-                user.wallet += earnings
-                user.last_work = now
+                debug_logger.info(f"Earnings generated: {earnings}")
+                
+                # Get fresh user data to avoid stale references
+                fresh_user = UserEconomy.query.filter_by(user_id=str(interaction.user.id)).first()
+                debug_logger.info(f"Fresh user data - wallet: {fresh_user.wallet}, bank: {fresh_user.bank}")
+                
+                # Update wallet and work timestamp
+                fresh_user.wallet += earnings
+                fresh_user.last_work = now
+                debug_logger.info(f"Updated wallet: {fresh_user.wallet}")
 
                 # Record transaction
                 transaction = Transaction(
@@ -410,7 +483,15 @@ class Economy(commands.Cog):
                     description="Work earnings"
                 )
                 db.session.add(transaction)
+                
+                # Explicitly commit changes
+                debug_logger.info("Committing changes to database...")
                 db.session.commit()
+                debug_logger.info("Database commit successful")
+
+            # Get the latest user data after commit
+            updated_user = await self.get_user_economy(interaction.user.id)
+            debug_logger.info(f"Updated wallet after commit: {updated_user.wallet}")
 
             embed = create_embed(
                 "💼 Work",
@@ -474,35 +555,71 @@ class Economy(commands.Cog):
             # First acknowledge the interaction to prevent timeouts
             await interaction.response.defer()
             
+            debug_logger.info(f"Processing deposit command for user ID: {interaction.user.id}, amount: {amount}")
+            
             if amount <= 0:
+                debug_logger.info(f"Invalid deposit amount: {amount}")
                 await interaction.followup.send(
                     embed=create_error_embed("Error", "Amount must be positive"),
                     ephemeral=True
                 )
                 return
 
-            user = await self.get_user_economy(interaction.user.id)
-
-            if amount > user.wallet:
-                await interaction.followup.send(
-                    embed=create_error_embed("Error", "You don't have enough coins in your wallet"),
-                    ephemeral=True
-                )
-                return
-
-            space_available = user.bank_capacity - user.bank
-            if amount > space_available:
-                await interaction.followup.send(
-                    embed=create_error_embed("Error", f"Your bank can only hold {space_available} more coins"),
-                    ephemeral=True
-                )
-                return
-
-            # Use app context for database operations
+            # Get fresh user data inside app context
             with self.app.app_context():
+                user = UserEconomy.query.filter_by(user_id=str(interaction.user.id)).first()
+                if not user:
+                    debug_logger.info(f"Creating new economy profile for user {interaction.user.id}")
+                    user = UserEconomy(
+                        user_id=str(interaction.user.id),
+                        wallet=0,
+                        bank=0,
+                        bank_capacity=1000
+                    )
+                    db.session.add(user)
+                    db.session.commit()
+                
+                debug_logger.info(f"User data - wallet: {user.wallet}, bank: {user.bank}, capacity: {user.bank_capacity}")
+                
+                if amount > user.wallet:
+                    debug_logger.info(f"Insufficient funds: {user.wallet} < {amount}")
+                    await interaction.followup.send(
+                        embed=create_error_embed("Error", "You don't have enough coins in your wallet"),
+                        ephemeral=True
+                    )
+                    return
+    
+                space_available = user.bank_capacity - user.bank
+                if amount > space_available:
+                    debug_logger.info(f"Insufficient bank space: {space_available} < {amount}")
+                    await interaction.followup.send(
+                        embed=create_error_embed("Error", f"Your bank can only hold {space_available} more coins"),
+                        ephemeral=True
+                    )
+                    return
+                
+                # Update wallet and bank
                 user.wallet -= amount
                 user.bank += amount
+                debug_logger.info(f"Updated wallet: {user.wallet}, bank: {user.bank}")
+                
+                # Record transaction
+                transaction = Transaction(
+                    user_id=str(interaction.user.id),
+                    amount=amount,
+                    description="Bank deposit"
+                )
+                db.session.add(transaction)
+                
+                # Explicitly commit changes
+                debug_logger.info("Committing changes to database...")
                 db.session.commit()
+                debug_logger.info("Database commit successful")
+
+            # Get the latest user data after commit for verification
+            with self.app.app_context():
+                updated_user = UserEconomy.query.filter_by(user_id=str(interaction.user.id)).first()
+                debug_logger.info(f"Updated data after commit - wallet: {updated_user.wallet}, bank: {updated_user.bank}")
 
             embed = create_embed(
                 "🏦 Deposit",
@@ -559,27 +676,62 @@ class Economy(commands.Cog):
             # First acknowledge the interaction to prevent timeouts
             await interaction.response.defer()
             
+            debug_logger.info(f"Processing withdraw command for user ID: {interaction.user.id}, amount: {amount}")
+            
             if amount <= 0:
+                debug_logger.info(f"Invalid withdrawal amount: {amount}")
                 await interaction.followup.send(
                     embed=create_error_embed("Error", "Amount must be positive"),
                     ephemeral=True
                 )
                 return
 
-            user = await self.get_user_economy(interaction.user.id)
-
-            if amount > user.bank:
-                await interaction.followup.send(
-                    embed=create_error_embed("Error", "You don't have enough coins in your bank"),
-                    ephemeral=True
-                )
-                return
-
-            # Use app context for database operations
+            # Get fresh user data inside app context
             with self.app.app_context():
+                user = UserEconomy.query.filter_by(user_id=str(interaction.user.id)).first()
+                if not user:
+                    debug_logger.info(f"Creating new economy profile for user {interaction.user.id}")
+                    user = UserEconomy(
+                        user_id=str(interaction.user.id),
+                        wallet=0,
+                        bank=0,
+                        bank_capacity=1000
+                    )
+                    db.session.add(user)
+                    db.session.commit()
+                
+                debug_logger.info(f"User data - wallet: {user.wallet}, bank: {user.bank}")
+                
+                if amount > user.bank:
+                    debug_logger.info(f"Insufficient bank funds: {user.bank} < {amount}")
+                    await interaction.followup.send(
+                        embed=create_error_embed("Error", "You don't have enough coins in your bank"),
+                        ephemeral=True
+                    )
+                    return
+                
+                # Update wallet and bank
                 user.bank -= amount
                 user.wallet += amount
+                debug_logger.info(f"Updated wallet: {user.wallet}, bank: {user.bank}")
+                
+                # Record transaction
+                transaction = Transaction(
+                    user_id=str(interaction.user.id),
+                    amount=amount,
+                    description="Bank withdrawal"
+                )
+                db.session.add(transaction)
+                
+                # Explicitly commit changes
+                debug_logger.info("Committing changes to database...")
                 db.session.commit()
+                debug_logger.info("Database commit successful")
+
+            # Get the latest user data after commit for verification
+            with self.app.app_context():
+                updated_user = UserEconomy.query.filter_by(user_id=str(interaction.user.id)).first()
+                debug_logger.info(f"Updated data after commit - wallet: {updated_user.wallet}, bank: {updated_user.bank}")
 
             embed = create_embed(
                 "🏦 Withdraw",
@@ -611,26 +763,46 @@ class Economy(commands.Cog):
             # First acknowledge the interaction to prevent timeouts
             await interaction.response.defer()
             
+            debug_logger.info(f"Processing coinflip command for user ID: {interaction.user.id}, amount: {amount}, choice: {choice}")
+            
             if amount <= 0:
+                debug_logger.info(f"Invalid bet amount: {amount}")
                 await interaction.followup.send(
                     embed=create_error_embed("Error", "Bet amount must be positive"),
                     ephemeral=True
                 )
                 return
 
-            user = await self.get_user_economy(interaction.user.id)
-            if amount > user.wallet:
-                await interaction.followup.send(
-                    embed=create_error_embed("Error", "You don't have enough coins in your wallet"),
-                    ephemeral=True
-                )
-                return
-
-            result = random.choice(["heads", "tails"])
-            won = choice == result
-
-            # Use app context for database operations
+            # Get fresh user data inside app context
             with self.app.app_context():
+                user = UserEconomy.query.filter_by(user_id=str(interaction.user.id)).first()
+                if not user:
+                    debug_logger.info(f"Creating new economy profile for user {interaction.user.id}")
+                    user = UserEconomy(
+                        user_id=str(interaction.user.id),
+                        wallet=0,
+                        bank=0,
+                        bank_capacity=1000
+                    )
+                    db.session.add(user)
+                    db.session.commit()
+                
+                debug_logger.info(f"User data - wallet: {user.wallet}, bank: {user.bank}")
+                
+                if amount > user.wallet:
+                    debug_logger.info(f"Insufficient funds: {user.wallet} < {amount}")
+                    await interaction.followup.send(
+                        embed=create_error_embed("Error", "You don't have enough coins in your wallet"),
+                        ephemeral=True
+                    )
+                    return
+
+                # Determine result
+                result = random.choice(["heads", "tails"])
+                won = choice == result
+                debug_logger.info(f"Coinflip result: {result}, user chose: {choice}, won: {won}")
+                
+                # Update user's wallet
                 if won:
                     user.wallet += amount
                     color = 0x43B581
@@ -641,6 +813,8 @@ class Economy(commands.Cog):
                     color = 0xF04747
                     title = "😢 You lost!"
                     description = f"The coin landed on {result}!\nYou lost {amount} coins!"
+                
+                debug_logger.info(f"Updated wallet: {user.wallet}")
 
                 # Record transaction
                 transaction = Transaction(
@@ -649,7 +823,16 @@ class Economy(commands.Cog):
                     description=f"Coinflip: {'won' if won else 'lost'}"
                 )
                 db.session.add(transaction)
+                
+                # Explicitly commit changes
+                debug_logger.info("Committing changes to database...")
                 db.session.commit()
+                debug_logger.info("Database commit successful")
+
+            # Get the latest user data after commit for verification
+            with self.app.app_context():
+                updated_user = UserEconomy.query.filter_by(user_id=str(interaction.user.id)).first()
+                debug_logger.info(f"Updated wallet after commit: {updated_user.wallet}")
 
             embed = create_embed(title, description, color=color)
             await interaction.followup.send(embed=embed)
@@ -669,49 +852,73 @@ class Economy(commands.Cog):
             # First acknowledge the interaction to prevent timeouts
             await interaction.response.defer()
             
+            debug_logger.info(f"Processing slots command for user ID: {interaction.user.id}, amount: {amount}")
+            
             if amount <= 0:
+                debug_logger.info(f"Invalid bet amount: {amount}")
                 await interaction.followup.send(
                     embed=create_error_embed("Error", "Bet amount must be positive"),
                     ephemeral=True
                 )
                 return
 
-            user = await self.get_user_economy(interaction.user.id)
-            if amount > user.wallet:
-                await interaction.followup.send(
-                    embed=create_error_embed("Error", "You don't have enough coins in your wallet"),
-                    ephemeral=True
-                )
-                return
-
-            # Slot machine symbols and their weights
-            symbols = ["🍒", "🍊", "🍋", "🍇", "💎", "7️⃣"]
-            weights = [0.3, 0.25, 0.2, 0.15, 0.07, 0.03]
-
-            # Get three random symbols
-            result = [random.choices(symbols, weights=weights)[0] for _ in range(3)]
-
-            # Calculate winnings
-            winnings = 0
-            if result[0] == result[1] == result[2]:  # All three match
-                if result[0] == "7️⃣":
-                    winnings = amount * 10  # Jackpot
-                elif result[0] == "💎":
-                    winnings = amount * 5
-                else:
-                    winnings = amount * 3
-            elif result[0] == result[1] or result[1] == result[2]:  # Two match
-                winnings = amount * 1.5
-
-            # Round winnings to integer
-            winnings = int(winnings)
-
-            # Use app context for database operations
+            # Get fresh user data inside app context
             with self.app.app_context():
+                user = UserEconomy.query.filter_by(user_id=str(interaction.user.id)).first()
+                if not user:
+                    debug_logger.info(f"Creating new economy profile for user {interaction.user.id}")
+                    user = UserEconomy(
+                        user_id=str(interaction.user.id),
+                        wallet=0,
+                        bank=0,
+                        bank_capacity=1000
+                    )
+                    db.session.add(user)
+                    db.session.commit()
+                
+                debug_logger.info(f"User data - wallet: {user.wallet}, bank: {user.bank}")
+                
+                if amount > user.wallet:
+                    debug_logger.info(f"Insufficient funds: {user.wallet} < {amount}")
+                    await interaction.followup.send(
+                        embed=create_error_embed("Error", "You don't have enough coins in your wallet"),
+                        ephemeral=True
+                    )
+                    return
+
+                # Slot machine symbols and their weights
+                symbols = ["🍒", "🍊", "🍋", "🍇", "💎", "7️⃣"]
+                weights = [0.3, 0.25, 0.2, 0.15, 0.07, 0.03]
+
+                # Get three random symbols
+                result = [random.choices(symbols, weights=weights)[0] for _ in range(3)]
+                debug_logger.info(f"Slot results: {result}")
+
+                # Calculate winnings
+                winnings = 0
+                if result[0] == result[1] == result[2]:  # All three match
+                    if result[0] == "7️⃣":
+                        winnings = amount * 10  # Jackpot
+                        debug_logger.info("JACKPOT! Triple 7s")
+                    elif result[0] == "💎":
+                        winnings = amount * 5
+                        debug_logger.info("Big win! Triple diamonds")
+                    else:
+                        winnings = amount * 3
+                        debug_logger.info(f"Good win! Triple {result[0]}")
+                elif result[0] == result[1] or result[1] == result[2]:  # Two match
+                    winnings = amount * 1.5
+                    debug_logger.info("Small win! Two matching symbols")
+
+                # Round winnings to integer
+                winnings = int(winnings)
+                debug_logger.info(f"Total winnings: {winnings}")
+
                 # Update user's wallet
                 user.wallet -= amount
                 if winnings > 0:
                     user.wallet += winnings
+                debug_logger.info(f"Updated wallet: {user.wallet}")
 
                 # Record transaction
                 transaction = Transaction(
@@ -720,7 +927,16 @@ class Economy(commands.Cog):
                     description="Slots game"
                 )
                 db.session.add(transaction)
+                
+                # Explicitly commit changes
+                debug_logger.info("Committing changes to database...")
                 db.session.commit()
+                debug_logger.info("Database commit successful")
+
+            # Get the latest user data after commit for verification
+            with self.app.app_context():
+                updated_user = UserEconomy.query.filter_by(user_id=str(interaction.user.id)).first()
+                debug_logger.info(f"Updated wallet after commit: {updated_user.wallet}")
 
             # Create result message
             display = " ".join(result)
@@ -882,18 +1098,40 @@ class Economy(commands.Cog):
             # First acknowledge the interaction to prevent timeouts
             await interaction.response.defer()
             
+            debug_logger.info(f"Processing buy command for user ID: {interaction.user.id}, item: {item_name}")
+            
             # Use app context for database operations
             with self.app.app_context():
+                # Find the item
                 item = Item.query.filter_by(name=item_name, is_buyable=True).first()
                 if not item:
+                    debug_logger.info(f"Item not found or not buyable: {item_name}")
                     await interaction.followup.send(
                         embed=create_error_embed("Error", "That item doesn't exist or isn't available"),
                         ephemeral=True
                     )
                     return
+                
+                debug_logger.info(f"Item found: {item.name}, price: {item.price}")
 
-                user = await self.get_user_economy(interaction.user.id)
+                # Get fresh user data
+                user = UserEconomy.query.filter_by(user_id=str(interaction.user.id)).first()
+                if not user:
+                    debug_logger.info(f"Creating new economy profile for user {interaction.user.id}")
+                    user = UserEconomy(
+                        user_id=str(interaction.user.id),
+                        wallet=0,
+                        bank=0,
+                        bank_capacity=1000
+                    )
+                    db.session.add(user)
+                    db.session.commit()
+                
+                debug_logger.info(f"User data - wallet: {user.wallet}, bank: {user.bank}")
+                
+                # Check if user has enough money
                 if user.wallet < item.price:
+                    debug_logger.info(f"Insufficient funds: {user.wallet} < {item.price}")
                     await interaction.followup.send(
                         embed=create_error_embed("Error", "You don't have enough coins to buy this item"),
                         ephemeral=True
@@ -908,6 +1146,7 @@ class Economy(commands.Cog):
 
                 if inventory:
                     inventory.quantity += 1
+                    debug_logger.info(f"Updated inventory quantity to: {inventory.quantity}")
                 else:
                     inventory = Inventory(
                         user_id=str(interaction.user.id),
@@ -915,9 +1154,11 @@ class Economy(commands.Cog):
                         quantity=1
                     )
                     db.session.add(inventory)
+                    debug_logger.info("Added new inventory entry")
 
                 # Deduct coins
                 user.wallet -= item.price
+                debug_logger.info(f"Updated wallet: {user.wallet}")
 
                 # Record transaction
                 transaction = Transaction(
@@ -926,7 +1167,11 @@ class Economy(commands.Cog):
                     description=f"Bought {item.name}"
                 )
                 db.session.add(transaction)
+                
+                # Explicitly commit changes
+                debug_logger.info("Committing changes to database...")
                 db.session.commit()
+                debug_logger.info("Database commit successful")
 
                 embed = create_embed(
                     "✅ Purchase Successful",
@@ -983,13 +1228,18 @@ class Economy(commands.Cog):
             # First acknowledge the interaction to prevent timeouts
             await interaction.response.defer()
             
+            debug_logger.info(f"Processing inventory command for user ID: {interaction.user.id}")
+            
             # Use app context for database operations
             with self.app.app_context():
                 inventory_items = Inventory.query.filter_by(
                     user_id=str(interaction.user.id)
                 ).all()
+                
+                debug_logger.info(f"Found {len(inventory_items)} inventory items")
 
                 if not inventory_items:
+                    debug_logger.info("User has empty inventory")
                     await interaction.followup.send(
                         embed=create_error_embed("Inventory", "Your inventory is empty"),
                         ephemeral=True
@@ -1002,12 +1252,14 @@ class Economy(commands.Cog):
                 )
 
                 for inv in inventory_items:
+                    debug_logger.info(f"Adding item to embed: {inv.item.name}, quantity: {inv.quantity}")
                     embed.add_field(
                         name=f"{inv.item.emoji} {inv.item.name} x{inv.quantity}",
                         value=inv.item.description,
                         inline=False
                     )
 
+                debug_logger.info("Sending inventory response")
                 await interaction.followup.send(embed=embed)
         except Exception as e:
             logger.error(f"Error in inventory command: {str(e)}")
