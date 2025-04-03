@@ -37,13 +37,19 @@ COLORS = {
     "WHITE": 0xFFFFFF       # White
 }
 
-# Bot status messages
+# Bot status messages for c00lkidd
 STATUS_MESSAGES = [
-    "Looking for survivors",
     "Ready or not, here I come!",
     "Tag! You're it!",
     "Watching dad's house",
-    "Finding new friends",
+    "Making new friends *giggles*",
     "Giggling in the shadows",
-    "Playing hide and seek"
+    "Playing hide and seek",
+    "Eating dirt cake! Yummy!",
+    "This one's on the house!",
+    "Come out, come out, wherever you are!",
+    "Counting to 10! 1...2...3...",
+    "Looking for playmates",
+    "Dad says I'm a good boy!",
+    "I'M IT! I'M IT!"
 ]
