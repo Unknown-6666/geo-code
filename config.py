@@ -8,12 +8,14 @@ logger = logging.getLogger('discord')
 # Bot configuration
 DEFAULT_PREFIX = "!"
 TOKEN = os.getenv("DISCORD_TOKEN")
-if not TOKEN:
-    raise ValueError("No Discord token found in environment variables")
+# We'll handle missing token errors gracefully in main.py and deploy.py instead of raising exceptions
+# This allows the web dashboard to still function even if the bot can't start
 
 # AI configuration
-GOOGLE_API_KEY = os.getenv("GOOGLE_API", "AIzaSyC2s3PLPvGtfQloUfkyKmMSTULGob9NpAE")
+GOOGLE_API_KEY = os.getenv("GOOGLE_AI_API_KEY") or os.getenv("GOOGLE_API")
 USE_GOOGLE_AI = bool(GOOGLE_API_KEY)
+# This flag is set in main.py if we need to use fallback mode
+USE_AI_FALLBACK = os.getenv("USE_AI_FALLBACK", "false").lower() == "true"
 
 # Bot owner and permission configuration
 BOT_OWNER_IDS = (1003686821600960582, 1296213550917881856, 1170566628585504895)  # Your Discord IDs
