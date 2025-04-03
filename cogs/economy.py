@@ -85,16 +85,31 @@ class Economy(commands.Cog):
             debug_logger.error(f"Traceback: {traceback.format_exc()}")
             db.session.rollback()
 
-    async def get_user_economy(self, user_id: str) -> UserEconomy:
-        """Get or create user economy profile"""
+    async def get_user_economy(self, user_id: str, username: str = None, display_name: str = None) -> UserEconomy:
+        """Get or create user economy profile with username and display name"""
         try:
             debug_logger.info(f"get_user_economy called for user_id: {user_id}")
+            
+            # Try to get user data from Discord if not provided
+            if username is None or display_name is None:
+                try:
+                    user_obj = await self.bot.fetch_user(int(user_id))
+                    if username is None:
+                        username = user_obj.name
+                    if display_name is None:
+                        display_name = user_obj.display_name
+                    debug_logger.info(f"Fetched Discord user data: {username} / {display_name}")
+                except Exception as e:
+                    debug_logger.warning(f"Could not fetch Discord user data: {str(e)}")
+            
             with self.app.app_context():
                 user = UserEconomy.query.filter_by(user_id=str(user_id)).first()
                 if not user:
-                    debug_logger.info(f"Creating new economy profile for user {user_id}")
+                    debug_logger.info(f"Creating new economy profile for user {user_id} ({username})")
                     user = UserEconomy(
                         user_id=str(user_id),
+                        username=username,
+                        display_name=display_name,
                         wallet=0,
                         bank=0,
                         bank_capacity=1000
@@ -104,7 +119,16 @@ class Economy(commands.Cog):
                     db.session.commit()
                     debug_logger.info("New user profile created successfully")
                 else:
-                    debug_logger.info(f"Found existing profile - wallet: {user.wallet}, bank: {user.bank}, capacity: {user.bank_capacity}")
+                    # Update username and display_name if changed
+                    if (username and user.username != username) or (display_name and user.display_name != display_name):
+                        debug_logger.info(f"Updating user data: {user.username} -> {username}, {user.display_name} -> {display_name}")
+                        if username:
+                            user.username = username
+                        if display_name:
+                            user.display_name = display_name
+                        db.session.commit()
+                    
+                    debug_logger.info(f"Found profile for {user.display_identifier} - wallet: {user.wallet}, bank: {user.bank}")
                 return user
         except Exception as e:
             debug_logger.error(f"Error in get_user_economy: {str(e)}")
@@ -128,8 +152,16 @@ class Economy(commands.Cog):
                 return
 
             # Get both user profiles
-            robber = await self.get_user_economy(interaction.user.id)
-            victim = await self.get_user_economy(target.id)
+            robber = await self.get_user_economy(
+                str(interaction.user.id),
+                username=interaction.user.name,
+                display_name=interaction.user.display_name
+            )
+            victim = await self.get_user_economy(
+                str(target.id),
+                username=target.name,
+                display_name=target.display_name
+            )
 
             # Check cooldown (1 hour)
             now = datetime.utcnow()
@@ -177,11 +209,15 @@ class Economy(commands.Cog):
                     # Record transactions
                     transaction1 = Transaction(
                         user_id=str(interaction.user.id),
+                        username=interaction.user.name,
+                        display_name=interaction.user.display_name,
                         amount=amount,
                         description=f"Stole {amount} coins from {target.name}"
                     )
                     transaction2 = Transaction(
                         user_id=str(target.id),
+                        username=target.name,
+                        display_name=target.display_name,
                         amount=-amount,
                         description=f"Got robbed by {interaction.user.name}"
                     )
@@ -201,6 +237,8 @@ class Economy(commands.Cog):
                     # Record transaction
                     transaction = Transaction(
                         user_id=str(interaction.user.id),
+                        username=interaction.user.name, 
+                        display_name=interaction.user.display_name,
                         amount=-fine,
                         description="Fine for failed robbery attempt"
                     )
@@ -227,7 +265,11 @@ class Economy(commands.Cog):
     async def balance_prefix(self, ctx):
         """Check your wallet and bank balance (prefix version)"""
         try:
-            user = await self.get_user_economy(ctx.author.id)
+            user = await self.get_user_economy(
+                str(ctx.author.id),
+                username=ctx.author.name,
+                display_name=ctx.author.display_name
+            )
             embed = create_embed(
                 "💰 Balance",
                 f"Wallet: {user.wallet} coins\nBank: {user.bank}/{user.bank_capacity} coins"
@@ -246,37 +288,17 @@ class Economy(commands.Cog):
             
             debug_logger.info(f"Processing balance command for user ID: {interaction.user.id}")
             
-            # Query database directly inside app context for fresh data
-            wallet = 0
-            bank = 0
-            bank_capacity = 1000
+            # Get up-to-date user data with username
+            user = await self.get_user_economy(
+                str(interaction.user.id),
+                username=interaction.user.name,
+                display_name=interaction.user.display_name
+            )
             
-            with self.app.app_context():
-                user = UserEconomy.query.filter_by(user_id=str(interaction.user.id)).first()
-                if not user:
-                    debug_logger.info(f"Creating new economy profile for user {interaction.user.id}")
-                    user = UserEconomy(
-                        user_id=str(interaction.user.id),
-                        wallet=0,
-                        bank=0,
-                        bank_capacity=1000
-                    )
-                    db.session.add(user)
-                    debug_logger.info("Committing new user profile")
-                    db.session.commit()
-                    # Re-fetch the user to ensure we have the latest data
-                    user = UserEconomy.query.filter_by(user_id=str(interaction.user.id)).first()
-                
-                # Store values locally to avoid session issues
-                wallet = user.wallet
-                bank = user.bank
-                bank_capacity = user.bank_capacity
-                debug_logger.info(f"User balance - wallet: {wallet}, bank: {bank}, capacity: {bank_capacity}")
-            
-            # Use the local variables instead of the user object (which might be detached from session)
+            # Use the display identifier for a more personalized message
             embed = create_embed(
                 "💰 Balance",
-                f"Wallet: {wallet} coins\nBank: {bank}/{bank_capacity} coins"
+                f"**User**: {user.display_identifier}\n**ID**: {user.user_id}\n\n**Wallet**: {user.wallet} coins\n**Bank**: {user.bank}/{user.bank_capacity} coins"
             )
             await interaction.followup.send(embed=embed)
         except Exception as e:
@@ -292,7 +314,11 @@ class Economy(commands.Cog):
     async def daily_prefix(self, ctx):
         """Collect daily rewards (prefix version)"""
         try:
-            user = await self.get_user_economy(ctx.author.id)
+            user = await self.get_user_economy(
+                str(ctx.author.id),
+                username=ctx.author.name,
+                display_name=ctx.author.display_name
+            )
             
             now = datetime.utcnow()
             if user.last_daily and now - user.last_daily < timedelta(days=1):
@@ -315,6 +341,8 @@ class Economy(commands.Cog):
                 # Record transaction
                 transaction = Transaction(
                     user_id=str(ctx.author.id),
+                    username=ctx.author.name,
+                    display_name=ctx.author.display_name,
                     amount=reward,
                     description="Daily reward"
                 )
@@ -381,6 +409,8 @@ class Economy(commands.Cog):
                 # Record transaction
                 transaction = Transaction(
                     user_id=str(interaction.user.id),
+                    username=interaction.user.name,
+                    display_name=interaction.user.display_name,
                     amount=reward,
                     description="Daily reward"
                 )
@@ -414,7 +444,11 @@ class Economy(commands.Cog):
     async def work_prefix(self, ctx):
         """Work to earn coins (prefix version)"""
         try:
-            user = await self.get_user_economy(ctx.author.id)
+            user = await self.get_user_economy(
+                str(ctx.author.id),
+                username=ctx.author.name,
+                display_name=ctx.author.display_name
+            )
             
             now = datetime.utcnow()
             if user.last_work and now - user.last_work < timedelta(hours=1):
@@ -436,6 +470,8 @@ class Economy(commands.Cog):
                 # Record transaction
                 transaction = Transaction(
                     user_id=str(ctx.author.id),
+                    username=ctx.author.name,
+                    display_name=ctx.author.display_name,
                     amount=earnings,
                     description="Work earnings"
                 )
@@ -508,6 +544,8 @@ class Economy(commands.Cog):
                     # Record transaction
                     transaction = Transaction(
                         user_id=str(interaction.user.id),
+                        username=interaction.user.name,
+                        display_name=interaction.user.display_name,
                         amount=earnings,
                         description="Work earnings"
                     )
@@ -554,7 +592,11 @@ class Economy(commands.Cog):
                 )
                 return
                 
-            user = await self.get_user_economy(ctx.author.id)
+            user = await self.get_user_economy(
+                str(ctx.author.id),
+                username=ctx.author.name,
+                display_name=ctx.author.display_name
+            )
             
             if amount > user.wallet:
                 await ctx.send(
@@ -573,6 +615,16 @@ class Economy(commands.Cog):
             with self.app.app_context():
                 user.wallet -= amount
                 user.bank += amount
+                
+                # Record transaction
+                transaction = Transaction(
+                    user_id=str(ctx.author.id),
+                    username=ctx.author.name,
+                    display_name=ctx.author.display_name,
+                    amount=amount,
+                    description="Bank deposit"
+                )
+                db.session.add(transaction)
                 db.session.commit()
                 
             embed = create_embed(
@@ -643,6 +695,8 @@ class Economy(commands.Cog):
                 # Record transaction
                 transaction = Transaction(
                     user_id=str(interaction.user.id),
+                    username=interaction.user.name,
+                    display_name=interaction.user.display_name,
                     amount=amount,
                     description="Bank deposit"
                 )
@@ -682,7 +736,11 @@ class Economy(commands.Cog):
                 )
                 return
                 
-            user = await self.get_user_economy(ctx.author.id)
+            user = await self.get_user_economy(
+                str(ctx.author.id),
+                username=ctx.author.name,
+                display_name=ctx.author.display_name
+            )
             
             if amount > user.bank:
                 await ctx.send(
@@ -694,6 +752,16 @@ class Economy(commands.Cog):
             with self.app.app_context():
                 user.bank -= amount
                 user.wallet += amount
+                
+                # Record transaction
+                transaction = Transaction(
+                    user_id=str(ctx.author.id),
+                    username=ctx.author.name,
+                    display_name=ctx.author.display_name,
+                    amount=amount,
+                    description="Bank withdrawal"
+                )
+                db.session.add(transaction)
                 db.session.commit()
                 
             embed = create_embed(
@@ -755,6 +823,8 @@ class Economy(commands.Cog):
                 # Record transaction
                 transaction = Transaction(
                     user_id=str(interaction.user.id),
+                    username=interaction.user.name,
+                    display_name=interaction.user.display_name,
                     amount=amount,
                     description="Bank withdrawal"
                 )
@@ -856,6 +926,8 @@ class Economy(commands.Cog):
                 # Record transaction
                 transaction = Transaction(
                     user_id=str(interaction.user.id),
+                    username=interaction.user.name,
+                    display_name=interaction.user.display_name,
                     amount=amount if won else -amount,
                     description=f"Coinflip: {'won' if won else 'lost'}"
                 )
@@ -960,6 +1032,8 @@ class Economy(commands.Cog):
                 # Record transaction
                 transaction = Transaction(
                     user_id=str(interaction.user.id),
+                    username=interaction.user.name,
+                    display_name=interaction.user.display_name,
                     amount=winnings - amount,
                     description="Slots game"
                 )
@@ -1081,7 +1155,11 @@ class Economy(commands.Cog):
                     )
                     return
                     
-                user = await self.get_user_economy(ctx.author.id)
+                user = await self.get_user_economy(
+                    str(ctx.author.id),
+                    username=ctx.author.name,
+                    display_name=ctx.author.display_name
+                )
                 if user.wallet < item.price:
                     await ctx.send(
                         embed=create_error_embed("Error", "You don't have enough coins to buy this item")
@@ -1099,6 +1177,8 @@ class Economy(commands.Cog):
                 else:
                     inventory = Inventory(
                         user_id=str(ctx.author.id),
+                        username=ctx.author.name,
+                        display_name=ctx.author.display_name,
                         item_id=item.id,
                         quantity=1
                     )
@@ -1110,6 +1190,8 @@ class Economy(commands.Cog):
                 # Record transaction
                 transaction = Transaction(
                     user_id=str(ctx.author.id),
+                    username=ctx.author.name,
+                    display_name=ctx.author.display_name,
                     amount=-item.price,
                     description=f"Bought {item.name}"
                 )
@@ -1187,6 +1269,8 @@ class Economy(commands.Cog):
                 else:
                     inventory = Inventory(
                         user_id=str(interaction.user.id),
+                        username=interaction.user.name,
+                        display_name=interaction.user.display_name,
                         item_id=item.id,
                         quantity=1
                     )
@@ -1200,6 +1284,8 @@ class Economy(commands.Cog):
                 # Record transaction
                 transaction = Transaction(
                     user_id=str(interaction.user.id),
+                    username=interaction.user.name,
+                    display_name=interaction.user.display_name,
                     amount=-item.price,
                     description=f"Bought {item.name}"
                 )
