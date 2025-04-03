@@ -1,8 +1,10 @@
 """
-Vertex AI Client Module for Discord Bot
+DEPRECATED: Vertex AI Client Module for Discord Bot
 
-This module provides a client for interacting with Google's Vertex AI API.
-It handles authentication, conversation formatting, and API requests.
+This module is no longer used by the bot. The AI functionality has been updated
+to use Google's Gemini 1.5 Pro API directly instead of through Vertex AI.
+
+Do not use this module for new development.
 """
 
 import os
