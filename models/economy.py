@@ -6,6 +6,8 @@ class UserEconomy(db.Model):
     __tablename__ = 'user_economy'
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.String(20), unique=True, nullable=False)
+    username = db.Column(db.String(100), nullable=True)  # Store Discord username
+    display_name = db.Column(db.String(100), nullable=True)  # Store display name/nickname
     wallet = db.Column(db.Integer, default=0)
     bank = db.Column(db.Integer, default=0)
     bank_capacity = db.Column(db.Integer, default=1000)
@@ -20,6 +22,16 @@ class UserEconomy(db.Model):
     def total_balance(self):
         """Get total balance (wallet + bank)"""
         return self.wallet + self.bank
+        
+    @property
+    def display_identifier(self):
+        """Get a user-friendly display identifier"""
+        if self.username and self.display_name:
+            return f"{self.display_name} ({self.username})"
+        elif self.username:
+            return f"{self.username}"
+        else:
+            return f"User {self.user_id}"
 
 class Item(db.Model):
     __tablename__ = 'item'
@@ -37,6 +49,8 @@ class Inventory(db.Model):
     __tablename__ = 'inventory'
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.String(20), nullable=False)
+    username = db.Column(db.String(100), nullable=True)  # Store Discord username
+    display_name = db.Column(db.String(100), nullable=True)  # Store display name/nickname
     item_id = db.Column(db.Integer, db.ForeignKey('item.id'), nullable=False)
     quantity = db.Column(db.Integer, default=1)
 
@@ -47,11 +61,23 @@ class Inventory(db.Model):
     __table_args__ = (
         Index('idx_inventory_user_item', 'user_id', 'item_id'),
     )
+    
+    @property
+    def display_identifier(self):
+        """Get a user-friendly display identifier"""
+        if self.username and self.display_name:
+            return f"{self.display_name} ({self.username})"
+        elif self.username:
+            return f"{self.username}"
+        else:
+            return f"User {self.user_id}"
 
 class Transaction(db.Model):
     __tablename__ = 'transaction'
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.String(20), nullable=False)
+    username = db.Column(db.String(100), nullable=True)  # Store Discord username
+    display_name = db.Column(db.String(100), nullable=True)  # Store display name/nickname
     amount = db.Column(db.Integer, nullable=False)
     description = db.Column(db.String(200))
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
@@ -60,6 +86,16 @@ class Transaction(db.Model):
     __table_args__ = (
         Index('idx_transaction_user_timestamp', 'user_id', 'timestamp'),
     )
+    
+    @property
+    def display_identifier(self):
+        """Get a user-friendly display identifier"""
+        if self.username and self.display_name:
+            return f"{self.display_name} ({self.username})"
+        elif self.username:
+            return f"{self.username}"
+        else:
+            return f"User {self.user_id}"
 
 def initialize_shop():
     """Initialize the shop with default items"""
