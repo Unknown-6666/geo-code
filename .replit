@@ -7,6 +7,9 @@ channel = "stable-24_05"
 deploymentTarget = "gce"
 run = ["sh", "-c", "python main.py"]
 
+[env]
+REPLIT_DISABLE_PACKAGE_LAYER = "1"
+
 [workflows]
 runButton = "Run Discord Bot"
 
