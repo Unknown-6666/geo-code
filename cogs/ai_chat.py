@@ -659,6 +659,137 @@ class AIChat(commands.Cog):
                 embed=create_error_embed("Error", f"Failed to reload AI preferences: {str(e)}"),
                 ephemeral=True
             )
+            
+    @commands.command(name="toggle_personality")
+    @commands.has_permissions(administrator=True)
+    async def toggle_personality_prefix(self, ctx):
+        """Cycle between childlike, neutral, and threatening AI personality modes (prefix version, Admin only)"""
+        try:
+            # Cycle to the next personality mode
+            new_mode_id = ai_preferences.cycle_personality_mode()
+            current_mode = ai_preferences.get_current_personality_mode()
+            
+            # Create appropriate embed based on the new mode
+            if new_mode_id == ai_preferences.CHILDLIKE:
+                # Childlike mode activated
+                embed = create_embed(
+                    "😊 AI Personality Changed",
+                    f"AI personality switched to **{current_mode}** mode.",
+                    color=0xFF3333  # Original c00lkidd color
+                )
+                embed.add_field(
+                    name="Mode Description", 
+                    value="c00lkidd will now be more childlike and playful in its responses, with innocent but slightly creepy undertones.",
+                    inline=False
+                )
+            
+            elif new_mode_id == ai_preferences.NEUTRAL:
+                # Neutral mode activated
+                embed = create_embed(
+                    "😐 AI Personality Changed",
+                    f"AI personality switched to **{current_mode}** mode.",
+                    color=0x3498DB  # Blue for neutral
+                )
+                embed.add_field(
+                    name="Mode Description", 
+                    value="c00lkidd will now be more balanced and neutral in its responses, neither overly childish nor threatening.",
+                    inline=False
+                )
+                
+            elif new_mode_id == ai_preferences.THREATENING:
+                # Threatening mode activated
+                embed = create_embed(
+                    "🔥 AI Personality Changed",
+                    f"AI personality switched to **{current_mode}** mode.",
+                    color=0xFF0000  # Red for threatening
+                )
+                embed.add_field(
+                    name="Mode Description", 
+                    value="c00lkidd will now be more menacing and threatening in its responses, with darker undertones while maintaining childlike speech patterns.",
+                    inline=False
+                )
+                embed.add_field(
+                    name="Warning", 
+                    value="Responses may be more disturbing and contain implied threats. Use with caution.",
+                    inline=False
+                )
+                
+            # Send the response
+            await ctx.send(embed=embed)
+            logger.info(f"AI personality mode cycled to {current_mode} by {ctx.author}")
+            
+        except Exception as e:
+            logger.error(f"Error changing AI personality (prefix command): {str(e)}")
+            await ctx.send(
+                embed=create_error_embed("Error", f"Failed to change AI personality: {str(e)}")
+            )
+
+    @app_commands.command(name="toggle_personality", description="Cycle between childlike, neutral, and threatening AI personalities (Admin only)")
+    @app_commands.default_permissions(administrator=True)
+    async def toggle_personality(self, interaction: discord.Interaction):
+        """Cycle between childlike, neutral, and threatening AI personality modes (Admin only)"""
+        try:
+            await interaction.response.defer(ephemeral=True)
+            
+            # Cycle to the next personality mode
+            new_mode_id = ai_preferences.cycle_personality_mode()
+            current_mode = ai_preferences.get_current_personality_mode()
+            
+            # Create appropriate embed based on the new mode
+            if new_mode_id == ai_preferences.CHILDLIKE:
+                # Childlike mode activated
+                embed = create_embed(
+                    "😊 AI Personality Changed",
+                    f"AI personality switched to **{current_mode}** mode.",
+                    color=0xFF3333  # Original c00lkidd color
+                )
+                embed.add_field(
+                    name="Mode Description", 
+                    value="c00lkidd will now be more childlike and playful in its responses, with innocent but slightly creepy undertones.",
+                    inline=False
+                )
+            
+            elif new_mode_id == ai_preferences.NEUTRAL:
+                # Neutral mode activated
+                embed = create_embed(
+                    "😐 AI Personality Changed",
+                    f"AI personality switched to **{current_mode}** mode.",
+                    color=0x3498DB  # Blue for neutral
+                )
+                embed.add_field(
+                    name="Mode Description", 
+                    value="c00lkidd will now be more balanced and neutral in its responses, neither overly childish nor threatening.",
+                    inline=False
+                )
+                
+            elif new_mode_id == ai_preferences.THREATENING:
+                # Threatening mode activated
+                embed = create_embed(
+                    "🔥 AI Personality Changed",
+                    f"AI personality switched to **{current_mode}** mode.",
+                    color=0xFF0000  # Red for threatening
+                )
+                embed.add_field(
+                    name="Mode Description", 
+                    value="c00lkidd will now be more menacing and threatening in its responses, with darker undertones while maintaining childlike speech patterns.",
+                    inline=False
+                )
+                embed.add_field(
+                    name="Warning", 
+                    value="Responses may be more disturbing and contain implied threats. Use with caution.",
+                    inline=False
+                )
+            
+            # Send the response
+            await interaction.followup.send(embed=embed, ephemeral=True)
+            logger.info(f"AI personality mode cycled to {current_mode} by {interaction.user}")
+            
+        except Exception as e:
+            logger.error(f"Error changing AI personality: {str(e)}")
+            await interaction.followup.send(
+                embed=create_error_embed("Error", f"Failed to change AI personality: {str(e)}"),
+                ephemeral=True
+            )
     
     @app_commands.command(
         name="custom_response",

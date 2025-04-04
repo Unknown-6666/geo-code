@@ -16,6 +16,14 @@ This Discord bot supports both slash commands (`/command`) and traditional prefi
 | `/clear_chat_history` | `!clear_history` | Clear your conversation history with the AI |
 | `/show_chat_history` | `!history` | Show your recent conversation with the AI |
 
+## Admin Commands
+
+| Slash Command | Prefix Command | Description |
+|--------------|---------------|-------------|
+| `/toggle_personality` | `!toggle_personality` | Cycle between childlike, neutral, and threatening AI personality modes (Admin only) |
+| `/ai_reload` | N/A | Reload AI preferences from configuration files (Admin only) |
+| `/custom_response` | N/A | Manage custom AI responses (Admin only) |
+
 ## Tips for Using the AI
 
 ### The Difference Between Ask and Chat
@@ -59,3 +67,26 @@ The AI cannot:
 - Access server-specific information unless you provide it
 - Remember conversations from days ago (history is limited)
 - Execute commands on your behalf
+
+### Personality Modes (Admin Only)
+
+The AI has three different personality modes that admins can cycle between:
+
+1. **Childlike Mode (Default)**: 
+   - More playful and innocent with childlike speech patterns
+   - Uses giggles and playful phrases
+   - Still slightly creepy but in an innocent way
+
+2. **Neutral Mode**:
+   - More balanced and helpful with normal conversational patterns
+   - Neither overly childish nor threatening
+   - Maintains c00lkidd's character but in a more subdued, helpful manner
+   - Best for providing helpful information while staying in character
+
+3. **Threatening Mode**:
+   - More menacing and darker version of the same character
+   - Uses more unsettling language and implied threats
+   - Maintains childlike speech patterns but with an underlying sense of danger
+   - May not be appropriate for all audiences
+
+Admins can use `/toggle_personality` or `!toggle_personality` to cycle through these modes in order: Childlike → Neutral → Threatening → Childlike.
