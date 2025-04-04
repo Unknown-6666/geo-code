@@ -1,0 +1,1353 @@
+[2025-04-04 20:55:39 +0000] [593] [INFO] Starting gunicorn 23.0.0
+[2025-04-04 20:55:39 +0000] [593] [INFO] Listening at: http://0.0.0.0:5000 (593)
+[2025-04-04 20:55:39 +0000] [593] [INFO] Using worker: sync
+[2025-04-04 20:55:39 +0000] [604] [INFO] Booting worker with pid: 604
+[2025-04-04 20:55:39 +0000] [593] [INFO] Handling signal: winch
+[2025-04-04 20:55:39 +0000] [593] [INFO] Handling signal: winch
+[2025-04-04 20:55:39 +0000] [593] [INFO] Handling signal: winch
+[2025-04-04 20:55:39 +0000] [593] [INFO] Handling signal: winch
+[2025-04-04 20:55:39 +0000] [593] [INFO] Handling signal: winch
+[2025-04-04 20:55:39 +0000] [593] [INFO] Handling signal: winch
+[2025-04-04 20:55:39 +0000] [593] [INFO] Handling signal: winch
+2025-04-04 20:55:39,517 - dashboard.app - INFO - Using Replit redirect URI: https://workspace.jonahpantz.repl.co/callback
+2025-04-04 20:55:39,963 - main - INFO - Deployment mode: False
+2025-04-04 20:55:39,963 - main - INFO - Starting Discord bot thread...
+2025-04-04 20:55:39,963 - main - INFO - Discord bot thread started
+2025-04-04 20:55:39,963 - main - INFO - Web dashboard is running via Gunicorn
+2025-04-04 20:55:39,964 - main - INFO - Created main application lock file with PID 604
+ECONOMY DEBUG - Initializing database and economy system...
+2025-04-04 20:55:39,978 - economy_debug - INFO - Initializing database and economy system...
+[2025-04-04 20:55:40 +0000] [593] [INFO] Handling signal: winch
+[2025-04-04 20:55:40 +0000] [593] [INFO] Handling signal: winch
+[2025-04-04 20:55:40 +0000] [593] [INFO] Handling signal: winch
+2025-04-04 20:55:40,195 - discord - ERROR - Database initialization failed: (psycopg2.OperationalError) connection to server at "ep-super-moon-a51x0gj5.us-east-2.aws.neon.tech" (3.143.47.40), port 5432 failed: ERROR:  Console request failed: endpoint is disabled
+
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-04-04 20:55:40,195 - discord - ERROR - Attempting to continue despite database error
+[2025-04-04 20:55:40 +0000] [593] [INFO] Handling signal: winch
+[2025-04-04 20:55:40 +0000] [593] [INFO] Handling signal: winch
+[2025-04-04 20:55:40 +0000] [593] [INFO] Handling signal: winch
+[2025-04-04 20:55:40 +0000] [593] [INFO] Handling signal: winch
+[2025-04-04 20:55:40 +0000] [593] [INFO] Handling signal: winch
+[2025-04-04 20:55:40 +0000] [593] [INFO] Handling signal: winch
+[2025-04-04 20:55:40 +0000] [593] [INFO] Handling signal: winch
+[2025-04-04 20:55:40 +0000] [593] [INFO] Handling signal: winch
+[2025-04-04 20:55:40 +0000] [593] [INFO] Handling signal: winch
+[2025-04-04 20:55:40 +0000] [593] [INFO] Handling signal: winch
+[2025-04-04 20:55:40 +0000] [593] [INFO] Handling signal: winch
+[2025-04-04 20:55:40 +0000] [593] [INFO] Handling signal: winch
+[2025-04-04 20:55:40 +0000] [593] [INFO] Handling signal: winch
+2025-04-04 20:55:40,608 - googleapiclient.discovery_cache - INFO - file_cache is only supported with oauth2client<4.0.0
+2025-04-04 20:55:40,612 - google.auth.compute_engine._metadata - WARNING - Compute Engine Metadata server unavailable on attempt 1 of 3. Reason: [Errno 111] Connection refused
+2025-04-04 20:55:41,628 - google.auth.compute_engine._metadata - WARNING - Compute Engine Metadata server unavailable on attempt 2 of 3. Reason: [Errno 111] Connection refused
+2025-04-04 20:55:43,595 - google.auth.compute_engine._metadata - WARNING - Compute Engine Metadata server unavailable on attempt 3 of 3. Reason: [Errno 111] Connection refused
+2025-04-04 20:55:43,597 - google.auth.compute_engine._metadata - WARNING - Compute Engine Metadata server unavailable on attempt 1 of 5. Reason: [Errno -2] Name or service not known
+2025-04-04 20:55:44,663 - google.auth.compute_engine._metadata - WARNING - Compute Engine Metadata server unavailable on attempt 2 of 5. Reason: [Errno -2] Name or service not known
+2025-04-04 20:55:46,513 - google.auth.compute_engine._metadata - WARNING - Compute Engine Metadata server unavailable on attempt 3 of 5. Reason: [Errno -2] Name or service not known
+2025-04-04 20:55:50,650 - google.auth.compute_engine._metadata - WARNING - Compute Engine Metadata server unavailable on attempt 4 of 5. Reason: [Errno -2] Name or service not known
+2025-04-04 20:55:59,151 - google.auth.compute_engine._metadata - WARNING - Compute Engine Metadata server unavailable on attempt 5 of 5. Reason: [Errno -2] Name or service not known
+ECONOMY DEBUG - Starting Economy cog setup...
+ECONOMY DEBUG - Starting Economy cog setup...
+2025-04-04 20:55:59,161 - economy_debug - INFO - Starting Economy cog setup...
+ECONOMY DEBUG - Creating Economy cog instance...
+ECONOMY DEBUG - Creating Economy cog instance...
+2025-04-04 20:55:59,162 - economy_debug - INFO - Creating Economy cog instance...
+ECONOMY DEBUG - Error in Economy cog setup: (psycopg2.OperationalError) connection to server at "ep-super-moon-a51x0gj5.us-east-2.aws.neon.tech" (3.23.186.13), port 5432 failed: ERROR:  Console request failed: endpoint is disabled
+
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+ECONOMY DEBUG - Error in Economy cog setup: (psycopg2.OperationalError) connection to server at "ep-super-moon-a51x0gj5.us-east-2.aws.neon.tech" (3.23.186.13), port 5432 failed: ERROR:  Console request failed: endpoint is disabled
+
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-04-04 20:55:59,372 - economy_debug - ERROR - Error in Economy cog setup: (psycopg2.OperationalError) connection to server at "ep-super-moon-a51x0gj5.us-east-2.aws.neon.tech" (3.23.186.13), port 5432 failed: ERROR:  Console request failed: endpoint is disabled
+
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+ECONOMY DEBUG - Traceback: Traceback (most recent call last):
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 146, in __init__
+    self._dbapi_connection = engine.raw_connection()
+                             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 3298, in raw_connection
+    return self.pool.connect()
+           ^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 449, in connect
+    return _ConnectionFairy._checkout(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 1264, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 713, in checkout
+    rec = pool._do_get()
+          ^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/impl.py", line 179, in _do_get
+    with util.safe_reraise():
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/util/langhelpers.py", line 146, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/impl.py", line 177, in _do_get
+    return self._create_connection()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 390, in _create_connection
+    return _ConnectionRecord(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 675, in __init__
+    self.__connect()
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 901, in __connect
+    with util.safe_reraise():
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/util/langhelpers.py", line 146, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 897, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/create.py", line 646, in connect
+    return dialect.connect(*cargs, **cparams)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/default.py", line 622, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/psycopg2/__init__.py", line 122, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.OperationalError: connection to server at "ep-super-moon-a51x0gj5.us-east-2.aws.neon.tech" (3.23.186.13), port 5432 failed: ERROR:  Console request failed: endpoint is disabled
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/runner/workspace/cogs/economy.py", line 1402, in setup
+    economy_cog = Economy(bot)
+                  ^^^^^^^^^^^^
+  File "/home/runner/workspace/cogs/economy.py", line 26, in __init__
+    from app import app
+  File "/home/runner/workspace/app.py", line 22, in <module>
+    db.create_all()
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask_sqlalchemy/extension.py", line 900, in create_all
+    self._call_for_binds(bind_key, "create_all")
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask_sqlalchemy/extension.py", line 881, in _call_for_binds
+    getattr(metadata, op_name)(bind=engine)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/sql/schema.py", line 5907, in create_all
+    bind._run_ddl_visitor(
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 3248, in _run_ddl_visitor
+    with self.begin() as conn:
+  File "/nix/store/clx0mcir7qw8zk36zbr4jra789g3knf6-python3-3.11.10/lib/python3.11/contextlib.py", line 137, in __enter__
+    return next(self.gen)
+           ^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 3238, in begin
+    with self.connect() as conn:
+         ^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 3274, in connect
+    return self._connection_cls(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 148, in __init__
+    Connection._handle_dbapi_exception_noconnection(
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 2439, in _handle_dbapi_exception_noconnection
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 146, in __init__
+    self._dbapi_connection = engine.raw_connection()
+                             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 3298, in raw_connection
+    return self.pool.connect()
+           ^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 449, in connect
+    return _ConnectionFairy._checkout(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 1264, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 713, in checkout
+    rec = pool._do_get()
+          ^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/impl.py", line 179, in _do_get
+    with util.safe_reraise():
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/util/langhelpers.py", line 146, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/impl.py", line 177, in _do_get
+    return self._create_connection()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 390, in _create_connection
+    return _ConnectionRecord(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 675, in __init__
+    self.__connect()
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 901, in __connect
+    with util.safe_reraise():
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/util/langhelpers.py", line 146, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 897, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/create.py", line 646, in connect
+    return dialect.connect(*cargs, **cparams)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/default.py", line 622, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/psycopg2/__init__.py", line 122, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+sqlalchemy.exc.OperationalError: (psycopg2.OperationalError) connection to server at "ep-super-moon-a51x0gj5.us-east-2.aws.neon.tech" (3.23.186.13), port 5432 failed: ERROR:  Console request failed: endpoint is disabled
+
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+
+ECONOMY DEBUG - Traceback: Traceback (most recent call last):
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 146, in __init__
+    self._dbapi_connection = engine.raw_connection()
+                             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 3298, in raw_connection
+    return self.pool.connect()
+           ^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 449, in connect
+    return _ConnectionFairy._checkout(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 1264, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 713, in checkout
+    rec = pool._do_get()
+          ^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/impl.py", line 179, in _do_get
+    with util.safe_reraise():
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/util/langhelpers.py", line 146, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/impl.py", line 177, in _do_get
+    return self._create_connection()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 390, in _create_connection
+    return _ConnectionRecord(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 675, in __init__
+    self.__connect()
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 901, in __connect
+    with util.safe_reraise():
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/util/langhelpers.py", line 146, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 897, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/create.py", line 646, in connect
+    return dialect.connect(*cargs, **cparams)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/default.py", line 622, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/psycopg2/__init__.py", line 122, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.OperationalError: connection to server at "ep-super-moon-a51x0gj5.us-east-2.aws.neon.tech" (3.23.186.13), port 5432 failed: ERROR:  Console request failed: endpoint is disabled
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/runner/workspace/cogs/economy.py", line 1402, in setup
+    economy_cog = Economy(bot)
+                  ^^^^^^^^^^^^
+  File "/home/runner/workspace/cogs/economy.py", line 26, in __init__
+    from app import app
+  File "/home/runner/workspace/app.py", line 22, in <module>
+    db.create_all()
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask_sqlalchemy/extension.py", line 900, in create_all
+    self._call_for_binds(bind_key, "create_all")
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask_sqlalchemy/extension.py", line 881, in _call_for_binds
+    getattr(metadata, op_name)(bind=engine)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/sql/schema.py", line 5907, in create_all
+    bind._run_ddl_visitor(
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 3248, in _run_ddl_visitor
+    with self.begin() as conn:
+  File "/nix/store/clx0mcir7qw8zk36zbr4jra789g3knf6-python3-3.11.10/lib/python3.11/contextlib.py", line 137, in __enter__
+    return next(self.gen)
+           ^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 3238, in begin
+    with self.connect() as conn:
+         ^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 3274, in connect
+    return self._connection_cls(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 148, in __init__
+    Connection._handle_dbapi_exception_noconnection(
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 2439, in _handle_dbapi_exception_noconnection
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 146, in __init__
+    self._dbapi_connection = engine.raw_connection()
+                             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 3298, in raw_connection
+    return self.pool.connect()
+           ^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 449, in connect
+    return _ConnectionFairy._checkout(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 1264, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 713, in checkout
+    rec = pool._do_get()
+          ^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/impl.py", line 179, in _do_get
+    with util.safe_reraise():
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/util/langhelpers.py", line 146, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/impl.py", line 177, in _do_get
+    return self._create_connection()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 390, in _create_connection
+    return _ConnectionRecord(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 675, in __init__
+    self.__connect()
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 901, in __connect
+    with util.safe_reraise():
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/util/langhelpers.py", line 146, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 897, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/create.py", line 646, in connect
+    return dialect.connect(*cargs, **cparams)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/default.py", line 622, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/psycopg2/__init__.py", line 122, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+sqlalchemy.exc.OperationalError: (psycopg2.OperationalError) connection to server at "ep-super-moon-a51x0gj5.us-east-2.aws.neon.tech" (3.23.186.13), port 5432 failed: ERROR:  Console request failed: endpoint is disabled
+
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+
+2025-04-04 20:55:59,377 - economy_debug - ERROR - Traceback: Traceback (most recent call last):
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 146, in __init__
+    self._dbapi_connection = engine.raw_connection()
+                             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 3298, in raw_connection
+    return self.pool.connect()
+           ^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 449, in connect
+    return _ConnectionFairy._checkout(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 1264, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 713, in checkout
+    rec = pool._do_get()
+          ^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/impl.py", line 179, in _do_get
+    with util.safe_reraise():
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/util/langhelpers.py", line 146, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/impl.py", line 177, in _do_get
+    return self._create_connection()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 390, in _create_connection
+    return _ConnectionRecord(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 675, in __init__
+    self.__connect()
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 901, in __connect
+    with util.safe_reraise():
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/util/langhelpers.py", line 146, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 897, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/create.py", line 646, in connect
+    return dialect.connect(*cargs, **cparams)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/default.py", line 622, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/psycopg2/__init__.py", line 122, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.OperationalError: connection to server at "ep-super-moon-a51x0gj5.us-east-2.aws.neon.tech" (3.23.186.13), port 5432 failed: ERROR:  Console request failed: endpoint is disabled
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/runner/workspace/cogs/economy.py", line 1402, in setup
+    economy_cog = Economy(bot)
+                  ^^^^^^^^^^^^
+  File "/home/runner/workspace/cogs/economy.py", line 26, in __init__
+    from app import app
+  File "/home/runner/workspace/app.py", line 22, in <module>
+    db.create_all()
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask_sqlalchemy/extension.py", line 900, in create_all
+    self._call_for_binds(bind_key, "create_all")
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask_sqlalchemy/extension.py", line 881, in _call_for_binds
+    getattr(metadata, op_name)(bind=engine)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/sql/schema.py", line 5907, in create_all
+    bind._run_ddl_visitor(
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 3248, in _run_ddl_visitor
+    with self.begin() as conn:
+  File "/nix/store/clx0mcir7qw8zk36zbr4jra789g3knf6-python3-3.11.10/lib/python3.11/contextlib.py", line 137, in __enter__
+    return next(self.gen)
+           ^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 3238, in begin
+    with self.connect() as conn:
+         ^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 3274, in connect
+    return self._connection_cls(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 148, in __init__
+    Connection._handle_dbapi_exception_noconnection(
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 2439, in _handle_dbapi_exception_noconnection
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 146, in __init__
+    self._dbapi_connection = engine.raw_connection()
+                             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 3298, in raw_connection
+    return self.pool.connect()
+           ^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 449, in connect
+    return _ConnectionFairy._checkout(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 1264, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 713, in checkout
+    rec = pool._do_get()
+          ^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/impl.py", line 179, in _do_get
+    with util.safe_reraise():
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/util/langhelpers.py", line 146, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/impl.py", line 177, in _do_get
+    return self._create_connection()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 390, in _create_connection
+    return _ConnectionRecord(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 675, in __init__
+    self.__connect()
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 901, in __connect
+    with util.safe_reraise():
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/util/langhelpers.py", line 146, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 897, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/create.py", line 646, in connect
+    return dialect.connect(*cargs, **cparams)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/default.py", line 622, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/psycopg2/__init__.py", line 122, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+sqlalchemy.exc.OperationalError: (psycopg2.OperationalError) connection to server at "ep-super-moon-a51x0gj5.us-east-2.aws.neon.tech" (3.23.186.13), port 5432 failed: ERROR:  Console request failed: endpoint is disabled
+
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+
+2025-04-04 20:55:59,379 - discord - ERROR - Error in setup: Extension 'cogs.economy' raised an error: OperationalError: (psycopg2.OperationalError) connection to server at "ep-super-moon-a51x0gj5.us-east-2.aws.neon.tech" (3.23.186.13), port 5432 failed: ERROR:  Console request failed: endpoint is disabled
+
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+Logged in as SCP-079
+Bot ID: 1357184612975247551
+------
+[2025-04-04 20:56:02 +0000] [593] [INFO] Handling signal: winch
+2025-04-04 20:58:20,423 - discord.client - ERROR - Ignoring exception in on_member_remove
+Traceback (most recent call last):
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/discord/client.py", line 481, in _run_event
+    await coro(*args, **kwargs)
+  File "/home/runner/workspace/cogs/member_events.py", line 33, in on_member_remove
+    await channel.send(embed=embed)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/discord/abc.py", line 1644, in send
+    data = await state.http.send_message(channel.id, params=params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/discord/http.py", line 756, in request
+    raise Forbidden(response, data)
+discord.errors.Forbidden: 403 Forbidden (error code: 50001): Missing Access
+2025-04-04 20:59:22,281 - discord.client - ERROR - Ignoring exception in on_member_remove
+Traceback (most recent call last):
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/discord/client.py", line 481, in _run_event
+    await coro(*args, **kwargs)
+  File "/home/runner/workspace/cogs/member_events.py", line 33, in on_member_remove
+    await channel.send(embed=embed)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/discord/abc.py", line 1644, in send
+    data = await state.http.send_message(channel.id, params=params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/discord/http.py", line 756, in request
+    raise Forbidden(response, data)
+discord.errors.Forbidden: 403 Forbidden (error code: 50001): Missing Access
+[2025-04-04 21:02:00 +0000] [604] [INFO] Worker reloading: /home/runner/workspace/bot.py modified
+[2025-04-04 21:02:00 +0000] [604] [INFO] Worker exiting (pid: 604)
+[2025-04-04 21:02:00 +0000] [1064] [INFO] Booting worker with pid: 1064
+2025-04-04 21:02:00,491 - dashboard.app - INFO - Using Replit redirect URI: https://workspace.jonahpantz.repl.co/callback
+[2025-04-04 21:02:00 +0000] [1064] [ERROR] invalid syntax (bot.py, line 127)
+Traceback (most recent call last):
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/gunicorn/workers/base.py", line 147, in load_wsgi
+    self.wsgi = self.app.wsgi()
+                ^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/gunicorn/app/base.py", line 66, in wsgi
+    self.callable = self.load()
+                    ^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 57, in load
+    return self.load_wsgiapp()
+           ^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 47, in load_wsgiapp
+    return util.import_app(self.app_uri)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/gunicorn/util.py", line 370, in import_app
+    mod = importlib.import_module(module)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/nix/store/clx0mcir7qw8zk36zbr4jra789g3knf6-python3-3.11.10/lib/python3.11/importlib/__init__.py", line 126, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1204, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1176, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1147, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 690, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 940, in exec_module
+  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+  File "/home/runner/workspace/main.py", line 33, in <module>
+    import bot
+  File "/home/runner/workspace/bot.py", line 127
+    except Exception as e:
+    ^^^^^^
+SyntaxError: invalid syntax
+[2025-04-04 21:02:35 +0000] [1064] [INFO] Worker reloading: /home/runner/workspace/bot.py modified
+[2025-04-04 21:02:35 +0000] [1064] [INFO] Worker exiting (pid: 1064)
+[2025-04-04 21:02:36 +0000] [1113] [INFO] Booting worker with pid: 1113
+2025-04-04 21:02:36,251 - dashboard.app - INFO - Using Replit redirect URI: https://workspace.jonahpantz.repl.co/callback
+2025-04-04 21:02:36,710 - main - INFO - Deployment mode: False
+2025-04-04 21:02:36,711 - main - INFO - Starting Discord bot thread...
+2025-04-04 21:02:36,712 - main - INFO - Discord bot thread started
+2025-04-04 21:02:36,712 - main - INFO - Web dashboard is running via Gunicorn
+2025-04-04 21:02:36,714 - main - INFO - Created main application lock file with PID 1113
+ECONOMY DEBUG - Initializing database and economy system...
+2025-04-04 21:02:36,731 - economy_debug - INFO - Initializing database and economy system...
+2025-04-04 21:02:37,017 - discord - ERROR - Database initialization failed: (psycopg2.OperationalError) connection to server at "ep-super-moon-a51x0gj5.us-east-2.aws.neon.tech" (3.131.64.200), port 5432 failed: ERROR:  Console request failed: endpoint is disabled
+
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-04-04 21:02:37,017 - discord - ERROR - Attempting to continue despite database error
+ECONOMY DEBUG - Starting Economy cog setup...
+ECONOMY DEBUG - Starting Economy cog setup...
+2025-04-04 21:02:38,679 - economy_debug - INFO - Starting Economy cog setup...
+ECONOMY DEBUG - Creating Economy cog instance...
+ECONOMY DEBUG - Creating Economy cog instance...
+2025-04-04 21:02:38,679 - economy_debug - INFO - Creating Economy cog instance...
+ECONOMY DEBUG - Error in Economy cog setup: (psycopg2.OperationalError) connection to server at "ep-super-moon-a51x0gj5.us-east-2.aws.neon.tech" (3.23.186.13), port 5432 failed: ERROR:  Console request failed: endpoint is disabled
+
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+ECONOMY DEBUG - Error in Economy cog setup: (psycopg2.OperationalError) connection to server at "ep-super-moon-a51x0gj5.us-east-2.aws.neon.tech" (3.23.186.13), port 5432 failed: ERROR:  Console request failed: endpoint is disabled
+
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-04-04 21:02:38,903 - economy_debug - ERROR - Error in Economy cog setup: (psycopg2.OperationalError) connection to server at "ep-super-moon-a51x0gj5.us-east-2.aws.neon.tech" (3.23.186.13), port 5432 failed: ERROR:  Console request failed: endpoint is disabled
+
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+ECONOMY DEBUG - Traceback: Traceback (most recent call last):
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 146, in __init__
+    self._dbapi_connection = engine.raw_connection()
+                             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 3298, in raw_connection
+    return self.pool.connect()
+           ^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 449, in connect
+    return _ConnectionFairy._checkout(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 1264, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 713, in checkout
+    rec = pool._do_get()
+          ^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/impl.py", line 179, in _do_get
+    with util.safe_reraise():
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/util/langhelpers.py", line 146, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/impl.py", line 177, in _do_get
+    return self._create_connection()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 390, in _create_connection
+    return _ConnectionRecord(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 675, in __init__
+    self.__connect()
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 901, in __connect
+    with util.safe_reraise():
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/util/langhelpers.py", line 146, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 897, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/create.py", line 646, in connect
+    return dialect.connect(*cargs, **cparams)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/default.py", line 622, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/psycopg2/__init__.py", line 122, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.OperationalError: connection to server at "ep-super-moon-a51x0gj5.us-east-2.aws.neon.tech" (3.23.186.13), port 5432 failed: ERROR:  Console request failed: endpoint is disabled
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/runner/workspace/cogs/economy.py", line 1402, in setup
+    economy_cog = Economy(bot)
+                  ^^^^^^^^^^^^
+  File "/home/runner/workspace/cogs/economy.py", line 26, in __init__
+    from app import app
+  File "/home/runner/workspace/app.py", line 22, in <module>
+    db.create_all()
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask_sqlalchemy/extension.py", line 900, in create_all
+    self._call_for_binds(bind_key, "create_all")
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask_sqlalchemy/extension.py", line 881, in _call_for_binds
+    getattr(metadata, op_name)(bind=engine)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/sql/schema.py", line 5907, in create_all
+    bind._run_ddl_visitor(
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 3248, in _run_ddl_visitor
+    with self.begin() as conn:
+  File "/nix/store/clx0mcir7qw8zk36zbr4jra789g3knf6-python3-3.11.10/lib/python3.11/contextlib.py", line 137, in __enter__
+    return next(self.gen)
+           ^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 3238, in begin
+    with self.connect() as conn:
+         ^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 3274, in connect
+    return self._connection_cls(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 148, in __init__
+    Connection._handle_dbapi_exception_noconnection(
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 2439, in _handle_dbapi_exception_noconnection
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 146, in __init__
+    self._dbapi_connection = engine.raw_connection()
+                             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 3298, in raw_connection
+    return self.pool.connect()
+           ^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 449, in connect
+    return _ConnectionFairy._checkout(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 1264, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 713, in checkout
+    rec = pool._do_get()
+          ^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/impl.py", line 179, in _do_get
+    with util.safe_reraise():
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/util/langhelpers.py", line 146, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/impl.py", line 177, in _do_get
+    return self._create_connection()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 390, in _create_connection
+    return _ConnectionRecord(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 675, in __init__
+    self.__connect()
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 901, in __connect
+    with util.safe_reraise():
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/util/langhelpers.py", line 146, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 897, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/create.py", line 646, in connect
+    return dialect.connect(*cargs, **cparams)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/default.py", line 622, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/psycopg2/__init__.py", line 122, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+sqlalchemy.exc.OperationalError: (psycopg2.OperationalError) connection to server at "ep-super-moon-a51x0gj5.us-east-2.aws.neon.tech" (3.23.186.13), port 5432 failed: ERROR:  Console request failed: endpoint is disabled
+
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+
+ECONOMY DEBUG - Traceback: Traceback (most recent call last):
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 146, in __init__
+    self._dbapi_connection = engine.raw_connection()
+                             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 3298, in raw_connection
+    return self.pool.connect()
+           ^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 449, in connect
+    return _ConnectionFairy._checkout(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 1264, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 713, in checkout
+    rec = pool._do_get()
+          ^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/impl.py", line 179, in _do_get
+    with util.safe_reraise():
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/util/langhelpers.py", line 146, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/impl.py", line 177, in _do_get
+    return self._create_connection()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 390, in _create_connection
+    return _ConnectionRecord(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 675, in __init__
+    self.__connect()
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 901, in __connect
+    with util.safe_reraise():
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/util/langhelpers.py", line 146, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 897, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/create.py", line 646, in connect
+    return dialect.connect(*cargs, **cparams)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/default.py", line 622, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/psycopg2/__init__.py", line 122, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.OperationalError: connection to server at "ep-super-moon-a51x0gj5.us-east-2.aws.neon.tech" (3.23.186.13), port 5432 failed: ERROR:  Console request failed: endpoint is disabled
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/runner/workspace/cogs/economy.py", line 1402, in setup
+    economy_cog = Economy(bot)
+                  ^^^^^^^^^^^^
+  File "/home/runner/workspace/cogs/economy.py", line 26, in __init__
+    from app import app
+  File "/home/runner/workspace/app.py", line 22, in <module>
+    db.create_all()
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask_sqlalchemy/extension.py", line 900, in create_all
+    self._call_for_binds(bind_key, "create_all")
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask_sqlalchemy/extension.py", line 881, in _call_for_binds
+    getattr(metadata, op_name)(bind=engine)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/sql/schema.py", line 5907, in create_all
+    bind._run_ddl_visitor(
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 3248, in _run_ddl_visitor
+    with self.begin() as conn:
+  File "/nix/store/clx0mcir7qw8zk36zbr4jra789g3knf6-python3-3.11.10/lib/python3.11/contextlib.py", line 137, in __enter__
+    return next(self.gen)
+           ^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 3238, in begin
+    with self.connect() as conn:
+         ^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 3274, in connect
+    return self._connection_cls(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 148, in __init__
+    Connection._handle_dbapi_exception_noconnection(
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 2439, in _handle_dbapi_exception_noconnection
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 146, in __init__
+    self._dbapi_connection = engine.raw_connection()
+                             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 3298, in raw_connection
+    return self.pool.connect()
+           ^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 449, in connect
+    return _ConnectionFairy._checkout(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 1264, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 713, in checkout
+    rec = pool._do_get()
+          ^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/impl.py", line 179, in _do_get
+    with util.safe_reraise():
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/util/langhelpers.py", line 146, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/impl.py", line 177, in _do_get
+    return self._create_connection()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 390, in _create_connection
+    return _ConnectionRecord(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 675, in __init__
+    self.__connect()
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 901, in __connect
+    with util.safe_reraise():
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/util/langhelpers.py", line 146, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 897, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/create.py", line 646, in connect
+    return dialect.connect(*cargs, **cparams)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/default.py", line 622, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/psycopg2/__init__.py", line 122, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+sqlalchemy.exc.OperationalError: (psycopg2.OperationalError) connection to server at "ep-super-moon-a51x0gj5.us-east-2.aws.neon.tech" (3.23.186.13), port 5432 failed: ERROR:  Console request failed: endpoint is disabled
+
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+
+2025-04-04 21:02:38,910 - economy_debug - ERROR - Traceback: Traceback (most recent call last):
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 146, in __init__
+    self._dbapi_connection = engine.raw_connection()
+                             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 3298, in raw_connection
+    return self.pool.connect()
+           ^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 449, in connect
+    return _ConnectionFairy._checkout(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 1264, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 713, in checkout
+    rec = pool._do_get()
+          ^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/impl.py", line 179, in _do_get
+    with util.safe_reraise():
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/util/langhelpers.py", line 146, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/impl.py", line 177, in _do_get
+    return self._create_connection()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 390, in _create_connection
+    return _ConnectionRecord(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 675, in __init__
+    self.__connect()
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 901, in __connect
+    with util.safe_reraise():
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/util/langhelpers.py", line 146, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 897, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/create.py", line 646, in connect
+    return dialect.connect(*cargs, **cparams)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/default.py", line 622, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/psycopg2/__init__.py", line 122, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.OperationalError: connection to server at "ep-super-moon-a51x0gj5.us-east-2.aws.neon.tech" (3.23.186.13), port 5432 failed: ERROR:  Console request failed: endpoint is disabled
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/runner/workspace/cogs/economy.py", line 1402, in setup
+    economy_cog = Economy(bot)
+                  ^^^^^^^^^^^^
+  File "/home/runner/workspace/cogs/economy.py", line 26, in __init__
+    from app import app
+  File "/home/runner/workspace/app.py", line 22, in <module>
+    db.create_all()
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask_sqlalchemy/extension.py", line 900, in create_all
+    self._call_for_binds(bind_key, "create_all")
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask_sqlalchemy/extension.py", line 881, in _call_for_binds
+    getattr(metadata, op_name)(bind=engine)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/sql/schema.py", line 5907, in create_all
+    bind._run_ddl_visitor(
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 3248, in _run_ddl_visitor
+    with self.begin() as conn:
+  File "/nix/store/clx0mcir7qw8zk36zbr4jra789g3knf6-python3-3.11.10/lib/python3.11/contextlib.py", line 137, in __enter__
+    return next(self.gen)
+           ^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 3238, in begin
+    with self.connect() as conn:
+         ^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 3274, in connect
+    return self._connection_cls(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 148, in __init__
+    Connection._handle_dbapi_exception_noconnection(
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 2439, in _handle_dbapi_exception_noconnection
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 146, in __init__
+    self._dbapi_connection = engine.raw_connection()
+                             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 3298, in raw_connection
+    return self.pool.connect()
+           ^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 449, in connect
+    return _ConnectionFairy._checkout(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 1264, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 713, in checkout
+    rec = pool._do_get()
+          ^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/impl.py", line 179, in _do_get
+    with util.safe_reraise():
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/util/langhelpers.py", line 146, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/impl.py", line 177, in _do_get
+    return self._create_connection()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 390, in _create_connection
+    return _ConnectionRecord(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 675, in __init__
+    self.__connect()
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 901, in __connect
+    with util.safe_reraise():
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/util/langhelpers.py", line 146, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 897, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/create.py", line 646, in connect
+    return dialect.connect(*cargs, **cparams)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/default.py", line 622, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/psycopg2/__init__.py", line 122, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+sqlalchemy.exc.OperationalError: (psycopg2.OperationalError) connection to server at "ep-super-moon-a51x0gj5.us-east-2.aws.neon.tech" (3.23.186.13), port 5432 failed: ERROR:  Console request failed: endpoint is disabled
+
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+
+2025-04-04 21:02:38,910 - discord - ERROR - Error loading database-dependent cog cogs.economy: Extension 'cogs.economy' raised an error: OperationalError: (psycopg2.OperationalError) connection to server at "ep-super-moon-a51x0gj5.us-east-2.aws.neon.tech" (3.23.186.13), port 5432 failed: ERROR:  Console request failed: endpoint is disabled
+
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-04-04 21:02:39,027 - googleapiclient.discovery_cache - INFO - file_cache is only supported with oauth2client<4.0.0
+2025-04-04 21:02:39,030 - google.auth.compute_engine._metadata - WARNING - Compute Engine Metadata server unavailable on attempt 1 of 3. Reason: [Errno 111] Connection refused
+2025-04-04 21:02:40,041 - google.auth.compute_engine._metadata - WARNING - Compute Engine Metadata server unavailable on attempt 2 of 3. Reason: [Errno 111] Connection refused
+2025-04-04 21:02:42,124 - google.auth.compute_engine._metadata - WARNING - Compute Engine Metadata server unavailable on attempt 3 of 3. Reason: [Errno 111] Connection refused
+2025-04-04 21:02:42,126 - google.auth.compute_engine._metadata - WARNING - Compute Engine Metadata server unavailable on attempt 1 of 5. Reason: [Errno -2] Name or service not known
+2025-04-04 21:02:43,148 - google.auth.compute_engine._metadata - WARNING - Compute Engine Metadata server unavailable on attempt 2 of 5. Reason: [Errno -2] Name or service not known
+[2025-04-04 21:02:44 +0000] [1113] [INFO] Worker reloading: /home/runner/workspace/bot.py modified
+[2025-04-04 21:02:44 +0000] [1113] [INFO] Worker exiting (pid: 1113)
+[2025-04-04 21:02:45 +0000] [1205] [INFO] Booting worker with pid: 1205
+2025-04-04 21:02:45,314 - dashboard.app - INFO - Using Replit redirect URI: https://workspace.jonahpantz.repl.co/callback
+2025-04-04 21:02:45,702 - main - INFO - Deployment mode: False
+2025-04-04 21:02:45,702 - main - INFO - Starting Discord bot thread...
+2025-04-04 21:02:45,702 - main - INFO - Discord bot thread started
+2025-04-04 21:02:45,702 - main - INFO - Web dashboard is running via Gunicorn
+2025-04-04 21:02:45,702 - main - INFO - Created main application lock file with PID 1205
+ECONOMY DEBUG - Initializing database and economy system...
+2025-04-04 21:02:45,716 - economy_debug - INFO - Initializing database and economy system...
+2025-04-04 21:02:45,936 - discord - ERROR - Database initialization failed: (psycopg2.OperationalError) connection to server at "ep-super-moon-a51x0gj5.us-east-2.aws.neon.tech" (3.131.64.200), port 5432 failed: ERROR:  Console request failed: endpoint is disabled
+
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-04-04 21:02:45,936 - discord - ERROR - Attempting to continue despite database error
+ECONOMY DEBUG - Starting Economy cog setup...
+ECONOMY DEBUG - Starting Economy cog setup...
+2025-04-04 21:02:46,522 - economy_debug - INFO - Starting Economy cog setup...
+ECONOMY DEBUG - Creating Economy cog instance...
+ECONOMY DEBUG - Creating Economy cog instance...
+2025-04-04 21:02:46,523 - economy_debug - INFO - Creating Economy cog instance...
+ECONOMY DEBUG - Error in Economy cog setup: (psycopg2.OperationalError) connection to server at "ep-super-moon-a51x0gj5.us-east-2.aws.neon.tech" (3.143.47.40), port 5432 failed: ERROR:  Console request failed: endpoint is disabled
+
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+ECONOMY DEBUG - Error in Economy cog setup: (psycopg2.OperationalError) connection to server at "ep-super-moon-a51x0gj5.us-east-2.aws.neon.tech" (3.143.47.40), port 5432 failed: ERROR:  Console request failed: endpoint is disabled
+
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-04-04 21:02:46,743 - economy_debug - ERROR - Error in Economy cog setup: (psycopg2.OperationalError) connection to server at "ep-super-moon-a51x0gj5.us-east-2.aws.neon.tech" (3.143.47.40), port 5432 failed: ERROR:  Console request failed: endpoint is disabled
+
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+ECONOMY DEBUG - Traceback: Traceback (most recent call last):
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 146, in __init__
+    self._dbapi_connection = engine.raw_connection()
+                             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 3298, in raw_connection
+    return self.pool.connect()
+           ^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 449, in connect
+    return _ConnectionFairy._checkout(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 1264, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 713, in checkout
+    rec = pool._do_get()
+          ^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/impl.py", line 179, in _do_get
+    with util.safe_reraise():
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/util/langhelpers.py", line 146, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/impl.py", line 177, in _do_get
+    return self._create_connection()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 390, in _create_connection
+    return _ConnectionRecord(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 675, in __init__
+    self.__connect()
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 901, in __connect
+    with util.safe_reraise():
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/util/langhelpers.py", line 146, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 897, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/create.py", line 646, in connect
+    return dialect.connect(*cargs, **cparams)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/default.py", line 622, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/psycopg2/__init__.py", line 122, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.OperationalError: connection to server at "ep-super-moon-a51x0gj5.us-east-2.aws.neon.tech" (3.143.47.40), port 5432 failed: ERROR:  Console request failed: endpoint is disabled
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/runner/workspace/cogs/economy.py", line 1402, in setup
+    economy_cog = Economy(bot)
+                  ^^^^^^^^^^^^
+  File "/home/runner/workspace/cogs/economy.py", line 26, in __init__
+    from app import app
+  File "/home/runner/workspace/app.py", line 22, in <module>
+    db.create_all()
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask_sqlalchemy/extension.py", line 900, in create_all
+    self._call_for_binds(bind_key, "create_all")
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask_sqlalchemy/extension.py", line 881, in _call_for_binds
+    getattr(metadata, op_name)(bind=engine)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/sql/schema.py", line 5907, in create_all
+    bind._run_ddl_visitor(
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 3248, in _run_ddl_visitor
+    with self.begin() as conn:
+  File "/nix/store/clx0mcir7qw8zk36zbr4jra789g3knf6-python3-3.11.10/lib/python3.11/contextlib.py", line 137, in __enter__
+    return next(self.gen)
+           ^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 3238, in begin
+    with self.connect() as conn:
+         ^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 3274, in connect
+    return self._connection_cls(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 148, in __init__
+    Connection._handle_dbapi_exception_noconnection(
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 2439, in _handle_dbapi_exception_noconnection
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 146, in __init__
+    self._dbapi_connection = engine.raw_connection()
+                             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 3298, in raw_connection
+    return self.pool.connect()
+           ^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 449, in connect
+    return _ConnectionFairy._checkout(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 1264, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 713, in checkout
+    rec = pool._do_get()
+          ^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/impl.py", line 179, in _do_get
+    with util.safe_reraise():
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/util/langhelpers.py", line 146, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/impl.py", line 177, in _do_get
+    return self._create_connection()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 390, in _create_connection
+    return _ConnectionRecord(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 675, in __init__
+    self.__connect()
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 901, in __connect
+    with util.safe_reraise():
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/util/langhelpers.py", line 146, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 897, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/create.py", line 646, in connect
+    return dialect.connect(*cargs, **cparams)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/default.py", line 622, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/psycopg2/__init__.py", line 122, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+sqlalchemy.exc.OperationalError: (psycopg2.OperationalError) connection to server at "ep-super-moon-a51x0gj5.us-east-2.aws.neon.tech" (3.143.47.40), port 5432 failed: ERROR:  Console request failed: endpoint is disabled
+
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+
+ECONOMY DEBUG - Traceback: Traceback (most recent call last):
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 146, in __init__
+    self._dbapi_connection = engine.raw_connection()
+                             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 3298, in raw_connection
+    return self.pool.connect()
+           ^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 449, in connect
+    return _ConnectionFairy._checkout(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 1264, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 713, in checkout
+    rec = pool._do_get()
+          ^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/impl.py", line 179, in _do_get
+    with util.safe_reraise():
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/util/langhelpers.py", line 146, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/impl.py", line 177, in _do_get
+    return self._create_connection()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 390, in _create_connection
+    return _ConnectionRecord(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 675, in __init__
+    self.__connect()
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 901, in __connect
+    with util.safe_reraise():
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/util/langhelpers.py", line 146, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 897, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/create.py", line 646, in connect
+    return dialect.connect(*cargs, **cparams)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/default.py", line 622, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/psycopg2/__init__.py", line 122, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.OperationalError: connection to server at "ep-super-moon-a51x0gj5.us-east-2.aws.neon.tech" (3.143.47.40), port 5432 failed: ERROR:  Console request failed: endpoint is disabled
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/runner/workspace/cogs/economy.py", line 1402, in setup
+    economy_cog = Economy(bot)
+                  ^^^^^^^^^^^^
+  File "/home/runner/workspace/cogs/economy.py", line 26, in __init__
+    from app import app
+  File "/home/runner/workspace/app.py", line 22, in <module>
+    db.create_all()
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask_sqlalchemy/extension.py", line 900, in create_all
+    self._call_for_binds(bind_key, "create_all")
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask_sqlalchemy/extension.py", line 881, in _call_for_binds
+    getattr(metadata, op_name)(bind=engine)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/sql/schema.py", line 5907, in create_all
+    bind._run_ddl_visitor(
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 3248, in _run_ddl_visitor
+    with self.begin() as conn:
+  File "/nix/store/clx0mcir7qw8zk36zbr4jra789g3knf6-python3-3.11.10/lib/python3.11/contextlib.py", line 137, in __enter__
+    return next(self.gen)
+           ^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 3238, in begin
+    with self.connect() as conn:
+         ^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 3274, in connect
+    return self._connection_cls(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 148, in __init__
+    Connection._handle_dbapi_exception_noconnection(
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 2439, in _handle_dbapi_exception_noconnection
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 146, in __init__
+    self._dbapi_connection = engine.raw_connection()
+                             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 3298, in raw_connection
+    return self.pool.connect()
+           ^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 449, in connect
+    return _ConnectionFairy._checkout(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 1264, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 713, in checkout
+    rec = pool._do_get()
+          ^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/impl.py", line 179, in _do_get
+    with util.safe_reraise():
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/util/langhelpers.py", line 146, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/impl.py", line 177, in _do_get
+    return self._create_connection()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 390, in _create_connection
+    return _ConnectionRecord(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 675, in __init__
+    self.__connect()
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 901, in __connect
+    with util.safe_reraise():
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/util/langhelpers.py", line 146, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 897, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/create.py", line 646, in connect
+    return dialect.connect(*cargs, **cparams)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/default.py", line 622, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/psycopg2/__init__.py", line 122, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+sqlalchemy.exc.OperationalError: (psycopg2.OperationalError) connection to server at "ep-super-moon-a51x0gj5.us-east-2.aws.neon.tech" (3.143.47.40), port 5432 failed: ERROR:  Console request failed: endpoint is disabled
+
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+
+2025-04-04 21:02:46,748 - economy_debug - ERROR - Traceback: Traceback (most recent call last):
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 146, in __init__
+    self._dbapi_connection = engine.raw_connection()
+                             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 3298, in raw_connection
+    return self.pool.connect()
+           ^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 449, in connect
+    return _ConnectionFairy._checkout(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 1264, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 713, in checkout
+    rec = pool._do_get()
+          ^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/impl.py", line 179, in _do_get
+    with util.safe_reraise():
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/util/langhelpers.py", line 146, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/impl.py", line 177, in _do_get
+    return self._create_connection()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 390, in _create_connection
+    return _ConnectionRecord(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 675, in __init__
+    self.__connect()
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 901, in __connect
+    with util.safe_reraise():
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/util/langhelpers.py", line 146, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 897, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/create.py", line 646, in connect
+    return dialect.connect(*cargs, **cparams)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/default.py", line 622, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/psycopg2/__init__.py", line 122, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.OperationalError: connection to server at "ep-super-moon-a51x0gj5.us-east-2.aws.neon.tech" (3.143.47.40), port 5432 failed: ERROR:  Console request failed: endpoint is disabled
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/runner/workspace/cogs/economy.py", line 1402, in setup
+    economy_cog = Economy(bot)
+                  ^^^^^^^^^^^^
+  File "/home/runner/workspace/cogs/economy.py", line 26, in __init__
+    from app import app
+  File "/home/runner/workspace/app.py", line 22, in <module>
+    db.create_all()
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask_sqlalchemy/extension.py", line 900, in create_all
+    self._call_for_binds(bind_key, "create_all")
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask_sqlalchemy/extension.py", line 881, in _call_for_binds
+    getattr(metadata, op_name)(bind=engine)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/sql/schema.py", line 5907, in create_all
+    bind._run_ddl_visitor(
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 3248, in _run_ddl_visitor
+    with self.begin() as conn:
+  File "/nix/store/clx0mcir7qw8zk36zbr4jra789g3knf6-python3-3.11.10/lib/python3.11/contextlib.py", line 137, in __enter__
+    return next(self.gen)
+           ^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 3238, in begin
+    with self.connect() as conn:
+         ^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 3274, in connect
+    return self._connection_cls(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 148, in __init__
+    Connection._handle_dbapi_exception_noconnection(
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 2439, in _handle_dbapi_exception_noconnection
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 146, in __init__
+    self._dbapi_connection = engine.raw_connection()
+                             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 3298, in raw_connection
+    return self.pool.connect()
+           ^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 449, in connect
+    return _ConnectionFairy._checkout(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 1264, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 713, in checkout
+    rec = pool._do_get()
+          ^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/impl.py", line 179, in _do_get
+    with util.safe_reraise():
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/util/langhelpers.py", line 146, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/impl.py", line 177, in _do_get
+    return self._create_connection()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 390, in _create_connection
+    return _ConnectionRecord(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 675, in __init__
+    self.__connect()
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 901, in __connect
+    with util.safe_reraise():
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/util/langhelpers.py", line 146, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 897, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/create.py", line 646, in connect
+    return dialect.connect(*cargs, **cparams)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/default.py", line 622, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/psycopg2/__init__.py", line 122, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+sqlalchemy.exc.OperationalError: (psycopg2.OperationalError) connection to server at "ep-super-moon-a51x0gj5.us-east-2.aws.neon.tech" (3.143.47.40), port 5432 failed: ERROR:  Console request failed: endpoint is disabled
+
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+
+2025-04-04 21:02:46,749 - discord - ERROR - Error loading database-dependent cog cogs.economy: Extension 'cogs.economy' raised an error: OperationalError: (psycopg2.OperationalError) connection to server at "ep-super-moon-a51x0gj5.us-east-2.aws.neon.tech" (3.143.47.40), port 5432 failed: ERROR:  Console request failed: endpoint is disabled
+
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-04-04 21:02:46,850 - googleapiclient.discovery_cache - INFO - file_cache is only supported with oauth2client<4.0.0
+2025-04-04 21:02:46,854 - google.auth.compute_engine._metadata - WARNING - Compute Engine Metadata server unavailable on attempt 1 of 3. Reason: [Errno 111] Connection refused
+2025-04-04 21:02:47,856 - google.auth.compute_engine._metadata - WARNING - Compute Engine Metadata server unavailable on attempt 2 of 3. Reason: [Errno 111] Connection refused
+2025-04-04 21:02:49,982 - google.auth.compute_engine._metadata - WARNING - Compute Engine Metadata server unavailable on attempt 3 of 3. Reason: [Errno 111] Connection refused
+2025-04-04 21:02:49,984 - google.auth.compute_engine._metadata - WARNING - Compute Engine Metadata server unavailable on attempt 1 of 5. Reason: [Errno -2] Name or service not known
+2025-04-04 21:02:50,934 - google.auth.compute_engine._metadata - WARNING - Compute Engine Metadata server unavailable on attempt 2 of 5. Reason: [Errno -2] Name or service not known
+2025-04-04 21:02:52,822 - google.auth.compute_engine._metadata - WARNING - Compute Engine Metadata server unavailable on attempt 3 of 5. Reason: [Errno -2] Name or service not known
+2025-04-04 21:02:57,040 - google.auth.compute_engine._metadata - WARNING - Compute Engine Metadata server unavailable on attempt 4 of 5. Reason: [Errno -2] Name or service not known
+2025-04-04 21:03:05,420 - google.auth.compute_engine._metadata - WARNING - Compute Engine Metadata server unavailable on attempt 5 of 5. Reason: [Errno -2] Name or service not known
+[debug] Encodings: locale UTF-8, fs utf-8, pref UTF-8, out utf-8, error utf-8, screen utf-8
+[debug] yt-dlp version stable@2025.02.19 from yt-dlp/yt-dlp [4985a4041] (pip) API
+[debug] params: {'format': 'bestaudio/best', 'extractaudio': True, 'audioformat': 'mp3', 'outtmpl': '%(extractor)s-%(id)s-%(title)s.%(ext)s', 'restrictfilenames': True, 'noplaylist': True, 'nocheckcertificate': True, 'ignoreerrors': False, 'logtostderr': False, 'quiet': False, 'no_warnings': False, 'default_search': 'ytsearch', 'source_address': '0.0.0.0', 'extractors': 'youtube', 'extractor_args': {'youtube': {'skip': ['dash', 'hls']}}, 'verbose': True, 'compat_opts': set(), 'http_headers': {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.20 Safari/537.36', 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8', 'Accept-Language': 'en-us,en;q=0.5', 'Sec-Fetch-Mode': 'navigate'}}
+[debug] Python 3.11.10 (CPython x86_64 64bit) - Linux-6.2.16-x86_64-with-glibc2.40 (OpenSSL 3.3.2 3 Sep 2024, glibc 2.40)
+[debug] exe versions: ffmpeg 6.1.1 (setts), ffprobe 6.1.1
+[debug] Optional libraries: brotli-1.1.0, certifi-2025.01.31, pycrypto-3.22.0, requests-2.32.3, sqlite3-3.46.1, urllib3-2.3.0
+[debug] Proxy map: {}
+[debug] Request Handlers: urllib, requests
+[debug] Loaded 1841 extractors
+2025-04-04 21:03:08,452 - discord - ERROR - Error loading profanity filter config: Extra data: line 10 column 1 (char 94)
+2025-04-04 21:03:08,675 - discord - ERROR - Error loading database-dependent cog cogs.verification: Extension 'cogs.verification' raised an error: OperationalError: (psycopg2.OperationalError) connection to server at "ep-super-moon-a51x0gj5.us-east-2.aws.neon.tech" (3.143.47.40), port 5432 failed: ERROR:  Console request failed: endpoint is disabled
+
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-04-04 21:03:08,675 - discord - WARNING - Some database-dependent cogs failed to load. Bot will continue with limited functionality.
+Logged in as SCP-079
+Bot ID: 1357184612975247551
+------

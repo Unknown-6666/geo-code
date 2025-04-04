@@ -1,5 +1,6 @@
 {pkgs}: {
   deps = [
+    pkgs.sqlite
     pkgs.portaudio
     pkgs.ffmpeg
     pkgs.libsodium

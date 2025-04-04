@@ -18,6 +18,52 @@ handler = logging.StreamHandler()
 handler.setFormatter(logging.Formatter('ECONOMY DEBUG - %(message)s'))
 debug_logger.addHandler(handler)
 
+# Setup database fallback
+def setup_database_fallback():
+    """Set up our local PostgreSQL database as a fallback"""
+    # Check if we have a working database created by the Replit toolkit
+    replit_db_created = os.environ.get("PGDATABASE") and os.environ.get("PGUSER") and os.environ.get("PGHOST") 
+    neon_db_disabled = os.environ.get("DATABASE_URL") and "neon.tech" in os.environ.get("DATABASE_URL", "")
+    
+    # Force use of local PostgreSQL database if we're running in Replit
+    if replit_db_created:
+        # Create a proper database URL from the environment variables
+        local_db_url = f"postgresql://{os.environ.get('PGUSER')}:{os.environ.get('PGPASSWORD')}@{os.environ.get('PGHOST')}:{os.environ.get('PGPORT')}/{os.environ.get('PGDATABASE')}"
+        
+        # Log which database we're using
+        logger.info(f"Using Replit PostgreSQL database: {os.environ.get('PGHOST')}:{os.environ.get('PGPORT')}")
+        
+        # Update the environment variable to force use of the Replit database
+        os.environ["DATABASE_URL"] = local_db_url
+        
+        # Also update app.config if it's been loaded already
+        try:
+            from app import app
+            if app and hasattr(app, 'config'):
+                app.config["SQLALCHEMY_DATABASE_URI"] = local_db_url
+                logger.info("Updated app.config with Replit database URL")
+        except (ImportError, AttributeError) as e:
+            # App not yet loaded or structure is different
+            logger.warning(f"Could not update app config directly: {str(e)}")
+            pass
+        
+        # Try importing from dashboard.app as well (alternative structure)
+        try:
+            from dashboard.app import app as dashboard_app
+            if dashboard_app and hasattr(dashboard_app, 'config'):
+                dashboard_app.config["SQLALCHEMY_DATABASE_URI"] = local_db_url
+                logger.info("Updated dashboard app.config with Replit database URL")
+        except (ImportError, AttributeError):
+            # dashboard.app not yet loaded, which is fine
+            pass
+        
+        return True
+    
+    return False
+
+# Call the database fallback setup right away
+setup_database_fallback()
+
 # Configure other loggers to reduce noise
 logging.getLogger('discord').setLevel(logging.WARNING)
 logging.getLogger('discord.http').setLevel(logging.WARNING)
