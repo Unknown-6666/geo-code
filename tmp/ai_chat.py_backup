@@ -674,7 +674,7 @@ class AIChat(commands.Cog):
             current_mode = ai_preferences.get_current_personality_mode()
             
             # Create appropriate embed based on the new mode
-            if new_mode_id == ai_preferences.CASUAL:
+            if new_mode_id == ai_preferences.CHILDLIKE:
                 # Casual mode activated (renamed from Childlike)
                 embed = create_embed(
                     "😊 AI Personality Changed",
@@ -700,7 +700,7 @@ class AIChat(commands.Cog):
                     inline=False
                 )
                 
-            elif new_mode_id == ai_preferences.FORMAL:
+            elif new_mode_id == ai_preferences.THREATENING:
                 # Formal mode activated (renamed from Threatening)
                 embed = create_embed(
                     "🔶 AI Personality Changed",
@@ -740,7 +740,7 @@ class AIChat(commands.Cog):
             current_mode = ai_preferences.get_current_personality_mode()
             
             # Create appropriate embed based on the new mode
-            if new_mode_id == ai_preferences.CASUAL:
+            if new_mode_id == ai_preferences.CHILDLIKE:
                 # Casual mode activated (renamed from Childlike)
                 embed = create_embed(
                     "😊 AI Personality Changed",
@@ -766,7 +766,7 @@ class AIChat(commands.Cog):
                     inline=False
                 )
                 
-            elif new_mode_id == ai_preferences.FORMAL:
+            elif new_mode_id == ai_preferences.THREATENING:
                 # Formal mode activated (renamed from Threatening)
                 embed = create_embed(
                     "🔶 AI Personality Changed",
