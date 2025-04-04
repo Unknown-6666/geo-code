@@ -24,9 +24,13 @@ class AIChat(commands.Cog):
         # Configure g4f settings
         g4f.debug.logging = False  # Disable debug logging
         
+        # Set Gemini API version - using Gemini 2.5 by default
+        self.gemini_model = "models/gemini-2.5-flash-latest"
+        self.gemini_api_version = "v1beta"
+        
         # Log AI provider status
         if USE_GOOGLE_AI:
-            logger.info("AI Chat cog initialized with Google Gemini 1.5 Pro")
+            logger.info(f"AI Chat cog initialized with Google {self.gemini_model}")
         else:
             logger.info("AI Chat cog initialized with fallback AI providers")
             logger.info("To use Google's AI services, set the GOOGLE_API environment variable")
@@ -34,7 +38,7 @@ class AIChat(commands.Cog):
 
     
     async def get_google_ai_response(self, prompt, system_prompt=None, user_id=None, include_history=True):
-        """Get a response from Google's Gemini AI API with conversation history support"""
+        """Get a response from Google's Gemini 2.5 AI API with conversation history support"""
         if not GOOGLE_API_KEY:
             return None
 
@@ -51,8 +55,8 @@ class AIChat(commands.Cog):
 
         for attempt in range(max_retries):
             try:
-                # Gemini API endpoint for text generation - using one of the available 1.5 models
-                url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key={GOOGLE_API_KEY}"
+                # Gemini API endpoint for text generation - using Gemini 2.5
+                url = f"https://generativelanguage.googleapis.com/{self.gemini_api_version}/{self.gemini_model}:generateContent?key={GOOGLE_API_KEY}"
                 
                 # Prepare conversation history for context if user_id is provided and include_history is True
                 history_contents = []
@@ -166,9 +170,9 @@ class AIChat(commands.Cog):
             
             # Try Google Gemini AI if API key is available
             if USE_GOOGLE_AI:
-                logger.info("Using Google AI (Gemini 1.5 Pro) for response")
+                logger.info(f"Using Google AI ({self.gemini_model}) for response")
                 response = await self.get_google_ai_response(prompt, system_prompt, user_id, include_history)
-                ai_source = "Google Gemini 1.5 Pro"
+                ai_source = f"Google {self.gemini_model.split('/')[-1]}"
         
         # Fall back to g4f if Google AI failed or not configured
         if not response:
