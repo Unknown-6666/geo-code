@@ -31,81 +31,107 @@ class Bot(commands.Bot):
     async def setup_hook(self):
         """Load cogs and start tasks"""
         logger.info("Setting up bot...")
-        try:
-            # Load all cogs first
-            cogs = [
-                "cogs.basic_commands",
-                "cogs.member_events",
-                "cogs.youtube_tracker",
-                "cogs.economy",
-                "cogs.memes",
-                "cogs.moderation",
-                "cogs.music",
-                "cogs.profanity_filter",
-                "cogs.rules_enforcer",  # Rules enforcement cog
-                "cogs.verification",    # Added new server verification cog
-                "cogs.ai_chat",         # AI Chat cog
-                "cogs.voice_ai",        # Voice AI chat cog
-                "cogs.scp_079"          # SCP-079 - The Old AI cog
-            ]
-            
-            for cog in cogs:
+        
+        # Organize cogs by dependency
+        essential_cogs = [
+            "cogs.basic_commands",
+            "cogs.member_events",
+            "cogs.memes",
+            "cogs.ai_chat",         # AI Chat cog
+            "cogs.voice_ai",        # Voice AI chat cog
+            "cogs.scp_079"          # SCP-079 - The Old AI cog (highest priority)
+        ]
+        
+        database_dependent_cogs = [
+            "cogs.economy",
+            "cogs.moderation",
+            "cogs.youtube_tracker",
+            "cogs.music",
+            "cogs.profanity_filter",
+            "cogs.rules_enforcer",
+            "cogs.verification",
+        ]
+        
+        # First, load all essential cogs that don't depend on database
+        for cog in essential_cogs:
+            try:
                 await self.load_extension(cog)
-                logger.info(f"Loaded {cog}")
-            
+                logger.info(f"Loaded essential cog: {cog}")
+            except Exception as e:
+                logger.error(f"Error loading essential cog {cog}: {str(e)}")
+        
+        # Then try to load database-dependent cogs, but continue if they fail
+        db_load_success = True
+        for cog in database_dependent_cogs:
+            try:
+                await self.load_extension(cog)
+                logger.info(f"Loaded database-dependent cog: {cog}")
+            except Exception as e:
+                db_load_success = False
+                logger.error(f"Error loading database-dependent cog {cog}: {str(e)}")
+        
+        if db_load_success:
             logger.info("All cogs loaded successfully")
-            
-            # Check if we should sync commands on startup
-            # Default to False (don't sync) unless explicitly set to true
-            should_sync = os.environ.get('SYNC_COMMANDS_ON_STARTUP', 'false').lower() == 'true'
-            
-            if should_sync:
-                # Always clear commands before syncing to prevent duplicates
-                logger.info("Clearing all commands before syncing...")
-                try:
-                    await self.http.request(
-                        discord.http.Route("PUT", "/applications/{application_id}/commands", 
-                                        application_id=self.application_id), 
-                        json=[]
-                    )
-                    logger.info("Commands cleared successfully")
-                except Exception as e:
-                    logger.error(f"Error clearing commands: {str(e)}")
-                    logger.info("Continuing with sync despite clearing error")
-                    
-                # Sync commands after clearing with rate limit handling
-                logger.info("Syncing global commands with Discord...")
-                rate_limit_count = 0
-                max_rate_limits = 3  # Maximum number of rate limit retries
+        else:
+            logger.warning("Some database-dependent cogs failed to load. Bot will continue with limited functionality.")
+        
+        # Check if we should sync commands on startup
+        # Default to False (don't sync) unless explicitly set to true
+        should_sync = os.environ.get('SYNC_COMMANDS_ON_STARTUP', 'false').lower() == 'true'
+        
+        if should_sync:
+            # Always clear commands before syncing to prevent duplicates
+            logger.info("Clearing all commands before syncing...")
+            try:
+                await self.http.request(
+                    discord.http.Route("PUT", "/applications/{application_id}/commands", 
+                                    application_id=self.application_id), 
+                    json=[]
+                )
+                logger.info("Commands cleared successfully")
+            except Exception as e:
+                logger.error(f"Error clearing commands: {str(e)}")
+                logger.info("Continuing with sync despite clearing error")
                 
-                while rate_limit_count < max_rate_limits:
-                    try:
-                        synced = await self.tree.sync()
-                        logger.info(f"Synced {len(synced)} commands globally")
-                        break  # Successfully synced, exit the loop
-                    except discord.errors.HTTPException as e:
-                        if e.status == 429:  # Rate limited
-                            rate_limit_count += 1
-                            retry_after = e.retry_after if hasattr(e, 'retry_after') else 60
-                            
-                            logger.warning(f"Rate limited while syncing commands ({rate_limit_count}/{max_rate_limits}). "
-                                        f"Retrying in {retry_after:.2f} seconds...")
-                            
-                            if rate_limit_count >= max_rate_limits:
-                                logger.warning(f"Hit rate limit {max_rate_limits} times, stopping command sync. "
-                                            f"Commands may be partially updated or use old versions.")
-                                break
-                                
-                            # Wait for the rate limit to expire
-                            await asyncio.sleep(retry_after)
-                        else:
-                            # Not a rate limit error, re-raise
-                            raise
-            else:
-                logger.info("Skipping command sync on startup - use !sync command manually if needed")
+            # Sync commands after clearing with rate limit handling
+            logger.info("Syncing global commands with Discord...")
+            rate_limit_count = 0
+            max_rate_limits = 3  # Maximum number of rate limit retries
             
-        except Exception as e:
-            logger.error(f"Error in setup: {str(e)}")
+            while rate_limit_count < max_rate_limits:
+                try:
+                    synced = await self.tree.sync()
+                    logger.info(f"Synced {len(synced)} commands globally")
+                    break  # Successfully synced, exit the loop
+                except discord.errors.HTTPException as e:
+                    if e.status == 429:  # Rate limited
+                        rate_limit_count += 1
+                        retry_after = e.retry_after if hasattr(e, 'retry_after') else 60
+                        
+                        logger.warning(f"Rate limited while syncing commands ({rate_limit_count}/{max_rate_limits}). "
+                                    f"Retrying in {retry_after:.2f} seconds...")
+                        
+                        if rate_limit_count >= max_rate_limits:
+                            logger.warning(f"Hit rate limit {max_rate_limits} times, stopping command sync. "
+                                        f"Commands may be partially updated or use old versions.")
+                            break
+                            
+                        # Wait for the rate limit to expire
+                        await asyncio.sleep(retry_after)
+                    else:
+                        # Not a rate limit error, re-raise
+                        raise
+        else:
+            logger.info("Skipping command sync on startup - use !sync command manually if needed")
+         
+        # Handle any unexpected errors in setup_hook
+        try:
+            # This try-except block is just a final safety net
+            # It's not actively doing anything but catching any unexpected errors
+            # that might occur after the command sync logic
+            pass
+        except Exception as error:
+            logger.error(f"Error in setup: {str(error)}")
             logger.info("If commands are not updating, use !sync or !clear_commands manually as the bot owner.")
 
     async def on_ready(self):
