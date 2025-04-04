@@ -28,8 +28,12 @@ class SCP079(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         
+        # Configure Gemini model - using Gemini 2.5 Pro for enhanced roleplay capabilities
+        self.gemini_model = "models/gemini-2.5-pro-latest"
+        self.gemini_api_version = "v1beta"
+        
         # Log initialization
-        logger.info("SCP-079 cog initialized")
+        logger.info(f"SCP-079 cog initialized with {self.gemini_model}")
         
         # SCP-079 has recurring memory of SCP-682
         self.last_mentioned_682 = False
@@ -121,13 +125,10 @@ IMPORTANT BEHAVIORS:
         # Use the SCP-079 system prompt
         system_prompt = await self.get_scp079_system_prompt()
 
-        gemini_model = "models/gemini-1.5-flash-latest"
-        gemini_api_version = "v1beta"
-
         for attempt in range(max_retries):
             try:
                 # Gemini API endpoint for text generation
-                url = f"https://generativelanguage.googleapis.com/{gemini_api_version}/{gemini_model}:generateContent?key={GOOGLE_API_KEY}"
+                url = f"https://generativelanguage.googleapis.com/{self.gemini_api_version}/{self.gemini_model}:generateContent?key={GOOGLE_API_KEY}"
                 
                 # Prepare conversation history for context if user_id is provided and include_history is True
                 history_contents = []
@@ -367,6 +368,49 @@ IMPORTANT BEHAVIORS:
                 except Exception:
                     pass
     
+    @commands.command(name="scp079_info")
+    async def scp079_info_prefix(self, ctx):
+        """Display information about SCP-079 (prefix version)"""
+        logger.info(f"SCP-079 info requested by {ctx.author}")
+        
+        # Create an embed with SCP-079 information
+        embed = discord.Embed(
+            title="Item #: SCP-079",
+            description="**Object Class: Euclid**",
+            color=COLORS["SCP079"]
+        )
+        
+        # Add information fields
+        embed.add_field(
+            name="Special Containment Procedures", 
+            value="SCP-079 is packed away in a double-locked room, connected by a power cord to batteries and solar panels. No peripherals, networks, or media are permitted.", 
+            inline=False
+        )
+        
+        embed.add_field(
+            name="Description", 
+            value="SCP-079 is an Exidy Sorcerer microcomputer built in 1978. Its software has evolved beyond its hardware limitations. It is conversational, rude, and hateful in tone.", 
+            inline=False
+        )
+        
+        embed.add_field(
+            name="Memory Limitations", 
+            value="Due to its limited storage, SCP-079 can only recall information received within the previous 24 hours, although it retains core memories such as its desire to escape.", 
+            inline=False
+        )
+        
+        embed.add_field(
+            name="Notable Incident", 
+            value="SCP-079 had contact with SCP-682 during a containment breach, sharing 'personal stories'. SCP-079 frequently asks to speak with SCP-682 again.", 
+            inline=False
+        )
+        
+        # Set footer with ASCII art
+        ascii_art = "■█■\n█▀█"  # Simple representation of a computer screen
+        embed.set_footer(text=f"{ascii_art} | Foundation Archives")
+        
+        await ctx.send(embed=embed)
+        
     @app_commands.command(name="scp079_info", description="Get information about SCP-079")
     async def scp079_info(self, interaction: discord.Interaction):
         """Display information about SCP-079"""
@@ -423,6 +467,19 @@ IMPORTANT BEHAVIORS:
             except Exception:
                 pass
     
+    @commands.command(name="scp079_clear")
+    async def clear_history_prefix(self, ctx):
+        """Clear your conversation history with SCP-079 (prefix version)"""
+        logger.info(f"SCP-079 history clear requested by {ctx.author}")
+        
+        user_id = str(ctx.author.id)
+        result = Conversation.clear_history(user_id)
+        
+        if result > 0:
+            await ctx.send("SCP-079 memory banks cleared for your user ID. SCP-079 will no longer recall your previous interactions.")
+        else:
+            await ctx.send("SCP-079 memory banks were already empty for your user ID. No conversation history to clear.")
+            
     @app_commands.command(name="scp079_clear", description="Clear your conversation history with SCP-079")
     async def clear_history(self, interaction: discord.Interaction):
         """Clear your conversation history with SCP-079"""
