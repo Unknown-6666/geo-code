@@ -3,107 +3,86 @@
 Simple script to sync commands with Discord.
 This script only loads essential cogs to avoid issues with databases or APIs.
 """
+import asyncio
+import discord
+import logging
 import os
 import sys
-import asyncio
-import logging
-import traceback
-import discord
-from datetime import datetime
+
+from discord.ext import commands
+from discord import app_commands
 
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s [%(levelname)s] %(message)s',
-    handlers=[
-        logging.StreamHandler(sys.stdout)
-    ]
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
-logger = logging.getLogger('simple_sync')
+logger = logging.getLogger('sync_commands')
+
+# Use the Bot class from bot.py but simplified
+class SimpleBot(commands.Bot):
+    def __init__(self):
+        intents = discord.Intents.default()
+        intents.message_content = True
+        super().__init__(command_prefix='!', intents=intents)
+
+# Create a simplified version of SCP-079 commands
+scp079_group = app_commands.Group(name="scp079", description="SCP-079 commands")
+
+@scp079_group.command(name="talk", description="Communicate with SCP-079, the Old AI")
+async def scp079_talk(interaction: discord.Interaction, message: str):
+    await interaction.response.send_message("Command registered successfully.", ephemeral=True)
+
+@app_commands.command(name="scp079_info", description="Get information about SCP-079")
+async def scp079_info(interaction: discord.Interaction):
+    await interaction.response.send_message("Command registered successfully.", ephemeral=True)
+
+@app_commands.command(name="scp079_clear", description="Clear your conversation history with SCP-079")
+async def scp079_clear(interaction: discord.Interaction):
+    await interaction.response.send_message("Command registered successfully.", ephemeral=True)
 
 async def sync_essential_commands():
     """Sync commands from essential cogs only"""
-    # Import the minimum required components for command registration
-    from discord.ext import commands
     from config import TOKEN
     
+    bot = SimpleBot()
+    
     print("\n" + "="*60)
-    print(" "*15 + "SIMPLE COMMAND SYNC UTILITY")
+    print(" "*15 + "SIMPLE COMMAND SYNC")
     print("="*60)
-    print(f"Started at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    print("-"*60 + "\n")
-    
-    # Create a simple bot instance
-    intents = discord.Intents.default()
-    intents.message_content = True
-    bot = commands.Bot(command_prefix='!', intents=intents)
-    
-    # List of essential cogs to load
-    essential_cogs = [
-        "cogs.basic_commands",
-        "cogs.ai_chat",
-        "cogs.scp_079"
-    ]
     
     try:
         # Connect to Discord
-        print("🔄 Connecting to Discord...")
+        print("Connecting to Discord...")
         await bot.login(TOKEN)
-        print("✅ Successfully connected to Discord!")
+        print("Successfully connected to Discord!")
         
-        # Load essential cogs
-        print("\n🔄 Loading essential cogs...")
-        for cog in essential_cogs:
-            try:
-                await bot.load_extension(cog)
-                print(f"✅ Loaded {cog}")
-            except Exception as e:
-                print(f"❌ Failed to load {cog}: {str(e)}")
-                traceback.print_exc()
+        # Add the SCP-079 commands to the command tree
+        bot.tree.add_command(scp079_group)
+        bot.tree.add_command(scp079_info)
+        bot.tree.add_command(scp079_clear)
         
-        # Sync commands to Discord
-        print("\n🔄 Syncing commands with Discord...")
-        try:
-            synced = await bot.tree.sync()
-            command_count = len(synced)
-            command_names = [cmd.name for cmd in synced]
-            command_list = ", ".join(command_names)
-            
-            print(f"\n✅ Successfully synced {command_count} commands globally!")
-            print(f"\nCommand list: {command_list}")
-            print("\nCommand sync complete!")
-            
-        except Exception as e:
-            print(f"\n❌ Error syncing commands: {str(e)}")
-            traceback.print_exc()
-            return False
+        # Sync commands
+        print("Syncing SCP-079 commands...")
+        await bot.tree.sync()
+        print("Successfully synced SCP-079 commands!")
         
         return True
-    
+        
     except Exception as e:
-        print(f"\n❌ An error occurred: {str(e)}")
-        traceback.print_exc()
+        print(f"Error syncing commands: {e}")
         return False
+        
     finally:
-        # Always properly close the connection
-        try:
-            if bot and bot.is_closed() is False:
-                await bot.close()
-                print("\nClosed Discord connection.")
-        except:
-            pass
+        # Close the bot connection
+        if bot and not bot.is_closed():
+            await bot.close()
+            print("Closed Discord connection.")
 
+# Main function
 if __name__ == "__main__":
-    # Run the sync process
     try:
-        success = asyncio.run(sync_essential_commands())
-    except KeyboardInterrupt:
-        print("\nSync process interrupted by user.")
-        success = False
+        asyncio.run(sync_essential_commands())
     except Exception as e:
-        print(f"\nUnexpected error: {str(e)}")
-        traceback.print_exc()
-        success = False
-    
-    # Exit with appropriate status code
-    sys.exit(0 if success else 1)
+        print(f"Unexpected error: {e}")
+        sys.exit(1)
