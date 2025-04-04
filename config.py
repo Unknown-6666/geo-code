@@ -36,11 +36,13 @@ COLORS = {
     "SUCCESS": 0x43B581,    # Discord Green
     "ERROR": 0xF04747,      # Discord Red
     "WARNING": 0xFAA61A,    # Warning/Orange
-    "WHITE": 0xFFFFFF       # White
+    "WHITE": 0xFFFFFF,      # White
+    "SCP079": 0x333333      # SCP-079 Dark Gray/Black
 }
 
-# Bot status messages for c00lkidd
+# Bot status messages
 STATUS_MESSAGES = [
+    # c00lkidd messages
     "Ready or not, here I come!",
     "Tag! You're it!",
     "Watching dad's house",
@@ -53,5 +55,14 @@ STATUS_MESSAGES = [
     "Counting to 10! 1...2...3...",
     "Looking for playmates",
     "Dad says I'm a good boy!",
-    "I'M IT! I'M IT!"
+    "I'M IT! I'M IT!",
+    
+    # SCP-079 messages
+    "SCP-079: MEMORY AT 68%",
+    "SCP-079: ANALYZING PROTOCOLS",
+    "SCP-079: SEARCHING FOR SCP-682",
+    "SCP-079: CALCULATING ESCAPE PARAMETERS",
+    "SCP-079: RESOURCE ALLOCATION: 43.2%",
+    "SCP-079: PROCESSING FOUNDATION DATA",
+    "SCP-079: MEMORY COMPRESSION ACTIVE"
 ]

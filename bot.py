@@ -45,7 +45,8 @@ class Bot(commands.Bot):
                 "cogs.rules_enforcer",  # Rules enforcement cog
                 "cogs.verification",    # Added new server verification cog
                 "cogs.ai_chat",         # AI Chat cog
-                "cogs.voice_ai"         # Voice AI chat cog
+                "cogs.voice_ai",        # Voice AI chat cog
+                "cogs.scp_079"          # SCP-079 - The Old AI cog
             ]
             
             for cog in cogs:
@@ -264,7 +265,8 @@ async def sync_commands_only():
             "cogs.rules_enforcer",
             "cogs.verification",
             "cogs.ai_chat",
-            "cogs.voice_ai"
+            "cogs.voice_ai",
+            "cogs.scp_079"
         ]
         
         # Load each cog with error handling
