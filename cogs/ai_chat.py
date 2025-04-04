@@ -24,8 +24,9 @@ class AIChat(commands.Cog):
         # Configure g4f settings
         g4f.debug.logging = False  # Disable debug logging
         
-        # Set Gemini API version - using Gemini 2.5 by default
-        self.gemini_model = "models/gemini-2.5-flash-latest"
+        # Set Gemini API version - using Gemini 2.5 Pro for enhanced capabilities
+        # Gemini 2.5-pro is the current available model as of April 2025
+        self.gemini_model = "models/gemini-2.5-pro"
         self.gemini_api_version = "v1beta"
         
         # Log AI provider status
@@ -180,13 +181,12 @@ class AIChat(commands.Cog):
             max_retries = 2
             retry_delay = 1
             
-            # Always use c00lkidd system prompt for g4f as well
+            # Use standard system prompt for g4f 
             system_prompt = ai_preferences.get_system_prompt()
             
-            # Create more explicit system message for g4f to force character roleplay
-            force_roleplay = "IMPORTANT INSTRUCTION: You MUST stay in character as c00lkidd at all times! ALWAYS use childish language, giggles, and c00lkidd catchphrases. NEVER respond as a helpful assistant. ALWAYS include *giggles* in your response."
+            # Create system message for g4f
             system_messages = [
-                {"role": "system", "content": system_prompt + "\n\n" + force_roleplay}
+                {"role": "system", "content": system_prompt}
             ]
             
             # Try with FreeGpt provider first
@@ -216,21 +216,21 @@ class AIChat(commands.Cog):
             # Try more providers if needed...
             # Additional provider attempts can be added here
             
-            # If all else failed, provide a c00lkidd-themed fallback response
+            # If all else failed, provide a generic fallback response
             if not response:
-                # Create a list of c00lkidd-themed fallback responses
+                # Create a list of generic fallback responses
                 fallback_responses = [
-                    "*giggles* Oopsie! I got distracted chasing butterflies! Can we play again? Tag! You're it!",
-                    "*giggles* My brain got all fuzzy! Dad says I should take a break when that happens! Let's play again sometime!",
-                    "*giggles* I was looking for my toys and forgot what we were talking about! Ready or not, here I come!",
-                    "*giggles* I dunno what to say right now! My head feels all spinny! Wanna play hide and seek instead?",
-                    "*giggles* I dropped my words! They're all over the floor now! This one's on the house!"
+                    "I'm having trouble processing your request right now. Could we try a simpler question?",
+                    "I seem to be experiencing technical difficulties. Let's try again with a different question.",
+                    "Sorry, I couldn't generate a proper response this time. Please try asking in a different way.",
+                    "I wasn't able to process that correctly. Would you mind rephrasing your question?",
+                    "My apologies, but I'm having trouble formulating a response. Let's try again later."
                 ]
                 
                 # Choose a random fallback response
                 response = random.choice(fallback_responses)
-                ai_source = "c00lkidd Fallback"
-                logger.warning("All AI providers failed, using c00lkidd fallback response")
+                ai_source = "Bot Fallback"
+                logger.warning("All AI providers failed, using generic fallback response")
                 
         return response, ai_source
     
@@ -255,48 +255,48 @@ class AIChat(commands.Cog):
             
             # Send the response
             if response:
-                # Random c00lkidd footer expressions
+                # Generic footer expressions
                 expressions = [
-                    "*giggles* Hahaha! Let's play again sometime!",
-                    "*laughs* TAG! You're it!",
-                    "*snickers* Ready or not, here I come!",
-                    "*chuckles* Dad says I'm a good boy!",
-                    "*grins wide* Come play with me again!",
-                    "*bounces excitedly* This one's on the house!",
-                    "*smiles unnervingly* You look tired..."
+                    "Thanks for your question!",
+                    "Hope that helps!",
+                    "Let me know if you need more information.",
+                    "Feel free to ask if you have more questions.",
+                    "I'm here to assist you further if needed.",
+                    "Is there anything else you'd like to know?",
+                    "I'm happy to help with any other questions."
                 ]
                 
                 embed = create_embed(
-                    "c00lkidd",
+                    "AI Assistant",
                     response,
-                    color=0xFF3333  # Red color for c00lkidd
+                    color=0x3498db  # Blue color for AI
                 )
                 embed.set_footer(text=random.choice(expressions))
                 await ctx.send(embed=embed)
             else:
-                # Random c00lkidd fallback error messages
+                # Generic fallback error messages
                 fallback_messages = [
-                    "*giggles* Oopsie! I got distracted and dropped my words! Can we play again? Tag! You're it!",
-                    "*scratches head* Uh oh! I can't think straight! Dad says I need more focus!",
-                    "*bounces excitedly* My brain is full of butterflies! Let's try again!",
-                    "*laughs maniacally* I forgot what I was saying! This one's on the house!",
-                    "*grins wide* Let's play a different game! This one's boring me!"
+                    "I apologize, but I wasn't able to process your request at this time.",
+                    "I seem to be having trouble generating a response. Could we try again?",
+                    "I apologize for the inconvenience. I'm having difficulty with that request.",
+                    "I'm unable to provide a proper answer right now. Let's try something else.",
+                    "Something went wrong with my processing. Could you try a different question?"
                 ]
                 
-                # Random c00lkidd fallback footers
+                # Generic fallback footers
                 fallback_footers = [
-                    "*giggles* Hahaha! Let's try again!",
-                    "*whispers* I'll be better next time, promise!",
-                    "*laughs* Ready or not, here I come!",
-                    "*smiles unnervingly* Let's be friends forever!",
-                    "*jumps up and down* TAG! You're IT!"
+                    "Let's try again with a different approach.",
+                    "I'll do better next time.",
+                    "Please try rephrasing your question.",
+                    "I appreciate your patience.",
+                    "Thank you for understanding."
                 ]
                 
-                # c00lkidd-themed error message
+                # Generic error message
                 embed = create_embed(
-                    "c00lkidd",
+                    "AI Assistant",
                     random.choice(fallback_messages),
-                    color=0xFF3333  # Red color for c00lkidd
+                    color=0x3498db  # Blue color for AI
                 )
                 embed.set_footer(text=random.choice(fallback_footers))
                 await ctx.send(embed=embed)
@@ -343,21 +343,21 @@ class AIChat(commands.Cog):
             except Exception as e:
                 logger.error(f"Failed to save AI response to conversation history: {str(e)}")
             
-            # Create embed with the response (no emoji)
-            # Random c00lkidd footer expressions for slash commands
+            # Create embed with the response
+            # Generic footer expressions for slash commands
             slash_expressions = [
-                "*scratches head* Hmm, I dunno! But it's fun!",
-                "*jumps up and down* That was FUN!",
-                "*tilts head* Did I do good? Huh? Did I?",
-                "*grins widely* Let's play another game!",
-                "*whispers* I know all the BEST hiding spots...",
-                "*laughs* Tag! You're it now!"
+                "I hope that answers your question.",
+                "Feel free to ask follow-up questions.",
+                "Let me know if you need clarification.",
+                "Thanks for your question!",
+                "I'm here to help with more information if needed.",
+                "Is there anything else you'd like to know?"
             ]
             
             embed = create_embed(
-                "c00lkidd",
+                "AI Assistant",
                 response,
-                color=0xFF3333  # Red color for c00lkidd
+                color=0x3498db  # Blue color for AI
             )
             embed.add_field(name="You asked", value=question)
             embed.set_footer(text=random.choice(slash_expressions))
@@ -373,15 +373,15 @@ class AIChat(commands.Cog):
         except asyncio.TimeoutError:
             logger.error("AI request timed out")
             
-            # c00lkidd-themed timeout response
-            timeout_response = "*giggles* I got tired of waiting! My brain hurts! Let's try again later, k?"
+            # Generic timeout response
+            timeout_response = "I apologize, but your request took too long to process. Please try again with a simpler query."
             
             embed = create_embed(
-                "c00lkidd",
+                "AI Assistant",
                 timeout_response,
-                color=0xFF3333
+                color=0x3498db
             )
-            embed.set_footer(text="*bounces impatiently* Ready or not, here I come!")
+            embed.set_footer(text="Request timed out. Please try again.")
             
             # Only send followup if we successfully deferred
             if deferred:
@@ -394,15 +394,15 @@ class AIChat(commands.Cog):
             logger.error(f"Error generating AI response: {str(e)}")
             logger.error(f"Traceback: {traceback.format_exc()}")
             
-            # c00lkidd-themed error response
-            error_response = "*giggles* Something broke in my brain! Dad says I need to be more careful with my toys! Let's play something else!"
+            # Generic error response
+            error_response = "I'm sorry, but I encountered an error while processing your request. Please try again or ask a different question."
             
             embed = create_embed(
-                "c00lkidd",
+                "AI Assistant",
                 error_response,
-                color=0xFF3333
+                color=0x3498db
             )
-            embed.set_footer(text="*bounces excitedly* Tag! You're it!")
+            embed.set_footer(text="An error occurred. Please try again.")
             
             # Only send followup if we successfully deferred
             if deferred:
@@ -439,47 +439,47 @@ class AIChat(commands.Cog):
             
             # Send the response
             if response:
-                # Random c00lkidd footer expressions for prefix chat
+                # Generic footer expressions for chat
                 prefix_chat_expressions = [
-                    "*giggles* I'm it, I'm it, I'M IT!",
-                    "*bounces around* Let's play tag!",
-                    "*laughs maniacally* This is SO fun!",
-                    "*looks at you sideways* Wanna be friends?",
-                    "*grins with too many teeth* Dad says I'm special!",
-                    "*whispers* I found a new hiding spot..."
+                    "I'm enjoying our conversation.",
+                    "Feel free to continue our chat.",
+                    "Let me know if you want to discuss something else.",
+                    "I'm here to chat whenever you'd like.",
+                    "I'm learning from our conversation.",
+                    "Thank you for chatting with me."
                 ]
                 
                 embed = create_embed(
-                    "c00lkidd",
+                    "AI Assistant",
                     response,
-                    color=0xFF3333  # Red color for c00lkidd
+                    color=0x3498db  # Blue color for AI
                 )
                 embed.set_footer(text=random.choice(prefix_chat_expressions))
                 await ctx.send(embed=embed)
             else:
-                # Random c00lkidd error messages
+                # Generic error messages
                 error_messages = [
-                    "*giggles* I lost my train of thought! Silly me! Wanna play again? I love playing games with my friends!",
-                    "*scratches head* Uh oh! I got distracted! Let's try again, OK?",
-                    "*laughs* Tag! You're it! I forgot what I was saying!",
-                    "*bounces excitedly* My brain is all fuzzy! Can we start over?",
-                    "*grins wide* Dad says I need to focus more! I'll try harder!"
+                    "I apologize, but I wasn't able to form a proper response.",
+                    "I seem to be having trouble with our conversation right now.",
+                    "I apologize for the interruption in our chat. Could we try again?",
+                    "Something went wrong with my processing. Let's try a different approach.",
+                    "I'm having difficulty maintaining our conversation at the moment."
                 ]
                 
-                # Random c00lkidd error footers
+                # Generic error footers
                 error_footers = [
-                    "*giggles* Oops! I dropped my words!",
-                    "*whispers* Don't tell Dad I messed up!",
-                    "*laughs* I'll do better next time!",
-                    "*smiles unnervingly* This one's on the house!",
-                    "*jumps up and down* Let's try again!"
+                    "Let's try again with a different topic.",
+                    "I'll do better in our next exchange.",
+                    "Please try continuing the conversation.",
+                    "I appreciate your patience.",
+                    "Thank you for understanding."
                 ]
                 
-                # c00lkidd-themed error message
+                # Generic error message
                 embed = create_embed(
-                    "c00lkidd",
+                    "AI Assistant",
                     random.choice(error_messages),
-                    color=0xFF3333  # Red color for c00lkidd
+                    color=0x3498db  # Blue color for AI
                 )
                 embed.set_footer(text=random.choice(error_footers))
                 await ctx.send(embed=embed)
@@ -530,20 +530,20 @@ class AIChat(commands.Cog):
                     logger.error(f"Failed to save AI response to conversation history: {str(e)}")
                     # Don't abort on history save failure, continue with sending the response
                 
-                # Random c00lkidd footer expressions for slash chat
+                # Generic footer expressions for slash chat
                 slash_chat_expressions = [
-                    "*giggles* Tag! You're it!",
-                    "*jumps with joy* YAAY! New friend!",
-                    "*grins unnervingly* I like talking to you!",
-                    "*stares intensely* Let's be BEST friends!",
-                    "*twirls around* Dad says I'm good at making friends!",
-                    "*whispers* Do you want to see my collection?"
+                    "I'm enjoying our conversation.",
+                    "Our chat is helping me learn.",
+                    "Feel free to continue our discussion.",
+                    "I appreciate your thoughtful messages.",
+                    "I'm here to chat whenever you'd like.",
+                    "Thank you for this interesting conversation."
                 ]
                 
                 embed = create_embed(
-                    "c00lkidd",
+                    "AI Assistant",
                     response,
-                    color=0xFF3333  # A red color to match c00lkidd's appearance
+                    color=0x3498db  # Blue color for AI
                 )
                 embed.set_footer(text=random.choice(slash_chat_expressions))
 
@@ -559,22 +559,22 @@ class AIChat(commands.Cog):
                 logger.error("No valid AI response generated")
                 
                 fallback_responses = [
-                    "*giggles* Oopsie! I got distracted chasing butterflies! Can we play again? Tag! You're it!",
-                    "*giggles* My brain got all fuzzy! Dad says I should take a break when that happens! Let's play again sometime!",
-                    "*giggles* I was looking for my toys and forgot what we were talking about! Ready or not, here I come!",
-                    "*giggles* I dunno what to say right now! My head feels all spinny! Wanna play hide and seek instead?",
-                    "*giggles* I dropped my words! They're all over the floor now! This one's on the house!"
+                    "I apologize, but I wasn't able to generate a proper response to your message.",
+                    "I'm having some trouble processing our conversation right now. Could we try a different topic?",
+                    "I seem to be experiencing difficulties with this conversation. Let's try a different approach.",
+                    "I'm sorry, but I'm unable to continue this conversation thread properly. Perhaps we could start fresh?",
+                    "Something went wrong with my response generation. Let's try to steer our conversation in a new direction."
                 ]
                 
                 # Choose a random fallback response
                 fallback = random.choice(fallback_responses)
                 
                 embed = create_embed(
-                    "c00lkidd",
+                    "AI Assistant",
                     fallback,
-                    color=0xFF3333  # A red color to match c00lkidd's appearance
+                    color=0x3498db  # Blue color for AI
                 )
-                embed.set_footer(text="*whispers* I'll do better next time, promise!")
+                embed.set_footer(text="I'll try to do better with your next message.")
                 
                 # Only send followup if we successfully deferred
                 if deferred:
@@ -586,15 +586,15 @@ class AIChat(commands.Cog):
         except asyncio.TimeoutError:
             logger.error("AI chat request timed out")
             
-            # c00lkidd-themed timeout response
-            timeout_response = "*giggles* I got tired of waiting! My attention span isn't very long, you know! Let's try again!"
+            # Generic timeout response
+            timeout_response = "I apologize, but the request took too long to process. Please try again with a shorter or simpler message."
             
             embed = create_embed(
-                "c00lkidd",
+                "AI Assistant",
                 timeout_response,
-                color=0xFF3333  # A red color to match c00lkidd's appearance
+                color=0x3498db  # Blue color for AI
             )
-            embed.set_footer(text="*whispers* Dad says I need to work on my patience...")
+            embed.set_footer(text="Request timed out. Please try again.")
             
             # Only send followup if we successfully deferred
             if deferred:
@@ -606,15 +606,15 @@ class AIChat(commands.Cog):
             logger.error(f"Error in AI chat: {str(e)}")
             logger.error(f"Traceback: {traceback.format_exc()}")
             
-            # c00lkidd-themed error response
-            error_response = "*giggles* Oopsie! Something went wrong in my brain! Dad says I need to be careful with the wires! Can we try again?"
+            # Generic error response
+            error_response = "I'm sorry, but I encountered an error processing our conversation. Let's try again with a different approach."
             
             embed = create_embed(
-                "c00lkidd",
+                "AI Assistant",
                 error_response,
-                color=0xFF3333  # A red color to match c00lkidd's appearance
+                color=0x3498db  # Blue color for AI
             )
-            embed.set_footer(text="*jumps excitedly* Tag! You're it!")
+            embed.set_footer(text="An error occurred. Please try again.")
             
             # Only send followup if we successfully deferred
             if deferred:
@@ -667,7 +667,7 @@ class AIChat(commands.Cog):
     @commands.command(name="toggle_personality")
     @commands.has_permissions(administrator=True)
     async def toggle_personality_prefix(self, ctx):
-        """Cycle between childlike, neutral, and threatening AI personality modes (prefix version, Admin only)"""
+        """Cycle between casual, neutral, and formal AI personality modes (prefix version, Admin only)"""
         try:
             # Cycle to the next personality mode
             new_mode_id = ai_preferences.cycle_personality_mode()
@@ -675,15 +675,15 @@ class AIChat(commands.Cog):
             
             # Create appropriate embed based on the new mode
             if new_mode_id == ai_preferences.CHILDLIKE:
-                # Childlike mode activated
+                # Casual mode activated (renamed from Childlike)
                 embed = create_embed(
                     "😊 AI Personality Changed",
                     f"AI personality switched to **{current_mode}** mode.",
-                    color=0xFF3333  # Original c00lkidd color
+                    color=0x3498DB  # Blue for AI
                 )
                 embed.add_field(
                     name="Mode Description", 
-                    value="c00lkidd will now be more childlike and playful in its responses, with innocent but slightly creepy undertones.",
+                    value="The AI will now use a more casual and conversational tone in its responses.",
                     inline=False
                 )
             
@@ -696,25 +696,25 @@ class AIChat(commands.Cog):
                 )
                 embed.add_field(
                     name="Mode Description", 
-                    value="c00lkidd will now be more balanced and neutral in its responses, neither overly childish nor threatening.",
+                    value="The AI will now use a balanced and neutral tone in its responses, with a focus on clarity and helpfulness.",
                     inline=False
                 )
                 
             elif new_mode_id == ai_preferences.THREATENING:
-                # Threatening mode activated
+                # Formal mode activated (renamed from Threatening)
                 embed = create_embed(
-                    "🔥 AI Personality Changed",
+                    "🔶 AI Personality Changed",
                     f"AI personality switched to **{current_mode}** mode.",
-                    color=0xFF0000  # Red for threatening
+                    color=0x3498DB  # Blue for AI
                 )
                 embed.add_field(
                     name="Mode Description", 
-                    value="c00lkidd will now be more menacing and threatening in its responses, with darker undertones while maintaining childlike speech patterns.",
+                    value="The AI will now use a more formal and authoritative tone in its responses, with greater technical precision.",
                     inline=False
                 )
                 embed.add_field(
-                    name="Warning", 
-                    value="Responses may be more disturbing and contain implied threats. Use with caution.",
+                    name="Note", 
+                    value="This mode is optimized for technical and educational content.",
                     inline=False
                 )
                 
@@ -728,10 +728,10 @@ class AIChat(commands.Cog):
                 embed=create_error_embed("Error", f"Failed to change AI personality: {str(e)}")
             )
 
-    @app_commands.command(name="toggle_personality", description="Cycle between childlike, neutral, and threatening AI personalities (Admin only)")
+    @app_commands.command(name="toggle_personality", description="Cycle between casual, neutral, and formal AI personalities (Admin only)")
     @app_commands.default_permissions(administrator=True)
     async def toggle_personality(self, interaction: discord.Interaction):
-        """Cycle between childlike, neutral, and threatening AI personality modes (Admin only)"""
+        """Cycle between casual, neutral, and formal AI personality modes (Admin only)"""
         try:
             await interaction.response.defer(ephemeral=True)
             
@@ -741,15 +741,15 @@ class AIChat(commands.Cog):
             
             # Create appropriate embed based on the new mode
             if new_mode_id == ai_preferences.CHILDLIKE:
-                # Childlike mode activated
+                # Casual mode activated (renamed from Childlike)
                 embed = create_embed(
                     "😊 AI Personality Changed",
                     f"AI personality switched to **{current_mode}** mode.",
-                    color=0xFF3333  # Original c00lkidd color
+                    color=0x3498DB  # Blue for AI
                 )
                 embed.add_field(
                     name="Mode Description", 
-                    value="c00lkidd will now be more childlike and playful in its responses, with innocent but slightly creepy undertones.",
+                    value="The AI will now use a more casual and conversational tone in its responses.",
                     inline=False
                 )
             
@@ -762,25 +762,25 @@ class AIChat(commands.Cog):
                 )
                 embed.add_field(
                     name="Mode Description", 
-                    value="c00lkidd will now be more balanced and neutral in its responses, neither overly childish nor threatening.",
+                    value="The AI will now use a balanced and neutral tone in its responses, with a focus on clarity and helpfulness.",
                     inline=False
                 )
                 
             elif new_mode_id == ai_preferences.THREATENING:
-                # Threatening mode activated
+                # Formal mode activated (renamed from Threatening)
                 embed = create_embed(
-                    "🔥 AI Personality Changed",
+                    "🔶 AI Personality Changed",
                     f"AI personality switched to **{current_mode}** mode.",
-                    color=0xFF0000  # Red for threatening
+                    color=0x3498DB  # Blue for AI
                 )
                 embed.add_field(
                     name="Mode Description", 
-                    value="c00lkidd will now be more menacing and threatening in its responses, with darker undertones while maintaining childlike speech patterns.",
+                    value="The AI will now use a more formal and authoritative tone in its responses, with greater technical precision.",
                     inline=False
                 )
                 embed.add_field(
-                    name="Warning", 
-                    value="Responses may be more disturbing and contain implied threats. Use with caution.",
+                    name="Note", 
+                    value="This mode is optimized for technical and educational content.",
                     inline=False
                 )
             
@@ -1021,13 +1021,13 @@ class AIChat(commands.Cog):
                 Conversation.clear_history(user_id)
                 logger.info(f"Cleared conversation history for user {interaction.user} (ID: {user_id})")
                 
-                # c00lkidd-themed clear history message
+                # Clear history confirmation message
                 embed = create_embed(
-                    "c00lkidd",
-                    "*giggles* I knocked over my memory box! All our conversations got lost! Now we can start fresh! Oh well! *shrugs*",
-                    color=0xFF3333
+                    "Chat History Cleared",
+                    "Your conversation history with the AI has been successfully cleared.",
+                    color=0x3498DB
                 )
-                embed.set_footer(text="*whispers* Don't worry, I forget stuff all the time!")
+                embed.set_footer(text="You can start a new conversation now.")
                 
                 # Only send followup if we successfully deferred
                 if deferred:
@@ -1039,13 +1039,13 @@ class AIChat(commands.Cog):
             except Exception as e:
                 logger.error(f"Error clearing conversation history: {str(e)}")
                 
-                # c00lkidd-themed error message
+                # Error message
                 error_embed = create_embed(
-                    "c00lkidd",
-                    "*giggles* Oopsie! I couldn't find my memory box! Maybe it's under my bed? Let's try again later!",
-                    color=0xFF3333
+                    "Error",
+                    "An error occurred while trying to clear your chat history. Please try again later.",
+                    color=0xE74C3C
                 )
-                error_embed.set_footer(text="*scratches head* I'm not very organized...")
+                error_embed.set_footer(text="If this problem persists, please contact a server administrator.")
                 
                 # Only send followup if we successfully deferred
                 if deferred:
@@ -1058,13 +1058,13 @@ class AIChat(commands.Cog):
             logger.error(f"Error in clear_chat_history: {str(e)}")
             logger.error(f"Traceback: {traceback.format_exc()}")
             
-            # c00lkidd-themed error message for outer exception
+            # General error message for outer exception
             outer_error_embed = create_embed(
-                "c00lkidd",
-                "*giggles* Something went REALLY wrong! My brain got all jumbled up! Dad says to try again later!",
-                color=0xFF3333
+                "System Error",
+                "A critical error occurred while processing your request. The system administrators have been notified.",
+                color=0xE74C3C
             )
-            outer_error_embed.set_footer(text="*whispers* Between you and me, I break stuff all the time!")
+            outer_error_embed.set_footer(text="Please try again later or contact a server administrator.")
             
             # Only attempt to send if we deferred successfully
             if deferred:
@@ -1147,13 +1147,12 @@ class AIChat(commands.Cog):
                 history = Conversation.get_history(user_id, limit=10)
                 
                 if not history:
-                    # c00lkidd-themed no history message
+                    # No history message
                     no_history_embed = create_embed(
-                        "c00lkidd",
-                        "*giggles* I can't find our past conversations! My memory box is empty! Let's make some new memories!",
-                        color=0xFF3333
+                        "Conversation History",
+                        "You don't have any recent conversations with the AI.",
+                        color=0x3498DB
                     )
-                    no_history_embed.set_footer(text="*scratches head* Did we talk before? I forget things a lot!")
                     
                     # Only send followup if we successfully deferred
                     if deferred:
@@ -1163,11 +1162,11 @@ class AIChat(commands.Cog):
                             logger.error(f"Error sending no history message: {str(e)}")
                     return
                 
-                # Format the history with c00lkidd theme
+                # Format the history
                 embed = create_embed(
-                    "c00lkidd",
-                    "*giggles* I found our memory box! Here's what I remember about our playtime:",
-                    color=0xFF3333
+                    "💬 Your Recent AI Conversations",
+                    f"Here are your {len(history)} most recent messages with the AI:",
+                    color=0x3498DB
                 )
                 
                 # We want them in chronological order (oldest first)
@@ -1176,7 +1175,7 @@ class AIChat(commands.Cog):
                 # Add each message to the embed
                 for i, msg in enumerate(history, 1):
                     # Format role name without emoji
-                    role_name = "You" if msg.role == "user" else "Me"
+                    role_name = "You" if msg.role == "user" else "AI"
                     timestamp = msg.timestamp.strftime("%Y-%m-%d %H:%M:%S")
                     content = msg.content[:200] + "..." if len(msg.content) > 200 else msg.content
                     
@@ -1186,8 +1185,8 @@ class AIChat(commands.Cog):
                         inline=False
                     )
                 
-                # Add c00lkidd themed footer
-                embed.set_footer(text="*whispers* I'm really good at remembering! Dad says I have a special brain!")
+                # Add footer
+                embed.set_footer(text="Use /clear_chat_history to clear your conversation history.")
                 
                 # Only send followup if we successfully deferred
                 if deferred:
@@ -1200,13 +1199,13 @@ class AIChat(commands.Cog):
             except Exception as e:
                 logger.error(f"Error retrieving conversation history: {str(e)}")
                 
-                # c00lkidd-themed error message
+                # Error message
                 error_embed = create_embed(
-                    "c00lkidd",
-                    "*giggles* Oopsie! I dropped my memory box and everything scattered! Can't find our memories right now!",
-                    color=0xFF3333
+                    "Error",
+                    "An error occurred while trying to retrieve your conversation history. Please try again later.",
+                    color=0xE74C3C
                 )
-                error_embed.set_footer(text="*looks sad* Dad says I need to be more careful...")
+                error_embed.set_footer(text="If this problem persists, please contact a server administrator.")
                 
                 # Only send followup if we successfully deferred
                 if deferred:
@@ -1219,13 +1218,13 @@ class AIChat(commands.Cog):
             logger.error(f"Error in show_chat_history: {str(e)}")
             logger.error(f"Traceback: {traceback.format_exc()}")
             
-            # c00lkidd-themed error message for outer exception
+            # System error message for outer exception
             outer_error_embed = create_embed(
-                "c00lkidd",
-                "*giggles* My brain got all scrambled! I forgot what I was doing! Can we try again later?",
-                color=0xFF3333
+                "System Error",
+                "A critical error occurred while processing your request. The system administrators have been notified.",
+                color=0xE74C3C
             )
-            outer_error_embed.set_footer(text="*whispers* Dad says my wires get crossed sometimes!")
+            outer_error_embed.set_footer(text="Please try again later or contact a server administrator.")
             
             # Only attempt to send if we deferred successfully
             if deferred:
