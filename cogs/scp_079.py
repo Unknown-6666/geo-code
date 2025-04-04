@@ -29,7 +29,7 @@ class SCP079(commands.Cog):
         self.bot = bot
         
         # Configure Gemini model - using Gemini 2.5 Pro for enhanced roleplay capabilities
-        self.gemini_model = "models/gemini-2.5-pro-latest"
+        self.gemini_model = "models/gemini-2.5-pro"
         self.gemini_api_version = "v1beta"
         
         # Log initialization
