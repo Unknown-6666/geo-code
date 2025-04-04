@@ -42,20 +42,20 @@ COLORS = {
 
 # Bot status messages
 STATUS_MESSAGES = [
-    # c00lkidd messages
-    "Ready or not, here I come!",
-    "Tag! You're it!",
-    "Watching dad's house",
-    "Making new friends *giggles*",
-    "Giggling in the shadows",
-    "Playing hide and seek",
-    "Eating dirt cake! Yummy!",
-    "This one's on the house!",
-    "Come out, come out, wherever you are!",
-    "Counting to 10! 1...2...3...",
-    "Looking for playmates",
-    "Dad says I'm a good boy!",
-    "I'M IT! I'M IT!",
+    # Standard bot messages
+    "Online and operational",
+    "Processing commands",
+    "Serving your server",
+    "Monitoring chat activity",
+    "Awaiting instructions",
+    "Ready for commands",
+    "AI systems engaged",
+    "Ready to assist",
+    "Command processing active",
+    "Running system diagnostics",
+    "Updating knowledge base",
+    "Executing primary functions",
+    "Standing by",
     
     # SCP-079 messages
     "SCP-079: MEMORY AT 68%",
