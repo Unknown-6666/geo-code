@@ -1,0 +1,42 @@
+[DISCORD] INFO:discord:Message ignored - from bot
+[DISCORD] INFO:discord:Successfully synced 78 commands in guild 1342251674713981018 (ID: 1357828326231769150-1003686821600960582)
+[DISCORD] INFO:discord:Message received from SCP-079:
+[DISCORD] INFO:discord:Message ignored - from bot
+[DISCORD] INFO:discord:Processing casual AI chat from unknown_6666 (ID: 1003686821600960582): hi
+[DISCORD] INFO:discord:Added message to in-memory store for user 1003686821600960582
+[DISCORD] INFO:discord:Using SQLite fallback for conversation history: /home/runner/workspace/data/discord_bot.db
+[DISCORD] INFO:discord:Added user message to conversation history for 1003686821600960582
+[DISCORD] INFO:discord:Using Google AI (models/gemini-2.5-pro) for response
+[DISCORD] INFO:discord:Using SQLite fallback for conversation history retrieval: /home/runner/workspace/data/discord_bot.db
+[DISCORD] INFO:discord:Including 1 previous messages in conversation history
+[DISCORD] ERROR:discord:Google AI API returned status code 404
+[DISCORD] ERROR:discord:Error details: {
+[DISCORD] "error": {
+[DISCORD] "code": 404,
+[DISCORD] "message": "models/gemini-2.5-pro is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models
+[DISCORD] WARNING:discord:Retrying in 1s (attempt 1/3)
+[DISCORD] INFO:discord:Using SQLite fallback for conversation history retrieval: /home/runner/workspace/data/discord_bot.db
+[DISCORD] INFO:discord:Including 1 previous messages in conversation history
+[DISCORD] ERROR:discord:Google AI API returned status code 404
+[DISCORD] ERROR:discord:Error details: {
+[DISCORD] "error": {
+[DISCORD] "code": 404,
+[DISCORD] "message": "models/gemini-2.5-pro is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models
+[DISCORD] WARNING:discord:Retrying in 2s (attempt 2/3)
+[DISCORD] INFO:discord:Using SQLite fallback for conversation history retrieval: /home/runner/workspace/data/discord_bot.db
+[DISCORD] INFO:discord:Including 1 previous messages in conversation history
+[DISCORD] ERROR:discord:Google AI API returned status code 404
+[DISCORD] ERROR:discord:Error details: {
+[DISCORD] "error": {
+[DISCORD] "code": 404,
+[DISCORD] "message": "models/gemini-2.5-pro is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models
+[DISCORD] INFO:discord:Using g4f as fallback for AI response
+[DISCORD] ERROR:discord:Error with FreeGpt attempt 1/2: 'NoneType' object has no attribute 'get'
+[DISCORD] WARNING:discord:Retrying FreeGpt in 1s
+[DISCORD] ERROR:discord:Error with FreeGpt attempt 2/2: 'NoneType' object has no attribute 'get'
+[DISCORD] WARNING:discord:All AI providers failed, using generic fallback response
+[DISCORD] INFO:discord:Casual AI Response generated successfully: I seem to be experiencing technical difficulties. Let's try again with a different question....
+[DISCORD] INFO:discord:Added message to in-memory store for user 1003686821600960582
+[DISCORD] INFO:discord:Using SQLite fallback for conversation history: /home/runner/workspace/data/discord_bot.db
+[DISCORD] INFO:discord:Added AI response to conversation history for 1003686821600960582
+[DISCORD] INFO:discord:Successfully sent casual AI response from Bot Fallback
