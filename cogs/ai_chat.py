@@ -6,6 +6,7 @@ import os
 import json
 import aiohttp
 import random
+import traceback
 from typing import Literal, Optional
 from discord import app_commands
 from discord.ext import commands
@@ -300,10 +301,31 @@ class AIChat(commands.Cog):
     @app_commands.describe(question="The question or prompt for the AI")
     async def ask(self, interaction: discord.Interaction, *, question: str):
         """Ask the AI a question and get a response"""
+        # Initialize deferred to False as default
+        deferred = False
+        
         try:
-            await interaction.response.defer()  # This might take a while
+            # Add a try/except block to handle the defer operation safely
+            try:
+                await interaction.response.defer()  # This might take a while
+                deferred = True
+            except discord.errors.NotFound:
+                # The interaction has already timed out or been acknowledged
+                logger.warning("Interaction already timed out or acknowledged in ask command")
+                return
+            except Exception as e:
+                logger.error(f"Error deferring interaction: {str(e)}")
+                
             logger.info(f"Processing AI request from {interaction.user}: {question}")
             user_id = str(interaction.user.id)
+            
+            # Save the user's message to the conversation history
+            try:
+                Conversation.add_message(user_id, "user", question)
+                logger.info(f"Added user question to conversation history for {user_id}")
+            except Exception as e:
+                logger.error(f"Failed to save user question to conversation history: {str(e)}")
+                # Don't abort on history save failure, continue with the request
             
             # Process the AI request using the common method
             response, ai_source = await self._process_ai_request(question, user_id)
@@ -312,7 +334,6 @@ class AIChat(commands.Cog):
 
             # Save the AI's response to the conversation history
             try:
-                user_id = str(interaction.user.id)
                 Conversation.add_message(user_id, "assistant", response)
                 logger.info(f"Added AI response to conversation history for {user_id}")
             except Exception as e:
@@ -337,21 +358,55 @@ class AIChat(commands.Cog):
             embed.add_field(name="You asked", value=question)
             embed.set_footer(text=random.choice(slash_expressions))
 
-            await interaction.followup.send(embed=embed)
-            logger.info(f"Successfully sent AI response from {ai_source}")
+            # Only send followup if we successfully deferred
+            if deferred:
+                try:
+                    await interaction.followup.send(embed=embed)
+                    logger.info(f"Successfully sent AI response from {ai_source}")
+                except Exception as e:
+                    logger.error(f"Error sending followup: {str(e)}")
 
         except asyncio.TimeoutError:
             logger.error("AI request timed out")
-            await interaction.followup.send(
-                embed=create_error_embed("Error", "The AI is taking too long to respond. Please try again."),
-                ephemeral=True
+            
+            # c00lkidd-themed timeout response
+            timeout_response = "*giggles* I got tired of waiting! My brain hurts! Let's try again later, k?"
+            
+            embed = create_embed(
+                "c00lkidd",
+                timeout_response,
+                color=0xFF3333
             )
+            embed.set_footer(text="*bounces impatiently* Ready or not, here I come!")
+            
+            # Only send followup if we successfully deferred
+            if deferred:
+                try:
+                    await interaction.followup.send(embed=embed)
+                except Exception as e:
+                    logger.error(f"Error sending timeout response: {str(e)}")
+                    
         except Exception as e:
             logger.error(f"Error generating AI response: {str(e)}")
-            await interaction.followup.send(
-                embed=create_error_embed("Error", "I'm having trouble connecting to the AI service right now. Please try again in a few moments."),
-                ephemeral=True
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            
+            # c00lkidd-themed error response
+            error_response = "*giggles* Something broke in my brain! Dad says I need to be more careful with my toys! Let's play something else!"
+            
+            embed = create_embed(
+                "c00lkidd",
+                error_response,
+                color=0xFF3333
             )
+            embed.set_footer(text="*bounces excitedly* Tag! You're it!")
+            
+            # Only send followup if we successfully deferred
+            if deferred:
+                try:
+                    await interaction.followup.send(embed=embed)
+                except Exception as e:
+                    logger.error(f"Error sending error response: {str(e)}")
+                    logger.error(f"Original error: {traceback.format_exc()}")
 
     @commands.command(name="chat")
     async def chat_prefix(self, ctx, *, message: str):
@@ -429,8 +484,21 @@ class AIChat(commands.Cog):
     @app_commands.describe(message="Your message to the AI")
     async def chat(self, interaction: discord.Interaction, *, message: str):
         """Have a more casual conversation with the AI with memory of past conversations"""
+        # Initialize deferred to False as default
+        deferred = False
+        
         try:
-            await interaction.response.defer()
+            # Add a try/except block to handle the defer operation safely
+            try:
+                await interaction.response.defer()
+                deferred = True
+            except discord.errors.NotFound:
+                # The interaction has already timed out or been acknowledged
+                logger.warning("Interaction already timed out or acknowledged in chat command")
+                return
+            except Exception as e:
+                logger.error(f"Error deferring interaction: {str(e)}")
+            
             user_id = str(interaction.user.id)
             logger.info(f"Processing casual AI chat from {interaction.user} (ID: {user_id}): {message}")
             
@@ -475,8 +543,13 @@ class AIChat(commands.Cog):
                 )
                 embed.set_footer(text=random.choice(slash_chat_expressions))
 
-                await interaction.followup.send(embed=embed)
-                logger.info(f"Successfully sent casual AI response from {ai_source}")
+                # Only send followup if we successfully deferred
+                if deferred:
+                    try:
+                        await interaction.followup.send(embed=embed)
+                        logger.info(f"Successfully sent casual AI response from {ai_source}")
+                    except Exception as e:
+                        logger.error(f"Error sending followup: {str(e)}")
             else:
                 # If we don't have a valid response, send a fallback
                 logger.error("No valid AI response generated")
@@ -499,8 +572,13 @@ class AIChat(commands.Cog):
                 )
                 embed.set_footer(text="*whispers* I'll do better next time, promise!")
                 
-                await interaction.followup.send(embed=embed)
-                logger.info("Sent fallback response due to AI processing failure")
+                # Only send followup if we successfully deferred
+                if deferred:
+                    try:
+                        await interaction.followup.send(embed=embed)
+                        logger.info("Sent fallback response due to AI processing failure")
+                    except Exception as e:
+                        logger.error(f"Error sending fallback response: {str(e)}")
         except asyncio.TimeoutError:
             logger.error("AI chat request timed out")
             
@@ -514,7 +592,12 @@ class AIChat(commands.Cog):
             )
             embed.set_footer(text="*whispers* Dad says I need to work on my patience...")
             
-            await interaction.followup.send(embed=embed)
+            # Only send followup if we successfully deferred
+            if deferred:
+                try:
+                    await interaction.followup.send(embed=embed)
+                except Exception as e:
+                    logger.error(f"Error sending timeout response: {str(e)}")
         except Exception as e:
             logger.error(f"Error in AI chat: {str(e)}")
             logger.error(f"Traceback: {traceback.format_exc()}")
@@ -529,7 +612,13 @@ class AIChat(commands.Cog):
             )
             embed.set_footer(text="*jumps excitedly* Tag! You're it!")
             
-            await interaction.followup.send(embed=embed)
+            # Only send followup if we successfully deferred
+            if deferred:
+                try:
+                    await interaction.followup.send(embed=embed)
+                except Exception as e:
+                    logger.error(f"Error sending error response: {str(e)}")
+                    logger.error(f"Original error: {traceback.format_exc()}")
     
     @app_commands.command(name="ai_reload", description="Reload AI preferences from file (Admin only)")
     @app_commands.default_permissions(administrator=True)
@@ -776,34 +865,79 @@ class AIChat(commands.Cog):
     @app_commands.command(name="clear_chat_history", description="Clear your conversation history with the AI")
     async def clear_chat_history(self, interaction: discord.Interaction):
         """Clear your conversation history with the AI"""
+        # Initialize deferred to False as default
+        deferred = False
+        
         try:
-            await interaction.response.defer(ephemeral=True)
+            # Add a try/except block to handle the defer operation safely
+            try:
+                await interaction.response.defer(ephemeral=True)
+                deferred = True
+            except discord.errors.NotFound:
+                # The interaction has already timed out or been acknowledged
+                logger.warning("Interaction already timed out or acknowledged in clear_chat_history command")
+                return
+            except Exception as e:
+                logger.error(f"Error deferring interaction: {str(e)}")
+                
             user_id = str(interaction.user.id)
             
             try:
                 Conversation.clear_history(user_id)
                 logger.info(f"Cleared conversation history for user {interaction.user} (ID: {user_id})")
                 
+                # c00lkidd-themed clear history message
                 embed = create_embed(
-                    "🧹 Conversation History Cleared",
-                    "Your conversation history with the AI has been cleared. The AI will no longer remember your previous interactions.",
-                    color=0xFFA500
+                    "c00lkidd",
+                    "*giggles* I knocked over my memory box! All our conversations got lost! Now we can start fresh! Oh well! *shrugs*",
+                    color=0xFF3333
                 )
-                await interaction.followup.send(embed=embed, ephemeral=True)
+                embed.set_footer(text="*whispers* Don't worry, I forget stuff all the time!")
+                
+                # Only send followup if we successfully deferred
+                if deferred:
+                    try:
+                        await interaction.followup.send(embed=embed, ephemeral=True)
+                    except Exception as e:
+                        logger.error(f"Error sending clear history confirmation: {str(e)}")
                 
             except Exception as e:
                 logger.error(f"Error clearing conversation history: {str(e)}")
-                await interaction.followup.send(
-                    embed=create_error_embed("Error", "Failed to clear conversation history. Please try again later."),
-                    ephemeral=True
+                
+                # c00lkidd-themed error message
+                error_embed = create_embed(
+                    "c00lkidd",
+                    "*giggles* Oopsie! I couldn't find my memory box! Maybe it's under my bed? Let's try again later!",
+                    color=0xFF3333
                 )
+                error_embed.set_footer(text="*scratches head* I'm not very organized...")
+                
+                # Only send followup if we successfully deferred
+                if deferred:
+                    try:
+                        await interaction.followup.send(embed=error_embed, ephemeral=True)
+                    except Exception as e:
+                        logger.error(f"Error sending clear history error: {str(e)}")
                 
         except Exception as e:
             logger.error(f"Error in clear_chat_history: {str(e)}")
-            await interaction.followup.send(
-                embed=create_error_embed("Error", "An error occurred. Please try again later."),
-                ephemeral=True
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            
+            # c00lkidd-themed error message for outer exception
+            outer_error_embed = create_embed(
+                "c00lkidd",
+                "*giggles* Something went REALLY wrong! My brain got all jumbled up! Dad says to try again later!",
+                color=0xFF3333
             )
+            outer_error_embed.set_footer(text="*whispers* Between you and me, I break stuff all the time!")
+            
+            # Only attempt to send if we deferred successfully
+            if deferred:
+                try:
+                    await interaction.followup.send(embed=outer_error_embed, ephemeral=True)
+                except Exception as e:
+                    logger.error(f"Error sending outer exception message: {str(e)}")
+                    logger.error(f"Original error: {traceback.format_exc()}")
     
     @commands.command(name="history")
     async def history_prefix(self, ctx):
@@ -856,8 +990,21 @@ class AIChat(commands.Cog):
     @app_commands.command(name="show_chat_history", description="Show your recent conversation history with the AI")
     async def show_chat_history(self, interaction: discord.Interaction):
         """Show your recent conversation with the AI"""
+        # Initialize deferred to False as default
+        deferred = False
+        
         try:
-            await interaction.response.defer(ephemeral=True)
+            # Add a try/except block to handle the defer operation safely
+            try:
+                await interaction.response.defer(ephemeral=True)
+                deferred = True
+            except discord.errors.NotFound:
+                # The interaction has already timed out or been acknowledged
+                logger.warning("Interaction already timed out or acknowledged in show_chat_history command")
+                return
+            except Exception as e:
+                logger.error(f"Error deferring interaction: {str(e)}")
+                
             user_id = str(interaction.user.id)
             
             try:
@@ -865,17 +1012,27 @@ class AIChat(commands.Cog):
                 history = Conversation.get_history(user_id, limit=10)
                 
                 if not history:
-                    await interaction.followup.send(
-                        embed=create_embed("Conversation History", "You don't have any recent conversations with the AI.", color=0x3498DB),
-                        ephemeral=True
+                    # c00lkidd-themed no history message
+                    no_history_embed = create_embed(
+                        "c00lkidd",
+                        "*giggles* I can't find our past conversations! My memory box is empty! Let's make some new memories!",
+                        color=0xFF3333
                     )
+                    no_history_embed.set_footer(text="*scratches head* Did we talk before? I forget things a lot!")
+                    
+                    # Only send followup if we successfully deferred
+                    if deferred:
+                        try:
+                            await interaction.followup.send(embed=no_history_embed, ephemeral=True)
+                        except Exception as e:
+                            logger.error(f"Error sending no history message: {str(e)}")
                     return
                 
-                # Format the history
+                # Format the history with c00lkidd theme
                 embed = create_embed(
-                    "💬 Your Recent AI Conversations",
-                    f"Here are your {len(history)} most recent messages with the AI:",
-                    color=0x3498DB
+                    "c00lkidd",
+                    "*giggles* I found our memory box! Here's what I remember about our playtime:",
+                    color=0xFF3333
                 )
                 
                 # We want them in chronological order (oldest first)
@@ -884,7 +1041,7 @@ class AIChat(commands.Cog):
                 # Add each message to the embed
                 for i, msg in enumerate(history, 1):
                     # Format role name without emoji
-                    role_name = "You" if msg.role == "user" else "AI"
+                    role_name = "You" if msg.role == "user" else "Me"
                     timestamp = msg.timestamp.strftime("%Y-%m-%d %H:%M:%S")
                     content = msg.content[:200] + "..." if len(msg.content) > 200 else msg.content
                     
@@ -894,21 +1051,54 @@ class AIChat(commands.Cog):
                         inline=False
                     )
                 
-                await interaction.followup.send(embed=embed, ephemeral=True)
+                # Add c00lkidd themed footer
+                embed.set_footer(text="*whispers* I'm really good at remembering! Dad says I have a special brain!")
+                
+                # Only send followup if we successfully deferred
+                if deferred:
+                    try:
+                        await interaction.followup.send(embed=embed, ephemeral=True)
+                        logger.info(f"Successfully showed chat history for {user_id}")
+                    except Exception as e:
+                        logger.error(f"Error sending chat history: {str(e)}")
                 
             except Exception as e:
                 logger.error(f"Error retrieving conversation history: {str(e)}")
-                await interaction.followup.send(
-                    embed=create_error_embed("Error", "Failed to retrieve conversation history. Please try again later."),
-                    ephemeral=True
+                
+                # c00lkidd-themed error message
+                error_embed = create_embed(
+                    "c00lkidd",
+                    "*giggles* Oopsie! I dropped my memory box and everything scattered! Can't find our memories right now!",
+                    color=0xFF3333
                 )
+                error_embed.set_footer(text="*looks sad* Dad says I need to be more careful...")
+                
+                # Only send followup if we successfully deferred
+                if deferred:
+                    try:
+                        await interaction.followup.send(embed=error_embed, ephemeral=True)
+                    except Exception as e:
+                        logger.error(f"Error sending history retrieval error: {str(e)}")
                 
         except Exception as e:
             logger.error(f"Error in show_chat_history: {str(e)}")
-            await interaction.followup.send(
-                embed=create_error_embed("Error", "An error occurred. Please try again later."),
-                ephemeral=True
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            
+            # c00lkidd-themed error message for outer exception
+            outer_error_embed = create_embed(
+                "c00lkidd",
+                "*giggles* My brain got all scrambled! I forgot what I was doing! Can we try again later?",
+                color=0xFF3333
             )
+            outer_error_embed.set_footer(text="*whispers* Dad says my wires get crossed sometimes!")
+            
+            # Only attempt to send if we deferred successfully
+            if deferred:
+                try:
+                    await interaction.followup.send(embed=outer_error_embed, ephemeral=True)
+                except Exception as e:
+                    logger.error(f"Error sending outer exception message: {str(e)}")
+                    logger.error(f"Original error: {traceback.format_exc()}")
 
 async def setup(bot):
     logger.info("Setting up AI Chat cog")

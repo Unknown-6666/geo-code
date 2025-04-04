@@ -1,0 +1,50 @@
+[DISCORD] ERROR:asyncio:Task exception was never retrieved
+[DISCORD] future: <Task finished name='CommandTree-invoker' coro=<CommandTree._from_interaction.<locals>.wrapper() done, defined at /home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/discord/app_commands/tree.py:1149> exception=HTTPException('400 Bad Request (error code: 40060): Interaction has already been acknowledged.')>
+[DISCORD] Traceback (most recent call last):
+[DISCORD] File "/home/runner/workspace/cogs/ai_chat.py", line 433, in chat
+[DISCORD] await interaction.response.defer()
+[DISCORD] File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/discord/interactions.py", line 844, in defer
+[DISCORD] response = await adapter.create_interaction_response(
+[DISCORD] ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[DISCORD] File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/discord/webhook/async_.py", line 224, in request
+[DISCORD] raise NotFound(response, data)
+[DISCORD] discord.errors.NotFound: 404 Not Found (error code: 10062): Unknown interaction
+[DISCORD] 
+[DISCORD] During handling of the above exception, another exception occurred:
+[DISCORD] 
+[DISCORD] Traceback (most recent call last):
+[DISCORD] File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/discord/app_commands/commands.py", line 857, in _do_call
+[DISCORD] return await self._callback(self.binding, interaction, **params)  # type: ignore
+[DISCORD] ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[DISCORD] File "/home/runner/workspace/cogs/ai_chat.py", line 520, in chat
+[DISCORD] logger.error(f"Traceback: {traceback.format_exc()}")
+[DISCORD] ^^^^^^^^^
+[DISCORD] NameError: name 'traceback' is not defined
+[DISCORD] 
+[DISCORD] The above exception was the direct cause of the following exception:
+[DISCORD] 
+[DISCORD] Traceback (most recent call last):
+[DISCORD] File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/discord/app_commands/tree.py", line 1310, in _call
+[DISCORD] await command._invoke_with_namespace(interaction, namespace)
+[DISCORD] File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/discord/app_commands/commands.py", line 883, in _invoke_with_namespace
+[DISCORD] return await self._do_call(interaction, transformed_values)
+[DISCORD] ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[DISCORD] File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/discord/app_commands/commands.py", line 876, in _do_call
+[DISCORD] raise CommandInvokeError(self, e) from e
+[DISCORD] discord.app_commands.errors.CommandInvokeError: Command 'chat' raised an exception: NameError: name 'traceback' is not defined
+[DISCORD] 
+[DISCORD] During handling of the above exception, another exception occurred:
+[DISCORD] 
+[DISCORD] Traceback (most recent call last):
+[DISCORD] File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/discord/app_commands/tree.py", line 1151, in wrapper
+[DISCORD] await self._call(interaction)
+[DISCORD] File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/discord/app_commands/tree.py", line 1314, in _call
+[DISCORD] await self.on_error(interaction, e)
+[DISCORD] File "/home/runner/workspace/bot.py", line 148, in on_app_command_error
+[DISCORD] await interaction.response.send_message(f"An error occurred: {str(error)}", ephemeral=True)
+[DISCORD] File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/discord/interactions.py", line 1004, in send_message
+[DISCORD] response = await adapter.create_interaction_response(
+[DISCORD] ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[DISCORD] File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/discord/webhook/async_.py", line 226, in request
+[DISCORD] raise HTTPException(response, data)
+[DISCORD] discord.errors.HTTPException: 400 Bad Request (error code: 40060): Interaction has already been acknowledged.
