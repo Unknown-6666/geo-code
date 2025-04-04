@@ -24,9 +24,9 @@ class AIChat(commands.Cog):
         # Configure g4f settings
         g4f.debug.logging = False  # Disable debug logging
         
-        # Set Gemini API version - using Gemini 2.5 Pro for enhanced capabilities
-        # Gemini 2.5-pro is the current available model as of April 2025
-        self.gemini_model = "models/gemini-2.5-pro"
+        # Set Gemini API version - using Gemini 1.5 Pro for enhanced capabilities
+        # Gemini 1.5-pro is the current available model as of April 2025
+        self.gemini_model = "models/gemini-1.5-pro"
         self.gemini_api_version = "v1beta"
         
         # Log AI provider status
@@ -39,7 +39,7 @@ class AIChat(commands.Cog):
 
     
     async def get_google_ai_response(self, prompt, system_prompt=None, user_id=None, include_history=True):
-        """Get a response from Google's Gemini 2.5 AI API with conversation history support"""
+        """Get a response from Google's Gemini 1.5 AI API with conversation history support"""
         if not GOOGLE_API_KEY:
             return None
 
@@ -56,7 +56,7 @@ class AIChat(commands.Cog):
 
         for attempt in range(max_retries):
             try:
-                # Gemini API endpoint for text generation - using Gemini 2.5
+                # Gemini API endpoint for text generation - using Gemini 1.5
                 url = f"https://generativelanguage.googleapis.com/{self.gemini_api_version}/{self.gemini_model}:generateContent?key={GOOGLE_API_KEY}"
                 
                 # Prepare conversation history for context if user_id is provided and include_history is True
