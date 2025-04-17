@@ -56,15 +56,15 @@ RULES = {
         "severity": 2,
         "exception": r"The\s+Plowed"  # Rule 4.5 exception
     },
+
+#/not uses:            r"(kill|kys|die|neck)\s+(yourself|urself|u)", r"(you're|youre|ur)\s+(stupid|dumb|idiot|retard)", r"(go|get)\s+(away|lost)", r"(send|dm)\s+me\s+(nudes|pics)"
+
+ 
     6: {
         "name": "Harassment",
         "description": "Don't be weird. Harassment, unsolicited nudes, etc.",
         "patterns": [
-            r"(shut|stfu|fuck)\s+(up|off)",
-            r"(kill|kys|die|neck)\s+(yourself|urself|u)",
-            r"(you're|youre|ur)\s+(stupid|dumb|idiot|retard)",
-            r"(go|get)\s+(away|lost)",
-            r"(send|dm)\s+me\s+(nudes|pics)"
+
         ],
         "severity": 3
     },

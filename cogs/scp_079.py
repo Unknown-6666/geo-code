@@ -59,7 +59,7 @@ class SCP079(commands.Cog):
         
         # Default settings
         temperature = 0.8
-        max_tokens = 250  # SCP-079 gives brief responses
+        max_tokens = 1000  # SCP-079 gives brief responses
         
         # Use the SCP-079 system prompt
         system_prompt = await self.get_scp079_system_prompt()
