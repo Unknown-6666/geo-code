@@ -311,16 +311,16 @@ class FunCommands(commands.Cog):
             )
             return
             
-        global ALLOWED_USER_ID
+        from config import JOG_ALLOWED_USER_ID
         
         if user_id is None:
             # Display current allowed user
-            if ALLOWED_USER_ID:
-                user = self.bot.get_user(ALLOWED_USER_ID)
-                user_name = user.name if user else f"Unknown User ({ALLOWED_USER_ID})"
+            if JOG_ALLOWED_USER_ID:
+                user = self.bot.get_user(JOG_ALLOWED_USER_ID)
+                user_name = user.name if user else f"Unknown User ({JOG_ALLOWED_USER_ID})"
                 await interaction.response.send_message(embed=create_embed(
                     "Jog Command Access",
-                    f"The jog command is currently accessible by you and: {user_name} (ID: {ALLOWED_USER_ID})",
+                    f"The jog command is currently accessible by you and: {user_name} (ID: {JOG_ALLOWED_USER_ID})",
                     color=0x3498DB
                 ))
             else:
@@ -346,8 +346,9 @@ class FunCommands(commands.Cog):
         if user:
             # Set environment variable
             os.environ["JOG_ALLOWED_USER_ID"] = str(user_id_int)
-            # Update global variable
-            ALLOWED_USER_ID = user_id_int
+            # Update config module (this will be reset on bot restart)
+            import config
+            config.JOG_ALLOWED_USER_ID = user_id_int
             await interaction.response.send_message(embed=create_embed(
                 "Jog User Set",
                 f"User {user.name} (ID: {user_id_int}) can now use the jog command along with you.",
