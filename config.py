@@ -20,7 +20,7 @@ USE_AI_FALLBACK = os.getenv("USE_AI_FALLBACK", "false").lower() == "true"
 # Bot owner and permission configuration
 BOT_OWNER_IDS = (1003686821600960582, 1296213550917881856, 1170566628585504895)  # Your Discord IDs
 MOD_ROLE_IDS = [
-    1259610617678135377, 1259606494719250492  # Moderator role ID
+    1297007041482592276, 954166360680837182  # Moderator role ID
 ]
 
 # YouTube channel configuration
