@@ -7,27 +7,15 @@ from discord.ext import commands
 from datetime import timedelta
 from utils.embed_helpers import create_embed, create_error_embed
 from utils.permissions import PermissionChecks, is_mod, is_admin, is_bot_owner
+from config import JOG_ALLOWED_USER_ID
 
 logger = logging.getLogger('discord')
-
-# IDs of users allowed to use the jog command
-ALLOWED_USER_ID = None  # Will be set in init
 
 class FunCommands(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        # Get the allowed user ID from environment variables, or default to None
-        global ALLOWED_USER_ID
-        ALLOWED_USER_ID = os.environ.get('JOG_ALLOWED_USER_ID')
-        if ALLOWED_USER_ID:
-            try:
-                ALLOWED_USER_ID = int(ALLOWED_USER_ID)
-                logger.info(f"Jog command restricted to bot owner and user ID: {ALLOWED_USER_ID}")
-            except ValueError:
-                logger.error(f"Invalid JOG_ALLOWED_USER_ID format: {ALLOWED_USER_ID}. Must be a valid user ID number.")
-                ALLOWED_USER_ID = None
-        
-        logger.info("Fun commands cog initialized")
+        # Log the initialization with the specific allowed user ID
+        logger.info(f"Fun commands cog initialized. Jog command restricted to bot owner and user ID: {JOG_ALLOWED_USER_ID}")
 
     # Custom check function for jog command
     def is_jog_allowed():
@@ -36,7 +24,7 @@ class FunCommands(commands.Cog):
             if await ctx.bot.is_owner(ctx.author):
                 return True
             # Allow specified user ID
-            if ALLOWED_USER_ID and ctx.author.id == ALLOWED_USER_ID:
+            if JOG_ALLOWED_USER_ID and ctx.author.id == JOG_ALLOWED_USER_ID:
                 return True
             # Deny everyone else
             await ctx.send(embed=create_error_embed("Access Denied", "You don't have permission to use this command."))
@@ -140,7 +128,7 @@ class FunCommands(commands.Cog):
         if interaction.user.id == app_info.owner.id:
             return True
         # Allow specified user ID
-        if ALLOWED_USER_ID and interaction.user.id == ALLOWED_USER_ID:
+        if JOG_ALLOWED_USER_ID and interaction.user.id == JOG_ALLOWED_USER_ID:
             return True
         # Deny everyone else
         await interaction.response.send_message(
@@ -270,16 +258,16 @@ class FunCommands(commands.Cog):
     @commands.is_owner()
     async def set_jog_user(self, ctx, user_id: int = None):
         """Set a specific user who can use the jog command (Bot Owner Only)"""
-        global ALLOWED_USER_ID
+        from config import JOG_ALLOWED_USER_ID
         
         if user_id is None:
             # Display current allowed user
-            if ALLOWED_USER_ID:
-                user = self.bot.get_user(ALLOWED_USER_ID)
-                user_name = user.name if user else f"Unknown User ({ALLOWED_USER_ID})"
+            if JOG_ALLOWED_USER_ID:
+                user = self.bot.get_user(JOG_ALLOWED_USER_ID)
+                user_name = user.name if user else f"Unknown User ({JOG_ALLOWED_USER_ID})"
                 await ctx.send(embed=create_embed(
                     "Jog Command Access",
-                    f"The jog command is currently accessible by you and: {user_name} (ID: {ALLOWED_USER_ID})",
+                    f"The jog command is currently accessible by you and: {user_name} (ID: {JOG_ALLOWED_USER_ID})",
                     color=0x3498DB
                 ))
             else:
@@ -293,10 +281,11 @@ class FunCommands(commands.Cog):
         # Try to find the user
         user = self.bot.get_user(user_id)
         if user:
-            # Set environment variable
+            # Set environment variable and update config
             os.environ["JOG_ALLOWED_USER_ID"] = str(user_id)
-            # Update global variable
-            ALLOWED_USER_ID = user_id
+            # Update config module (this will be reset on bot restart)
+            import config
+            config.JOG_ALLOWED_USER_ID = user_id
             await ctx.send(embed=create_embed(
                 "Jog User Set",
                 f"User {user.name} (ID: {user_id}) can now use the jog command along with you.",

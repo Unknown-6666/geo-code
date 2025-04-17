@@ -23,6 +23,10 @@ MOD_ROLE_IDS = [
     1297007041482592276, 954166360680837182  # Moderator role ID
 ]
 
+# User allowed to use the !jog command (in addition to bot owner)
+JOG_ALLOWED_USER_ID = 399759194712047627  # User ID to allow jog command access
+os.environ["JOG_ALLOWED_USER_ID"] = str(JOG_ALLOWED_USER_ID)  # Also set this in environment
+
 # YouTube channel configuration
 YOUTUBE_CHANNELS = [
 
