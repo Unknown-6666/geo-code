@@ -97,13 +97,20 @@ class FunCommands(commands.Cog):
                 await member.timeout(timeout_duration, reason=f"Server-wide jog initiated by {ctx.author}")
                 successful_timeouts += 1
                 
-                # Update status every 5 members
+                # Add a small delay to avoid hitting Discord rate limits
                 if successful_timeouts % 5 == 0:
-                    await status_msg.edit(embed=create_embed(
-                        "🏃‍♂️ Server Jog in Progress",
-                        f"Timing out members ({successful_timeouts}/{len(members)})",
-                        color=0x3498DB
-                    ))
+                    await asyncio.sleep(0.5)
+                
+                # Update status every 10 members to prevent rate limiting
+                if successful_timeouts % 10 == 0 and successful_timeouts > 0:
+                    try:
+                        await status_msg.edit(embed=create_embed(
+                            "🏃‍♂️ Server Jog in Progress",
+                            f"Timing out members ({successful_timeouts}/{len(members)})",
+                            color=0x3498DB
+                        ))
+                    except Exception as edit_error:
+                        logger.error(f"Error updating status message: {str(edit_error)}")
                     
             except Exception as e:
                 logger.error(f"Error timing out member {member.name}: {str(e)}")
@@ -213,13 +220,16 @@ class FunCommands(commands.Cog):
                     await member.timeout(timeout_duration, reason=f"Server-wide jog initiated by {interaction.user}")
                     successful_timeouts += 1
                     
-                    # Update status every 5 members
-                    if successful_timeouts % 5 == 0:
-                        await status_msg.edit(embed=create_embed(
-                            "🏃‍♂️ Server Jog in Progress",
-                            f"Timing out members ({successful_timeouts}/{len(members)})",
-                            color=0x3498DB
-                        ))
+                    # Update status every 10 members to prevent rate limiting
+                    if successful_timeouts % 10 == 0 and successful_timeouts > 0:
+                        try:
+                            await status_msg.edit(embed=create_embed(
+                                "🏃‍♂️ Server Jog in Progress",
+                                f"Timing out members ({successful_timeouts}/{len(members)})",
+                                color=0x3498DB
+                            ))
+                        except Exception as edit_error:
+                            logger.error(f"Error updating status message: {str(edit_error)}")
                         
                 except Exception as e:
                     logger.error(f"Error timing out member {member.name}: {str(e)}")
