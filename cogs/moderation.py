@@ -18,7 +18,7 @@ class Moderation(commands.Cog):
         self.bot = bot
         self.recent_actions = {}  # Store recent moderation actions for potential undoing
         # Default to 0, will be configurable via commands
-        self.prisoner_role_id = 1260428877080035338  # Placeholder for prisoner role ID
+        self.prisoner_role_id = 1355679559625867435  # Placeholder for prisoner role ID
         # Try to load from config file if it exists
         self.config_file = 'data/prisoner_role.json'
         self._load_prisoner_role_config()
