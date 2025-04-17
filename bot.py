@@ -37,6 +37,7 @@ class Bot(commands.Bot):
             "cogs.basic_commands",
             "cogs.member_events",
             "cogs.memes",
+            "cogs.fun_commands",    # Fun commands cog including jog command
             "cogs.ai_chat",         # AI Chat cog
             "cogs.voice_ai",        # Voice AI chat cog
             "cogs.scp_079"          # SCP-079 - The Old AI cog (highest priority)
@@ -285,6 +286,7 @@ async def sync_commands_only():
             "cogs.youtube_tracker", 
             "cogs.economy",
             "cogs.memes",
+            "cogs.fun_commands",    # Fun commands cog including jog command
             "cogs.moderation",
             "cogs.music",
             "cogs.profanity_filter",
