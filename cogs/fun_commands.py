@@ -2,6 +2,7 @@ import discord
 import logging
 import random
 import os
+import asyncio
 from discord import app_commands
 from discord.ext import commands
 from datetime import timedelta
@@ -100,21 +101,23 @@ class FunCommands(commands.Cog):
                 # Add a small delay to avoid hitting Discord rate limits
                 if successful_timeouts % 5 == 0:
                     await asyncio.sleep(0.5)
-                
-                # Update status every 10 members to prevent rate limiting
-                if successful_timeouts % 10 == 0 and successful_timeouts > 0:
-                    try:
-                        await status_msg.edit(embed=create_embed(
-                            "🏃‍♂️ Server Jog in Progress",
-                            f"Timing out members ({successful_timeouts}/{len(members)})",
-                            color=0x3498DB
-                        ))
-                    except Exception as edit_error:
-                        logger.error(f"Error updating status message: {str(edit_error)}")
                     
             except Exception as e:
                 logger.error(f"Error timing out member {member.name}: {str(e)}")
                 failed_timeouts += 1
+                
+            # Only update status at certain milestones to prevent rate limiting
+            if successful_timeouts in [1, 10, 25, 50, 100, 200, 500] or successful_timeouts % 100 == 0:
+                try:
+                    # Use a new message instead of editing to avoid Discord's rate limits
+                    await ctx.send(embed=create_embed(
+                        "🏃‍♂️ Server Jog Progress Update",
+                        f"Timed out {successful_timeouts} members so far...",
+                        color=0x3498DB
+                    ))
+                except Exception as edit_error:
+                    # If we can't send a new message, just log it and continue
+                    logger.error(f"Error sending status update: {str(edit_error)}")
                 
         # Final report
         await status_msg.edit(embed=create_embed(
@@ -220,20 +223,26 @@ class FunCommands(commands.Cog):
                     await member.timeout(timeout_duration, reason=f"Server-wide jog initiated by {interaction.user}")
                     successful_timeouts += 1
                     
-                    # Update status every 10 members to prevent rate limiting
-                    if successful_timeouts % 10 == 0 and successful_timeouts > 0:
-                        try:
-                            await status_msg.edit(embed=create_embed(
-                                "🏃‍♂️ Server Jog in Progress",
-                                f"Timing out members ({successful_timeouts}/{len(members)})",
-                                color=0x3498DB
-                            ))
-                        except Exception as edit_error:
-                            logger.error(f"Error updating status message: {str(edit_error)}")
+                    # Add a small delay to avoid hitting Discord rate limits
+                    if successful_timeouts % 5 == 0:
+                        await asyncio.sleep(0.5)
                         
                 except Exception as e:
                     logger.error(f"Error timing out member {member.name}: {str(e)}")
                     failed_timeouts += 1
+                    
+                # Only update status at specific milestones to prevent rate limiting
+                if successful_timeouts in [1, 10, 25, 50, 100, 200, 500] or successful_timeouts % 100 == 0:
+                    try:
+                        # Send a new message instead of editing to avoid Discord's rate limits
+                        await button_interaction.followup.send(embed=create_embed(
+                            "🏃‍♂️ Server Jog Progress Update",
+                            f"Timed out {successful_timeouts} members so far...",
+                            color=0x3498DB
+                        ))
+                    except Exception as send_error:
+                        # If we can't send a new message, just log it and continue
+                        logger.error(f"Error sending status update: {str(send_error)}")
                     
             # Final report
             await status_msg.edit(embed=create_embed(
