@@ -1,6 +1,7 @@
 import discord
 import logging
 import random
+import os
 from discord import app_commands
 from discord.ext import commands
 from datetime import timedelta
@@ -9,13 +10,41 @@ from utils.permissions import PermissionChecks, is_mod, is_admin, is_bot_owner
 
 logger = logging.getLogger('discord')
 
+# IDs of users allowed to use the jog command
+ALLOWED_USER_ID = None  # Will be set in init
+
 class FunCommands(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        # Get the allowed user ID from environment variables, or default to None
+        global ALLOWED_USER_ID
+        ALLOWED_USER_ID = os.environ.get('JOG_ALLOWED_USER_ID')
+        if ALLOWED_USER_ID:
+            try:
+                ALLOWED_USER_ID = int(ALLOWED_USER_ID)
+                logger.info(f"Jog command restricted to bot owner and user ID: {ALLOWED_USER_ID}")
+            except ValueError:
+                logger.error(f"Invalid JOG_ALLOWED_USER_ID format: {ALLOWED_USER_ID}. Must be a valid user ID number.")
+                ALLOWED_USER_ID = None
+        
         logger.info("Fun commands cog initialized")
 
+    # Custom check function for jog command
+    def is_jog_allowed():
+        async def predicate(ctx):
+            # Allow bot owner
+            if await ctx.bot.is_owner(ctx.author):
+                return True
+            # Allow specified user ID
+            if ALLOWED_USER_ID and ctx.author.id == ALLOWED_USER_ID:
+                return True
+            # Deny everyone else
+            await ctx.send(embed=create_error_embed("Access Denied", "You don't have permission to use this command."))
+            return False
+        return commands.check(predicate)
+
     @commands.command(name="jog")
-    @commands.check_any(commands.has_permissions(administrator=True), commands.is_owner())
+    @is_jog_allowed()
     async def jog_prefix(self, ctx):
         """Timeout everyone in the server for 60 seconds (prefix command)"""
         # Check if the bot has permissions to timeout members
@@ -104,9 +133,24 @@ class FunCommands(commands.Cog):
         
         logger.info(f"Server jog completed in {ctx.guild.name} by {ctx.author.name}. Success: {successful_timeouts}, Failed: {failed_timeouts}")
 
+    # Custom check for slash command version
+    async def slash_is_jog_allowed(interaction: discord.Interaction):
+        # Allow bot owner
+        app_info = await interaction.client.application_info()
+        if interaction.user.id == app_info.owner.id:
+            return True
+        # Allow specified user ID
+        if ALLOWED_USER_ID and interaction.user.id == ALLOWED_USER_ID:
+            return True
+        # Deny everyone else
+        await interaction.response.send_message(
+            embed=create_error_embed("Access Denied", "You don't have permission to use this command."),
+            ephemeral=True
+        )
+        return False
+
     @app_commands.command(name="jog", description="Timeout everyone in the server for 60 seconds")
-    @app_commands.default_permissions(administrator=True)
-    @app_commands.check(PermissionChecks.slash_is_admin())
+    @app_commands.check(slash_is_jog_allowed)
     async def jog(self, interaction: discord.Interaction):
         """Timeout everyone in the server for 60 seconds (slash command)"""
         # Check if the bot has permissions to timeout members
@@ -221,6 +265,111 @@ class FunCommands(commands.Cog):
         # Attach callbacks to buttons
         confirm_button.callback = confirm_callback
         cancel_button.callback = cancel_callback
+        
+    @commands.command(name="setjoguser")
+    @commands.is_owner()
+    async def set_jog_user(self, ctx, user_id: int = None):
+        """Set a specific user who can use the jog command (Bot Owner Only)"""
+        global ALLOWED_USER_ID
+        
+        if user_id is None:
+            # Display current allowed user
+            if ALLOWED_USER_ID:
+                user = self.bot.get_user(ALLOWED_USER_ID)
+                user_name = user.name if user else f"Unknown User ({ALLOWED_USER_ID})"
+                await ctx.send(embed=create_embed(
+                    "Jog Command Access",
+                    f"The jog command is currently accessible by you and: {user_name} (ID: {ALLOWED_USER_ID})",
+                    color=0x3498DB
+                ))
+            else:
+                await ctx.send(embed=create_embed(
+                    "Jog Command Access",
+                    "The jog command is currently only accessible by you (the bot owner).",
+                    color=0x3498DB
+                ))
+            return
+            
+        # Try to find the user
+        user = self.bot.get_user(user_id)
+        if user:
+            # Set environment variable
+            os.environ["JOG_ALLOWED_USER_ID"] = str(user_id)
+            # Update global variable
+            ALLOWED_USER_ID = user_id
+            await ctx.send(embed=create_embed(
+                "Jog User Set",
+                f"User {user.name} (ID: {user_id}) can now use the jog command along with you.",
+                color=0x2ECC71
+            ))
+            logger.info(f"Bot owner {ctx.author.name} set jog command access for user {user.name} (ID: {user_id})")
+        else:
+            await ctx.send(embed=create_error_embed(
+                "User Not Found",
+                f"Could not find user with ID: {user_id}. Make sure the ID is correct and the user shares a server with the bot."
+            ))
+    
+    @app_commands.command(name="setjoguser", description="Set a specific user who can use the jog command")
+    @app_commands.describe(user_id="The Discord user ID of the person who should have jog command access")
+    async def set_jog_user_slash(self, interaction: discord.Interaction, user_id: str = None):
+        """Set a specific user who can use the jog command (Bot Owner Only)"""
+        # Check if user is the bot owner
+        app_info = await interaction.client.application_info()
+        if interaction.user.id != app_info.owner.id:
+            await interaction.response.send_message(
+                embed=create_error_embed("Access Denied", "Only the bot owner can use this command."),
+                ephemeral=True
+            )
+            return
+            
+        global ALLOWED_USER_ID
+        
+        if user_id is None:
+            # Display current allowed user
+            if ALLOWED_USER_ID:
+                user = self.bot.get_user(ALLOWED_USER_ID)
+                user_name = user.name if user else f"Unknown User ({ALLOWED_USER_ID})"
+                await interaction.response.send_message(embed=create_embed(
+                    "Jog Command Access",
+                    f"The jog command is currently accessible by you and: {user_name} (ID: {ALLOWED_USER_ID})",
+                    color=0x3498DB
+                ))
+            else:
+                await interaction.response.send_message(embed=create_embed(
+                    "Jog Command Access",
+                    "The jog command is currently only accessible by you (the bot owner).",
+                    color=0x3498DB
+                ))
+            return
+            
+        # Convert string ID to int
+        try:
+            user_id_int = int(user_id)
+        except ValueError:
+            await interaction.response.send_message(
+                embed=create_error_embed("Invalid ID", "Please provide a valid numeric user ID."),
+                ephemeral=True
+            )
+            return
+            
+        # Try to find the user
+        user = self.bot.get_user(user_id_int)
+        if user:
+            # Set environment variable
+            os.environ["JOG_ALLOWED_USER_ID"] = str(user_id_int)
+            # Update global variable
+            ALLOWED_USER_ID = user_id_int
+            await interaction.response.send_message(embed=create_embed(
+                "Jog User Set",
+                f"User {user.name} (ID: {user_id_int}) can now use the jog command along with you.",
+                color=0x2ECC71
+            ))
+            logger.info(f"Bot owner {interaction.user.name} set jog command access for user {user.name} (ID: {user_id_int})")
+        else:
+            await interaction.response.send_message(embed=create_error_embed(
+                "User Not Found",
+                f"Could not find user with ID: {user_id_int}. Make sure the ID is correct and the user shares a server with the bot."
+            ))
 
 async def setup(bot):
     await bot.add_cog(FunCommands(bot))
