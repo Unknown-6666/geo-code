@@ -5,11 +5,33 @@ import logging
 
 logger = logging.getLogger('discord')
 
+# Custom exception class for permission errors
+class PermissionError(commands.CheckFailure):
+    """Exception raised when a permission check fails and has already been handled with a response."""
+    def __init__(self, message="Permission check failed and was already handled"):
+        self.message = message
+        super().__init__(self.message)
+
 def is_bot_owner(user_id: int) -> bool:
     """Check if a user is the bot owner"""
-    result = user_id in BOT_OWNER_IDS
-    logger.debug(f"Checking bot owner: user_id={user_id}, owner_ids={BOT_OWNER_IDS}, result={result}")
-    return result
+    # Ensure user_id is an integer (Discord API can sometimes return IDs as strings)
+    if not isinstance(user_id, int):
+        try:
+            user_id = int(user_id)
+        except (ValueError, TypeError):
+            logger.error(f"Invalid user_id type for owner check: {type(user_id)} - {user_id}")
+            return False
+    
+    # Explicitly check each owner ID to ensure proper type comparison
+    for owner_id in BOT_OWNER_IDS:
+        # Convert owner_id to int if it's not already
+        owner_id_int = owner_id if isinstance(owner_id, int) else int(owner_id)
+        if user_id == owner_id_int:
+            logger.info(f"Owner check passed: user_id={user_id}, matched={owner_id_int}")
+            return True
+    
+    logger.info(f"Owner check failed: user_id={user_id}, owner_ids={BOT_OWNER_IDS}")
+    return False
 
 def is_mod(member) -> bool:
     """Check if a member has a moderator role"""
@@ -80,6 +102,28 @@ class PermissionChecks:
         async def predicate(interaction):
             is_owner = is_bot_owner(interaction.user.id)
             logger.info(f"Owner slash command attempted by {interaction.user} (ID: {interaction.user.id}): {'✅ Allowed' if is_owner else '❌ Denied'}")
+            
+            # If not owner, send error message
+            if not is_owner:
+                # Try to respond if interaction hasn't been responded to yet
+                if not interaction.response.is_done():
+                    try:
+                        from discord import Embed
+                        await interaction.response.send_message(
+                            embed=Embed(
+                                title="Access Denied",
+                                description="You don't have permission to use this command. Only the bot owner can use it.",
+                                color=0xFF0000
+                            ),
+                            ephemeral=True
+                        )
+                        logger.info(f"Sent owner-only access denied message to {interaction.user.id}")
+                    except Exception as e:
+                        logger.error(f"Error sending permission denied message: {e}")
+                
+                # Raise our custom exception to signal that we've already handled the error response
+                raise PermissionError(f"User {interaction.user.id} is not the bot owner")
+                
             return is_owner
         return predicate
         
@@ -97,6 +141,28 @@ class PermissionChecks:
                 f"{'✅ Allowed' if has_permission else '❌ Denied'} "
                 f"(Owner: {is_owner_result}, Mod: {is_mod_result}, Admin: {is_admin_result})"
             )
+            
+            # If permission check fails, send error message and raise our custom exception
+            if not has_permission:
+                # Try to respond if interaction hasn't been responded to yet
+                if not interaction.response.is_done():
+                    try:
+                        from discord import Embed
+                        await interaction.response.send_message(
+                            embed=Embed(
+                                title="Access Denied",
+                                description="You don't have permission to use this command. Only moderators or higher can use it.",
+                                color=0xFF0000
+                            ),
+                            ephemeral=True
+                        )
+                        logger.info(f"Sent mod-only access denied message to {interaction.user.id}")
+                    except Exception as e:
+                        logger.error(f"Error sending permission denied message: {e}")
+                
+                # Raise our custom exception to signal that we've already handled the error response
+                raise PermissionError(f"User {interaction.user.id} is not a moderator")
+                
             return has_permission
         return predicate
         

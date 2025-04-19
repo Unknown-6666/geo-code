@@ -37,7 +37,7 @@ class Bot(commands.Bot):
         from config import BOT_OWNER_IDS
         # Check if the user ID is in our BOT_OWNER_IDS tuple
         is_owner = user.id in BOT_OWNER_IDS
-        logger.debug(f"Owner check for {user} (ID: {user.id}): {is_owner}")
+        logger.info(f"Owner check for {user} (ID: {user.id}): {is_owner}, BOT_OWNER_IDS: {BOT_OWNER_IDS}")
         return is_owner
 
     async def setup_hook(self):
@@ -189,12 +189,23 @@ class Bot(commands.Bot):
         # Log the error
         command_name = interaction.command.name if interaction.command else "Unknown command"
         logger.error(f'Slash command error in {command_name}: {str(error)}')
-        
+
+        # Check if this is a permission error from our custom checks
+        # Our custom checks typically handle their own error responses
+        from utils.permissions import PermissionError
+        if isinstance(error, PermissionError):
+            logger.info(f"Permission error already handled by custom check: {error}")
+            return
+            
         # Check if this was a check failure (permission/access error)
         if isinstance(error, app_commands.CheckFailure):
             # Don't send a response if the interaction has already been responded to
-            # This prevents duplicate error messages when custom checks already sent a response
-            if not interaction.response.is_done():
+            if interaction.response.is_done():
+                logger.info("Skipping error response - interaction already has a response")
+                return
+                
+            # Check if we should send a response (some checks handle their own errors)
+            try:
                 await interaction.response.send_message(
                     embed=discord.Embed(
                         title="Access Denied",
@@ -203,16 +214,28 @@ class Bot(commands.Bot):
                     ),
                     ephemeral=True
                 )
+                logger.info("Sent permission denied message")
+            except discord.errors.InteractionResponded:
+                # Interaction was already responded to, likely by a custom check
+                logger.info("Interaction was already responded to (caught error)")
+                pass
+                
         # Other types of errors
         elif not interaction.response.is_done():
-            await interaction.response.send_message(
-                embed=discord.Embed(
-                    title="Error",
-                    description=f"An error occurred while executing this command:\n`{str(error)}`",
-                    color=discord.Color.red()
-                ),
-                ephemeral=True
-            )
+            try:
+                await interaction.response.send_message(
+                    embed=discord.Embed(
+                        title="Error",
+                        description=f"An error occurred while executing this command:\n`{str(error)}`",
+                        color=discord.Color.red()
+                    ),
+                    ephemeral=True
+                )
+                logger.info("Sent general error message")
+            except discord.errors.InteractionResponded:
+                # Interaction was already responded to somehow
+                logger.info("Interaction was already responded to for general error (caught error)")
+                pass
             
     async def on_command_error(self, ctx, error):
         """Handle prefix command errors"""
