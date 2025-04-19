@@ -9,7 +9,7 @@ from typing import Dict, List, Tuple, Optional, Literal
 from discord import app_commands
 from discord.ext import commands
 from utils.embed_helpers import create_embed, create_error_embed
-from utils.permissions import is_mod, is_admin, is_bot_owner
+from utils.permissions import is_mod, is_admin, is_bot_owner, PermissionChecks
 from config import GOOGLE_API_KEY, USE_GOOGLE_AI, COLORS
 
 # Set up logging
@@ -342,7 +342,7 @@ class AIModeration(commands.Cog):
             app_commands.Choice(name="Image Moderation", value="image_moderation")
         ]
     )
-    @app_commands.check(is_admin)
+    @app_commands.check(PermissionChecks.slash_is_admin())
     async def moderateai(self, interaction: discord.Interaction, status: str, feature: str = "all"):
         """Enable or disable AI moderation for this server"""
         # Check admin permissions
@@ -409,7 +409,7 @@ class AIModeration(commands.Cog):
             app_commands.Choice(name="Spam", value="spam")
         ]
     )
-    @app_commands.check(is_admin)
+    @app_commands.check(PermissionChecks.slash_is_admin())
     async def setthreshold(self, interaction: discord.Interaction, threshold_type: str, value: float):
         """Set AI moderation thresholds"""
         # Check admin permissions
