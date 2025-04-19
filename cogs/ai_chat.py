@@ -15,12 +15,19 @@ from utils.ai_preference_manager import ai_preferences
 from models.conversation import Conversation
 from config import GOOGLE_API_KEY, USE_GOOGLE_AI
 
-# Import Vertex AI client - will be None if not available
+# Import Vertex AI clients - will be None if not available
 try:
     from utils.vertex_ai_client import VertexAIClient
     HAS_VERTEX_AI = True
 except ImportError:
     HAS_VERTEX_AI = False
+
+# Import our REST API client as fallback
+try:
+    from utils.vertex_api_client import VertexRESTClient
+    HAS_VERTEX_REST = True
+except ImportError:
+    HAS_VERTEX_REST = False
 
 logger = logging.getLogger('discord')
 
@@ -38,8 +45,10 @@ class AIChat(commands.Cog):
         
         # Initialize Vertex AI client if available
         self.vertex_client = None
+        self.vertex_rest_client = None
         self.use_vertex_ai = os.environ.get('USE_VERTEX_AI', 'false').lower() == 'true'
         
+        # Try to initialize the standard Vertex AI client (requires google-cloud-aiplatform)
         if HAS_VERTEX_AI and self.use_vertex_ai:
             try:
                 self.vertex_client = VertexAIClient()
@@ -50,9 +59,24 @@ class AIChat(commands.Cog):
             except Exception as e:
                 logger.error(f"Error initializing Vertex AI client: {str(e)}")
                 self.vertex_client = None
-        else:
+        
+        # Try to initialize our REST API client as fallback
+        if not self.vertex_client and HAS_VERTEX_REST and self.use_vertex_ai:
+            try:
+                logger.info("Attempting to initialize Vertex REST API client as fallback...")
+                self.vertex_rest_client = VertexRESTClient()
+                if self.vertex_rest_client.initialized:
+                    logger.info("Vertex REST API client initialized successfully")
+                else:
+                    logger.warning("Vertex REST API client failed to initialize properly")
+            except Exception as e:
+                logger.error(f"Error initializing Vertex REST API client: {str(e)}")
+                self.vertex_rest_client = None
+                
+        # Log status
+        if not (self.vertex_client or self.vertex_rest_client):
             if self.use_vertex_ai:
-                logger.warning("Vertex AI requested but dependencies not available")
+                logger.warning("Vertex AI requested but both client methods failed to initialize")
             else:
                 logger.info("Vertex AI not enabled in configuration")
         
@@ -202,7 +226,7 @@ class AIChat(commands.Cog):
                 response = await self.get_google_ai_response(prompt, system_prompt, user_id, include_history)
                 ai_source = f"Google {self.gemini_model.split('/')[-1]}"
         
-        # Try Vertex AI as a fallback if it's available and configured
+        # Try primary Vertex AI client as a fallback if it's available and configured
         if not response and self.vertex_client and self.vertex_client.initialized:
             logger.info("Using Vertex AI as fallback for response")
             try:
@@ -229,6 +253,34 @@ class AIChat(commands.Cog):
                     ai_source = "Vertex AI"
             except Exception as e:
                 logger.error(f"Error getting Vertex AI response: {str(e)}")
+                # Continue to next fallback
+        
+        # Try REST API client as a fallback if available and standard client failed
+        if not response and self.vertex_rest_client and self.vertex_rest_client.initialized:
+            logger.info("Using Vertex REST API client as fallback for response")
+            try:
+                # Get conversation history for Vertex
+                history = None
+                if user_id and include_history:
+                    history = Conversation.get_formatted_history(user_id, limit=8)
+                
+                # Use chat method for conversations with history
+                if include_history and history:
+                    response = await self.vertex_rest_client.generate_chat_response(
+                        message=prompt,
+                        history=history,
+                        system_prompt=system_prompt
+                    )
+                else:
+                    # Use simple generation for one-off questions
+                    response = await self.vertex_rest_client.generate_text(
+                        prompt=prompt
+                    )
+                
+                if response:
+                    ai_source = "Vertex AI REST"
+            except Exception as e:
+                logger.error(f"Error getting Vertex REST API response: {str(e)}")
                 # Continue to next fallback
         
         # Fall back to g4f if both Google and Vertex AI failed or not configured

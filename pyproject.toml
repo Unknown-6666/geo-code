@@ -30,6 +30,8 @@ dependencies = [
     "anthropic>=0.49.0",
     "trafilatura>=2.0.0",
     "google-cloud-aiplatform",
+    "pyjwt",
+    "cryptography",
 ]
 
 [[tool.uv.index]]
