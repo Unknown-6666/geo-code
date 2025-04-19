@@ -1,0 +1,129 @@
+[2025-04-19 20:57:02 +0000] [1520] [INFO] Starting gunicorn 23.0.0
+[2025-04-19 20:57:02 +0000] [1520] [INFO] Listening at: http://0.0.0.0:5000 (1520)
+[2025-04-19 20:57:02 +0000] [1520] [INFO] Using worker: sync
+[2025-04-19 20:57:02 +0000] [1531] [INFO] Booting worker with pid: 1531
+2025-04-19 20:57:02,943 - main - INFO - Using Replit PostgreSQL database: ep-proud-moon-a5wl3on7.us-east-2.aws.neon.tech[2025-04-19 20:57:03 +0000] [1520] [INFO] Handling signal: winch
+2025-04-19 20:57:03,240 - dashboard.app - INFO - Using Replit PostgreSQL database: ep-proud-moon-a5wl3on7.us-east-2.aws.neon.tech:5432
+2025-04-19 20:57:03,240 - dashboard.app - INFO - Using Replit redirect URI: Not set/callback
+[2025-04-19 20:57:03 +0000] [1520] [INFO] Handling signal: winch
+[2025-04-19 20:57:03 +0000] [1520] [INFO] Handling signal: winch
+[2025-04-19 20:57:03 +0000] [1520] [INFO] Handling signal: winch
+[2025-04-19 20:57:03 +0000] [1520] [INFO] Handling signal: winch
+[2025-04-19 20:57:03 +0000] [1520] [INFO] Handling signal: winch
+[2025-04-19 20:57:03 +0000] [1520] [INFO] Handling signal: winch
+[2025-04-19 20:57:03 +0000] [1520] [INFO] Handling signal: winch
+[2025-04-19 20:57:03 +0000] [1520] [INFO] Handling signal: winch
+[2025-04-19 20:57:03 +0000] [1520] [INFO] Handling signal: winch
+[2025-04-19 20:57:03 +0000] [1520] [INFO] Handling signal: winch
+[2025-04-19 20:57:03 +0000] [1520] [INFO] Handling signal: winch
+[2025-04-19 20:57:03 +0000] [1520] [INFO] Handling signal: winch
+[2025-04-19 20:57:03 +0000] [1520] [INFO] Handling signal: winch
+[2025-04-19 20:57:03 +0000] [1520] [INFO] Handling signal: winch
+[2025-04-19 20:57:03 +0000] [1520] [INFO] Handling signal: winch
+2025-04-19 20:57:04,511 - dashboard.app - INFO - Database tables created successfully
+2025-04-19 20:57:04,511 - main - INFO - Updated app.config with Replit database URL
+2025-04-19 20:57:04,577 - dashboard.app - INFO - Using Replit redirect URI: https://workspace.jonahpantz.repl.co/callback
+2025-04-19 20:57:04,583 - main - INFO - Updated dashboard app.config with Replit database URL
+2025-04-19 20:57:04,709 - main - INFO - Deployment mode: False
+2025-04-19 20:57:04,709 - main - INFO - Starting Discord bot thread...
+2025-04-19 20:57:04,709 - main - INFO - Discord bot thread started
+2025-04-19 20:57:04,709 - main - INFO - Web dashboard is running via Gunicorn
+2025-04-19 20:57:04,712 - main - INFO - Created main application lock file with PID 1531
+ECONOMY DEBUG - Initializing database and economy system...
+2025-04-19 20:57:04,725 - economy_debug - INFO - Initializing database and economy system...
+ECONOMY DEBUG - Verifying economy tables...
+2025-04-19 20:57:06,044 - economy_debug - INFO - Verifying economy tables...
+ECONOMY DEBUG - UserEconomy table verified: Contains 2 records
+2025-04-19 20:57:06,171 - economy_debug - INFO - UserEconomy table verified: Contains 2 records
+ECONOMY DEBUG - Item table verified: Contains 4 records
+2025-04-19 20:57:06,232 - economy_debug - INFO - Item table verified: Contains 4 records
+ECONOMY DEBUG - Discord token length: 72
+2025-04-19 20:57:06,516 - economy_debug - INFO - Discord token length: 72
+ECONOMY DEBUG - Database URL available: yes
+2025-04-19 20:57:06,516 - economy_debug - INFO - Database URL available: yes
+ECONOMY DEBUG - Using default command sync settings to avoid Discord rate limiting
+2025-04-19 20:57:06,516 - economy_debug - INFO - Using default command sync settings to avoid Discord rate limiting
+2025-04-19 20:57:07,196 - discord - WARNING - Google Cloud Vertex AI library not available. Vertex AI features disabled.
+2025-04-19 20:57:07,196 - discord - WARNING - Vertex AI client failed to initialize properly
+2025-04-19 20:57:07,208 - discord - WARNING - Google Cloud Vertex AI library not available. Vertex AI features disabled.
+2025-04-19 20:57:07,208 - discord - WARNING - Vertex AI SDK client failed to initialize properly
+2025-04-19 20:57:07,208 - discord - ERROR - Credentials file not found
+2025-04-19 20:57:07,208 - discord - ERROR - Failed to get auth token for Vertex AI
+2025-04-19 20:57:07,208 - discord - WARNING - Vertex REST API client failed to initialize properly
+ECONOMY DEBUG - Starting Economy cog setup...
+ECONOMY DEBUG - Starting Economy cog setup...
+2025-04-19 20:57:07,214 - economy_debug - INFO - Starting Economy cog setup...
+ECONOMY DEBUG - Creating Economy cog instance...
+ECONOMY DEBUG - Creating Economy cog instance...
+2025-04-19 20:57:07,214 - economy_debug - INFO - Creating Economy cog instance...
+ECONOMY DEBUG - Initializing shop items...
+ECONOMY DEBUG - Initializing shop items...
+2025-04-19 20:57:07,215 - economy_debug - INFO - Initializing shop items...
+ECONOMY DEBUG - Found 4 existing shop items
+ECONOMY DEBUG - Found 4 existing shop items
+2025-04-19 20:57:07,402 - economy_debug - INFO - Found 4 existing shop items
+ECONOMY DEBUG - Shop items already exist, verifying...
+ECONOMY DEBUG - Shop items already exist, verifying...
+2025-04-19 20:57:07,402 - economy_debug - INFO - Shop items already exist, verifying...
+ECONOMY DEBUG - Found shop item: Fishing Rod - 500 coins, emoji: 🎣
+ECONOMY DEBUG - Found shop item: Fishing Rod - 500 coins, emoji: 🎣
+2025-04-19 20:57:07,459 - economy_debug - INFO - Found shop item: Fishing Rod - 500 coins, emoji: 🎣
+ECONOMY DEBUG - Found shop item: Lucky Coin - 1000 coins, emoji: 🪙
+ECONOMY DEBUG - Found shop item: Lucky Coin - 1000 coins, emoji: 🪙
+2025-04-19 20:57:07,460 - economy_debug - INFO - Found shop item: Lucky Coin - 1000 coins, emoji: 🪙
+ECONOMY DEBUG - Found shop item: Bank Note - 2500 coins, emoji: 📜
+ECONOMY DEBUG - Found shop item: Bank Note - 2500 coins, emoji: 📜
+2025-04-19 20:57:07,460 - economy_debug - INFO - Found shop item: Bank Note - 2500 coins, emoji: 📜
+ECONOMY DEBUG - Found shop item: Trophy - 10000 coins, emoji: 🏆
+ECONOMY DEBUG - Found shop item: Trophy - 10000 coins, emoji: 🏆
+2025-04-19 20:57:07,460 - economy_debug - INFO - Found shop item: Trophy - 10000 coins, emoji: 🏆
+ECONOMY DEBUG - Adding Economy cog to bot...
+ECONOMY DEBUG - Adding Economy cog to bot...
+2025-04-19 20:57:07,519 - economy_debug - INFO - Adding Economy cog to bot...
+ECONOMY DEBUG - Checking registered commands...
+ECONOMY DEBUG - Checking registered commands...
+2025-04-19 20:57:07,519 - economy_debug - INFO - Checking registered commands...
+ECONOMY DEBUG - Registered global commands: ping, help, info, userinfo, clear_commands, meme, memedump, jog, setjoguser, ask, chat, testvertex, ai_reload, toggle_personality, custom_response, clear_chat_history, show_chat_history, voicechat, voice_stop, listen, listen_stop, moderateai, setthreshold, analyzetext, summarize, enablesmartresponses, enablesummarization, addsmartresponse, listsmartresponses, removesmartresponse, enableimagemod, enablelinkanalysis, managelinkfilter, analyzeimage, analyzelink, rob, balance, daily, work, deposit, withdraw, coinflip, slots, shop, buy, inventory
+ECONOMY DEBUG - Registered global commands: ping, help, info, userinfo, clear_commands, meme, memedump, jog, setjoguser, ask, chat, testvertex, ai_reload, toggle_personality, custom_response, clear_chat_history, show_chat_history, voicechat, voice_stop, listen, listen_stop, moderateai, setthreshold, analyzetext, summarize, enablesmartresponses, enablesummarization, addsmartresponse, listsmartresponses, removesmartresponse, enableimagemod, enablelinkanalysis, managelinkfilter, analyzeimage, analyzelink, rob, balance, daily, work, deposit, withdraw, coinflip, slots, shop, buy, inventory
+2025-04-19 20:57:07,519 - economy_debug - INFO - Registered global commands: ping, help, info, userinfo, clear_commands, meme, memedump, jog, setjoguser, ask, chat, testvertex, ai_reload, toggle_personality, custom_response, clear_chat_history, show_chat_history, voicechat, voice_stop, listen, listen_stop, moderateai, setthreshold, analyzetext, summarize, enablesmartresponses, enablesummarization, addsmartresponse, listsmartresponses, removesmartresponse, enableimagemod, enablelinkanalysis, managelinkfilter, analyzeimage, analyzelink, rob, balance, daily, work, deposit, withdraw, coinflip, slots, shop, buy, inventory
+ECONOMY DEBUG - All economy commands registered successfully
+ECONOMY DEBUG - All economy commands registered successfully
+2025-04-19 20:57:07,519 - economy_debug - INFO - All economy commands registered successfully
+ECONOMY DEBUG - Economy cog setup complete
+ECONOMY DEBUG - Economy cog setup complete
+2025-04-19 20:57:07,519 - economy_debug - INFO - Economy cog setup complete
+2025-04-19 20:57:07,602 - googleapiclient.discovery_cache - INFO - file_cache is only supported with oauth2client<4.0.0
+2025-04-19 20:57:07,606 - google.auth.compute_engine._metadata - WARNING - Compute Engine Metadata server unavailable on attempt 1 of 3. Reason: [Errno 111] Connection refused
+2025-04-19 20:57:08,550 - google.auth.compute_engine._metadata - WARNING - Compute Engine Metadata server unavailable on attempt 2 of 3. Reason: [Errno 111] Connection refused
+2025-04-19 20:57:10,510 - google.auth.compute_engine._metadata - WARNING - Compute Engine Metadata server unavailable on attempt 3 of 3. Reason: [Errno 111] Connection refused
+2025-04-19 20:57:10,512 - google.auth.compute_engine._metadata - WARNING - Compute Engine Metadata server unavailable on attempt 1 of 5. Reason: [Errno -2] Name or service not known
+2025-04-19 20:57:11,572 - google.auth.compute_engine._metadata - WARNING - Compute Engine Metadata server unavailable on attempt 2 of 5. Reason: [Errno -2] Name or service not known
+2025-04-19 20:57:13,577 - google.auth.compute_engine._metadata - WARNING - Compute Engine Metadata server unavailable on attempt 3 of 5. Reason: [Errno -2] Name or service not known
+2025-04-19 20:57:17,881 - google.auth.compute_engine._metadata - WARNING - Compute Engine Metadata server unavailable on attempt 4 of 5. Reason: [Errno -2] Name or service not known
+2025-04-19 20:57:25,086 - google.auth.compute_engine._metadata - WARNING - Compute Engine Metadata server unavailable on attempt 5 of 5. Reason: [Errno -2] Name or service not known
+[debug] Encodings: locale UTF-8, fs utf-8, pref UTF-8, out utf-8, error utf-8, screen utf-8
+[debug] yt-dlp version stable@2025.02.19 from yt-dlp/yt-dlp [4985a4041] (pip) API
+[debug] params: {'format': 'bestaudio/best', 'extractaudio': True, 'audioformat': 'mp3', 'outtmpl': '%(extractor)s-%(id)s-%(title)s.%(ext)s', 'restrictfilenames': True, 'noplaylist': True, 'nocheckcertificate': True, 'ignoreerrors': False, 'logtostderr': False, 'quiet': False, 'no_warnings': False, 'default_search': 'ytsearch', 'source_address': '0.0.0.0', 'extractors': 'youtube', 'extractor_args': {'youtube': {'skip': ['dash', 'hls']}}, 'verbose': True, 'compat_opts': set(), 'http_headers': {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.85 Safari/537.36', 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8', 'Accept-Language': 'en-us,en;q=0.5', 'Sec-Fetch-Mode': 'navigate'}}
+[debug] Python 3.11.10 (CPython x86_64 64bit) - Linux-6.2.16-x86_64-with-glibc2.40 (OpenSSL 3.3.2 3 Sep 2024, glibc 2.40)
+[debug] exe versions: ffmpeg 6.1.1 (setts), ffprobe 6.1.1
+[debug] Optional libraries: brotli-1.1.0, certifi-2025.01.31, pycrypto-3.22.0, requests-2.32.3, sqlite3-3.46.1, urllib3-2.3.0
+[debug] Proxy map: {}
+[debug] Request Handlers: urllib, requests
+[debug] Loaded 1841 extractors
+Verification cog loaded
+Logged in as Geo-Bot
+Bot ID: 1340804555201576970
+------
+[2025-04-19 20:58:58 +0000] [1520] [INFO] Handling signal: winch
+2025-04-19 21:00:11,320 - discord.client - ERROR - Ignoring exception in on_member_remove
+Traceback (most recent call last):
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/discord/client.py", line 481, in _run_event
+    await coro(*args, **kwargs)
+  File "/home/runner/workspace/cogs/member_events.py", line 33, in on_member_remove
+    await channel.send(embed=embed)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/discord/abc.py", line 1644, in send
+    data = await state.http.send_message(channel.id, params=params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/discord/http.py", line 756, in request
+    raise Forbidden(response, data)
+discord.errors.Forbidden: 403 Forbidden (error code: 50001): Missing Access

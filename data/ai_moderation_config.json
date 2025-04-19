@@ -5,13 +5,13 @@
     "953793114714300458": true
   },
   "enabled_features": {
-    "content_filtering": false,
-    "spam_detection": false,
-    "toxicity_analysis": false,
-    "raid_protection": false,
+    "content_filtering": true,
+    "spam_detection": true,
+    "toxicity_analysis": true,
+    "raid_protection": true,
     "conversation_summarization": true,
-    "smart_responses": false,
-    "image_moderation": false
+    "smart_responses": true,
+    "image_moderation": true
   },
   "message_history": {
     "953793114714300458": {
