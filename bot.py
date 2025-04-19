@@ -39,7 +39,10 @@ class Bot(commands.Bot):
             "cogs.memes",
             "cogs.fun_commands",    # Fun commands cog including jog command
             "cogs.ai_chat",         # AI Chat cog
-            "cogs.voice_ai"         # Voice AI chat cog
+            "cogs.voice_ai",        # Voice AI chat cog
+            "cogs.ai_moderation",   # AI-powered content moderation
+            "cogs.ai_conversation", # AI-powered conversation features
+            "cogs.ai_content_analysis" # AI-powered image and link analysis
         ]
         
         database_dependent_cogs = [
@@ -292,7 +295,10 @@ async def sync_commands_only():
             "cogs.rules_enforcer",
             "cogs.verification",
             "cogs.ai_chat",
-            "cogs.voice_ai"
+            "cogs.voice_ai",
+            "cogs.ai_moderation",   # AI-powered content moderation
+            "cogs.ai_conversation", # AI-powered conversation features
+            "cogs.ai_content_analysis" # AI-powered image and link analysis
         ]
         
         # Load each cog with error handling
