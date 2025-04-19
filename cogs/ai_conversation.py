@@ -25,8 +25,8 @@ class AIConversation(commands.Cog):
         self.config_file = "data/ai_conversation_config.json"
         self.config = self.load_config()
         
-        # Default model is now Gemini 1.5
-        self.gemini_model = "models/gemini-1.5-pro"
+        # Default model is now Gemini 1.5 (latest version)
+        self.gemini_model = "models/gemini-1.5-pro-latest"
         self.gemini_api_version = "v1beta"
         
         # Channel histories for summarization
