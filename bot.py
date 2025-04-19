@@ -61,7 +61,6 @@ class Bot(commands.Bot):
             "cogs.economy",
             "cogs.moderation",
             "cogs.youtube_tracker",
-            "cogs.music",
             "cogs.profanity_filter",
             "cogs.rules_enforcer",
             "cogs.verification",
