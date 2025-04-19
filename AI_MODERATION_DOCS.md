@@ -98,15 +98,15 @@ Scans shared media and links for inappropriate content:
 ## Setup Instructions
 
 1. First, ensure you have the necessary API keys:
-   - For Google AI features, set the `GOOGLE_AI_API_KEY` environment variable
-   - For Vertex AI integration, set the following environment variables:
+   - For Vertex AI (primary provider), set the following environment variables:
      - `GOOGLE_CLOUD_PROJECT` - Your Google Cloud project ID
      - `VERTEX_LOCATION` - The Vertex AI location (e.g., "us-central1")
      - `GOOGLE_CREDENTIALS` - Your Google Cloud service account JSON
+   - For Google Gemini (fallback provider), set `GOOGLE_AI_API_KEY` environment variable
    - The bot uses a multi-tier AI system for maximum reliability:
-     1. Google Gemini (primary)
-     2. Vertex AI SDK (first fallback)
-     3. Vertex AI REST API (second fallback)
+     1. Vertex AI SDK (primary)
+     2. Vertex AI REST API (first fallback)
+     3. Google Gemini (second fallback)
      4. Basic pattern matching (final fallback)
 
 2. Enable features for your server:

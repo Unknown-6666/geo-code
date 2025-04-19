@@ -158,25 +158,16 @@ class AIModeration(commands.Cog):
     
     async def analyze_content_toxicity(self, content: str) -> Tuple[float, str]:
         """
-        Analyze the toxicity of content using Google's Gemini API or fallback methods
+        Analyze the toxicity of content using Vertex AI as primary or fallback methods
         Returns a tuple of (toxicity_score, category)
         """
         if not content or len(content.strip()) == 0:
             return 0.0, "none"
             
-        # Use Google AI if available
-        if USE_GOOGLE_AI and GOOGLE_API_KEY:
-            try:
-                result = await self._analyze_with_gemini(content)
-                if result and result[0] > 0:
-                    return result
-            except Exception as e:
-                logger.error(f"Error using Gemini for toxicity analysis: {str(e)}")
-                # Continue to next fallback
-        
-        # Try using Vertex AI SDK if available
+        # Try using Vertex AI SDK as primary option if available
         if self.vertex_client and self.vertex_client.initialized:
             try:
+                logger.info("Using Vertex AI SDK as primary for toxicity analysis")
                 result = await self._analyze_with_vertex_ai(content)
                 if result and result[0] > 0:
                     return result
@@ -184,9 +175,10 @@ class AIModeration(commands.Cog):
                 logger.error(f"Error using Vertex AI SDK for toxicity analysis: {str(e)}")
                 # Continue to next fallback
                 
-        # Try using Vertex REST API if available
+        # Try using Vertex REST API as first fallback if available
         if self.vertex_rest_client and self.vertex_rest_client.initialized:
             try:
+                logger.info("Using Vertex REST API for toxicity analysis")
                 result = await self._analyze_with_vertex_rest(content)
                 if result and result[0] > 0:
                     return result
@@ -194,7 +186,19 @@ class AIModeration(commands.Cog):
                 logger.error(f"Error using Vertex REST API for toxicity analysis: {str(e)}")
                 # Continue to next fallback
         
+        # Use Google Gemini AI as second fallback if available
+        if USE_GOOGLE_AI and GOOGLE_API_KEY:
+            try:
+                logger.info("Using Google Gemini as fallback for toxicity analysis")
+                result = await self._analyze_with_gemini(content)
+                if result and result[0] > 0:
+                    return result
+            except Exception as e:
+                logger.error(f"Error using Gemini for toxicity analysis: {str(e)}")
+                # Continue to next fallback
+        
         # Fallback to basic analysis as last resort
+        logger.info("Using basic pattern analysis as last resort for toxicity analysis")
         return self._basic_toxicity_analysis(content)
     
     async def _analyze_with_gemini(self, content: str) -> Tuple[float, str]:
