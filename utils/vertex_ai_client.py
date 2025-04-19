@@ -1,16 +1,12 @@
 """
-DEPRECATED: Vertex AI Client Module for Discord Bot
+Vertex AI Client Module for Discord Bot
 
-This module is no longer used by the bot. The AI functionality has been updated
-to use Google's Gemini 1.5 Pro API directly instead of through Vertex AI.
+This module provides integration with Google's Vertex AI services
+for advanced AI capabilities. It supports text generation, chat completion,
+and model listing features.
 
-The google-cloud-aiplatform dependency is now optional and not included in the
-default requirements. If you want to use Vertex AI, you will need to install
-this package manually:
-
-    pip install google-cloud-aiplatform
-
-Do not use this module for new development.
+Note: This module requires the google-cloud-aiplatform package to be installed.
+If import errors occur, the module will gracefully fall back to other AI providers.
 """
 
 import os
