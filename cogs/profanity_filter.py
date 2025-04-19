@@ -195,71 +195,75 @@ class ProfanityFilter(commands.Cog):
                     
                 # If warning count exceeds threshold, take action
                 if warning_count >= 3:
-                    # Try to timeout for 10 minutes - Fixed implementation
+                    # Use the !prisoner command instead of timeout
                     try:
-                        # The timeout threshold is 3 warnings, but we'll continue trying if we get more
-                        logger.info(f"Trying to timeout user with {warning_count} warnings")
+                        # The warning threshold is 3 warnings, but we'll continue trying if we get more
+                        logger.info(f"Trying to jail user with {warning_count} warnings for mentioning Kendrick Lamar")
                         
-                        # Make sure we have all the permissions we need
-                        bot_member = message.guild.get_member(self.bot.user.id)
-                        if not bot_member.guild_permissions.moderate_members:
-                            logger.warning(f"Bot lacks 'Moderate Members' permission in server '{message.guild.name}'")
-                            # Send a message to server logs channel if one exists
+                        # Get the proper member object
+                        member = message.author
+                        
+                        # Execute the !prisoner command to jail the user
+                        reason = "Automatic jail for mentioning Kendrick Lamar"
+                        
+                        # Create a context that simulates a moderator using the command
+                        # We'll use the bot itself as the command invoker
+                        ctx = await self.bot.get_context(message)
+                        ctx.author = message.guild.me
+                        
+                        # Get the prisoner command from moderation cog
+                        prisoner_cmd = self.bot.get_command("prisoner")
+                        if prisoner_cmd:
+                            await prisoner_cmd(ctx, member, reason=reason)
+                            logger.info(f"User {message.author.name} ({message.author.id}) jailed for mentioning Kendrick Lamar in server '{message.guild.name}'")
+                        else:
+                            logger.error("Could not find 'prisoner' command. Make sure the moderation cog is loaded.")
+                            # Try to find a log channel and send a message
                             try:
                                 log_channel = discord.utils.get(message.guild.text_channels, name="mod-logs")
                                 if not log_channel:
                                     log_channel = discord.utils.get(message.guild.text_channels, name="logs")
                                     
                                 if log_channel:
-                                    await log_channel.send(f"⚠️ Cannot timeout {message.author.mention} due to missing 'Moderate Members' permission. Please check my role permissions.")
+                                    await log_channel.send(f"⚠️ Could not jail {message.author.mention} because the prisoner command is not available.")
                             except:
                                 pass
                             return
-                            
-                        # Get the proper member object
-                        member = message.author
-                        
-                        # Calculate timeout duration - discord.py 2.0 changed the way timeouts work
-                        timeout_duration = datetime.timedelta(seconds=600)
-                        
-                        # Execute the timeout with proper error handling - using positional argument for 'timeout_duration'
-                        await member.timeout(timeout_duration, reason="Automatic timeout for repeated use of inappropriate language")
-                        logger.info(f"User {message.author.name} ({message.author.id}) timed out for 10 minutes due to repeated profanity in server '{message.guild.name}'")
                         
                         # Initialize variables for notification
                         dm_sent = False
                         embed = discord.Embed(
-                            title="User Timed Out",
-                            description=f"User {message.author.mention} has been timed out for 10 minutes.",
-                            color=discord.Color.red()
+                            title="User Jailed",
+                            description=f"User {message.author.mention} has been jailed for mentioning Kendrick Lamar.",
+                            color=discord.Color.dark_red()
                         )
                         embed.add_field(name="User", value=f"{message.author.name} ({message.author.id})", inline=True)
                         embed.add_field(name="Server", value=message.guild.name, inline=True)
-                        embed.add_field(name="Reason", value="Repeated use of inappropriate language", inline=False)
+                        embed.add_field(name="Reason", value="Mentioning Kendrick Lamar", inline=False)
                         embed.add_field(name="Warning Count", value=str(warning_count), inline=True)
                         embed.set_footer(text=f"Triggered: {datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC")
                         
-                        # Notify the user via DM that they've been timed out - with a simplified message (no embed)
+                        # Notify the user via DM that they've been jailed
                         try:
                             await message.author.send(
-                                f"🛑 You have been timed out in **{message.guild.name}** for 10 minutes due to repeated use of inappropriate language."
+                                f"🛑 You have been jailed in **{message.guild.name}** for mentioning Kendrick Lamar. All your server roles have been removed."
                             )
                             dm_sent = True
-                            logger.info(f"Timeout DM sent to {message.author.name}")
+                            logger.info(f"Jail notification DM sent to {message.author.name}")
                         except Exception as e:
-                            logger.warning(f"Could not send timeout DM to {message.author.name}: {str(e)}")
+                            logger.warning(f"Could not send jail DM to {message.author.name}: {str(e)}")
                             # We'll still log to the channel, so not a critical error
                             
                     except discord.Forbidden as e:
-                        logger.warning(f"FORBIDDEN: No permission to timeout {message.author.name} ({message.author.id}) in server '{message.guild.name}': {str(e)}")
+                        logger.warning(f"FORBIDDEN: No permission to jail {message.author.name} ({message.author.id}) in server '{message.guild.name}': {str(e)}")
                     except AttributeError as e:
-                        logger.error(f"Attribute error when timing out user: {str(e)}")
+                        logger.error(f"Attribute error when jailing user: {str(e)}")
                         # For older discord.py versions or other issues, we'll skip this
-                        logger.warning(f"Server '{message.guild.name}' might need an updated timeout implementation")
+                        logger.warning(f"Server '{message.guild.name}' might have issues with the prisoner command")
                     except Exception as e:
-                        logger.error(f"Error timing out user: {str(e)}")
+                        logger.error(f"Error jailing user: {str(e)}")
                         
-                    # Notify a log channel if available - using same embed created above
+                    # Notify a log channel if available
                     try:
                         # Look for a channel named "mod-logs" or "logs"
                         log_channel = discord.utils.get(message.guild.text_channels, name="mod-logs")
@@ -267,13 +271,24 @@ class ProfanityFilter(commands.Cog):
                             log_channel = discord.utils.get(message.guild.text_channels, name="logs")
                             
                         if log_channel:
+                            # Create a new embed for the log in case the previous one wasn't defined
+                            log_embed = discord.Embed(
+                                title="User Jailed",
+                                description=f"User {message.author.mention} has been jailed for mentioning Kendrick Lamar.",
+                                color=discord.Color.dark_red()
+                            )
+                            log_embed.add_field(name="User", value=f"{message.author.name} ({message.author.id})", inline=True)
+                            log_embed.add_field(name="Server", value=message.guild.name, inline=True)
+                            log_embed.add_field(name="Reason", value="Mentioning Kendrick Lamar", inline=False)
+                            log_embed.add_field(name="Warning Count", value=str(warning_count), inline=True)
+                            log_embed.set_footer(text=f"Triggered: {datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC")
+                            
                             # Add note about DM status to the log
-                            if dm_sent:
-                                embed.add_field(name="DM Status", value="User was notified via DM", inline=False)
-                            else:
-                                embed.add_field(name="DM Status", value="Could not send DM to user", inline=False)
+                            # dm_sent might not be defined if there was an early error
+                            dm_status = "User was notified via DM" if locals().get('dm_sent', False) else "Could not send DM to user"
+                            log_embed.add_field(name="DM Status", value=dm_status, inline=False)
                                 
-                            await log_channel.send(embed=embed)
+                            await log_channel.send(embed=log_embed)
                             logger.info(f"Notification sent to log channel in server '{message.guild.name}'")
                         else:
                             logger.info(f"No log channel found in server")
