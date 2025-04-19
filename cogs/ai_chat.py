@@ -39,8 +39,8 @@ class AIChat(commands.Cog):
         g4f.debug.logging = False  # Disable debug logging
         
         # Set Gemini API version - using Gemini 1.5 Pro for enhanced capabilities
-        # Gemini 1.5-pro is the currently available model
-        self.gemini_model = "models/gemini-1.5-pro"
+        # Gemini 1.5-pro-latest is the latest available model version
+        self.gemini_model = "models/gemini-1.5-pro-latest"
         self.gemini_api_version = "v1beta"
         
         # Initialize Vertex AI client if available
