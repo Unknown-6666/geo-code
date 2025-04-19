@@ -17,30 +17,30 @@ async def check_commands():
     logger.info("Creating bot instance...")
     bot = Bot()
     
-    # Load only the SCP-079 cog
-    logger.info("Loading SCP-079 cog...")
+    # Load the basic commands cog for checking
+    logger.info("Loading basic commands cog...")
     try:
-        await bot.load_extension("cogs.scp_079")
-        logger.info("SCP-079 cog loaded successfully")
+        await bot.load_extension("cogs.basic_commands")
+        logger.info("Basic commands cog loaded successfully")
     except Exception as e:
-        logger.error(f"Error loading SCP-079 cog: {e}")
+        logger.error(f"Error loading basic commands cog: {e}")
         return
     
     # Get all registered commands
     logger.info("Checking registered application commands...")
     all_commands = bot.tree.get_commands()
     
-    # Check for SCP-079 related commands
-    scp079_commands = [cmd for cmd in all_commands if cmd.name.startswith('scp079')]
+    # Check for basic commands
+    basic_commands = [cmd for cmd in all_commands if cmd.name in ['ping', 'help', 'info']]
     
-    logger.info(f"Found {len(scp079_commands)} SCP-079 related commands:")
-    for cmd in scp079_commands:
+    logger.info(f"Found {len(basic_commands)} basic commands:")
+    for cmd in basic_commands:
         logger.info(f"- {cmd.name}: {cmd.description}")
     
     # Check for traditional commands
     logger.info("Checking traditional commands...")
-    prefix_commands = [cmd.name for cmd in bot.commands if cmd.name.startswith('scp079')]
-    logger.info(f"Found {len(prefix_commands)} SCP-079 related prefix commands: {prefix_commands}")
+    prefix_commands = [cmd.name for cmd in bot.commands if cmd.name in ['ping', 'help', 'info']]
+    logger.info(f"Found {len(prefix_commands)} basic prefix commands: {prefix_commands}")
 
 if __name__ == "__main__":
     asyncio.run(check_commands())
