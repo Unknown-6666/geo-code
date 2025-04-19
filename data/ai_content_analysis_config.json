@@ -1,0 +1,18 @@
+{
+  "image_moderation": {
+    "enabled_guilds": {},
+    "threshold": 0.7,
+    "enabled": false
+  },
+  "link_analysis": {
+    "enabled_guilds": {},
+    "enabled": false,
+    "blocked_domains": [],
+    "whitelist_domains": [
+      "discord.com",
+      "discordapp.com",
+      "tenor.com",
+      "giphy.com"
+    ]
+  }
+}

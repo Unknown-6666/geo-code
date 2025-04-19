@@ -1,0 +1,17 @@
+{
+  "smart_responses": {
+    "common_questions": {
+      "how to join": "To join our server activities, check out the #welcome channel and follow the steps there!",
+      "server rules": "You can find our server rules in the #rules channel. Please make sure to read them!",
+      "how to get roles": "Roles are assigned based on your activity and participation. You can also get specific roles by joining events!"
+    },
+    "enabled_channels": []
+  },
+  "summarization": {
+    "enabled_channels": [],
+    "max_messages": 100,
+    "trigger_count": 50,
+    "summary_cooldown": 3600
+  },
+  "last_summary": {}
+}

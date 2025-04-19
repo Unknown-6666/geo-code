@@ -1,0 +1,20 @@
+{
+  "toxicity_threshold": 0.7,
+  "spam_threshold": 0.7,
+  "enabled_guilds": {},
+  "enabled_features": {
+    "content_filtering": true,
+    "spam_detection": true,
+    "toxicity_analysis": true,
+    "raid_protection": false,
+    "conversation_summarization": false,
+    "smart_responses": false,
+    "image_moderation": false
+  },
+  "message_history": {},
+  "raid_detection": {
+    "join_threshold": 5,
+    "timeframe_seconds": 60,
+    "enabled": false
+  }
+}
