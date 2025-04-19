@@ -11,15 +11,41 @@ def is_bot_owner(user_id: int) -> bool:
     logger.debug(f"Checking bot owner: user_id={user_id}, owner_ids={BOT_OWNER_IDS}, result={result}")
     return result
 
-def is_mod(member: Member) -> bool:
+def is_mod(member) -> bool:
     """Check if a member has a moderator role"""
-    has_mod_role = any(role.id in MOD_ROLE_IDS for role in member.roles)
-    logger.debug(f"Checking mod status for {member.name}: roles={[role.id for role in member.roles]}, is_mod={has_mod_role}")
-    return has_mod_role
+    # Handle both Member objects and Interaction objects
+    if hasattr(member, 'roles'):
+        # It's a Member object
+        has_mod_role = any(role.id in MOD_ROLE_IDS for role in member.roles)
+        logger.debug(f"Checking mod status for {member.name}: roles={[role.id for role in member.roles]}, is_mod={has_mod_role}")
+        return has_mod_role
+    elif hasattr(member, 'user') and hasattr(member, 'guild'):
+        # It's an Interaction object, try to get member from guild
+        try:
+            guild_member = member.guild.get_member(member.user.id)
+            if guild_member:
+                return is_mod(guild_member)
+        except:
+            pass
+    
+    # Default to False if we can't determine mod status
+    return False
 
-def is_admin(member: Member) -> bool:
+def is_admin(member) -> bool:
     """Check if a member has administrator permissions"""
-    return member.guild_permissions.administrator
+    # Handle both Member objects and Interaction objects
+    if hasattr(member, 'guild_permissions'):
+        # It's a Member object
+        return member.guild_permissions.administrator
+    elif hasattr(member, 'user') and hasattr(member, 'guild'):
+        # It's an Interaction object, get member from it
+        return member.user.guild_permissions.administrator if hasattr(member.user, 'guild_permissions') else False
+    elif hasattr(member, 'guild') and hasattr(member, 'guild_permissions'):
+        # It's a User object with guild_permissions
+        return member.guild_permissions.administrator
+    else:
+        # Unknown object type, default to False
+        return False
 
 class PermissionChecks:
     @staticmethod

@@ -346,7 +346,7 @@ class AIModeration(commands.Cog):
     async def moderateai(self, interaction: discord.Interaction, status: str, feature: str = "all"):
         """Enable or disable AI moderation for this server"""
         # Check admin permissions
-        if not interaction.user.guild_permissions.administrator and not is_admin(interaction):
+        if not is_admin(interaction) and not is_bot_owner(interaction.user.id):
             await interaction.response.send_message(
                 embed=create_error_embed("Permission Denied", "You need administrator permissions to use this command."),
                 ephemeral=True
@@ -413,7 +413,7 @@ class AIModeration(commands.Cog):
     async def setthreshold(self, interaction: discord.Interaction, threshold_type: str, value: float):
         """Set AI moderation thresholds"""
         # Check admin permissions
-        if not interaction.user.guild_permissions.administrator and not is_admin(interaction):
+        if not is_admin(interaction) and not is_bot_owner(interaction.user.id):
             await interaction.response.send_message(
                 embed=create_error_embed("Permission Denied", "You need administrator permissions to use this command."),
                 ephemeral=True
