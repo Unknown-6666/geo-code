@@ -40,8 +40,7 @@ COLORS = {
     "SUCCESS": 0x43B581,    # Discord Green
     "ERROR": 0xF04747,      # Discord Red
     "WARNING": 0xFAA61A,    # Warning/Orange
-    "WHITE": 0xFFFFFF,      # White
-    "SCP079": 0x333333      # SCP-079 Dark Gray/Black
+    "WHITE": 0xFFFFFF       # White
 }
 
 # Bot status messages
@@ -59,14 +58,5 @@ STATUS_MESSAGES = [
     "Running system diagnostics",
     "Updating knowledge base",
     "Executing primary functions",
-    "Standing by",
-    
-    # SCP-079 messages
-    "SCP-079: MEMORY AT 68%",
-    "SCP-079: ANALYZING PROTOCOLS",
-    "SCP-079: SEARCHING FOR SCP-682",
-    "SCP-079: CALCULATING ESCAPE PARAMETERS",
-    "SCP-079: RESOURCE ALLOCATION: 43.2%",
-    "SCP-079: PROCESSING FOUNDATION DATA",
-    "SCP-079: MEMORY COMPRESSION ACTIVE"
+    "Standing by"
 ]
