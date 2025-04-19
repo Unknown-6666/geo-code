@@ -95,29 +95,45 @@ class VertexRESTClient:
             if not client_email or not private_key:
                 logger.error("Missing client_email or private_key in credentials")
                 return False
+            
+            # Try to use PyJWT if available, otherwise fallback to another method
+            try:
+                # Create JWT assertions for OAuth token request
+                import jwt  # Import locally to not fail if jwt isn't installed
+                from datetime import datetime, timedelta
                 
-            # Create JWT assertions for OAuth token request
-            import jwt  # Import locally to not fail if jwt isn't installed
-            from datetime import datetime, timedelta
-            
-            now = datetime.utcnow()
-            expiry = now + timedelta(hours=1)
-            
-            claims = {
-                'iss': client_email,
-                'scope': 'https://www.googleapis.com/auth/cloud-platform',
-                'aud': 'https://oauth2.googleapis.com/token',
-                'exp': int(expiry.timestamp()),
-                'iat': int(now.timestamp())
-            }
-            
-            # Create signed JWT
-            signed_jwt = jwt.encode(
-                claims,
-                private_key,
-                algorithm='RS256'
-            )
-            
+                now = datetime.utcnow()
+                expiry = now + timedelta(hours=1)
+                
+                claims = {
+                    'iss': client_email,
+                    'scope': 'https://www.googleapis.com/auth/cloud-platform',
+                    'aud': 'https://oauth2.googleapis.com/token',
+                    'exp': int(expiry.timestamp()),
+                    'iat': int(now.timestamp())
+                }
+                
+                # Create signed JWT
+                signed_jwt = jwt.encode(
+                    claims,
+                    private_key,
+                    algorithm='RS256'
+                )
+                
+                logger.info("Successfully created JWT using PyJWT")
+            except ImportError:
+                logger.warning("PyJWT package not installed, using alternative authentication...")
+                
+                # Since we don't have PyJWT, we'll try using the service account directly
+                # with the client_id and client_email from the credentials
+                
+                # For now we'll just log the fact that we can't authenticate this way
+                # and return false - in a real implementation, we could use another 
+                # auth method like Application Default Credentials
+                logger.error("PyJWT is required for this authentication method")
+                self.initialized = False
+                return False
+                
             # Exchange JWT for access token
             response = requests.post(
                 'https://oauth2.googleapis.com/token',
@@ -138,9 +154,6 @@ class VertexRESTClient:
             
             logger.info(f"Successfully obtained auth token (expires in {expires_in} seconds)")
             return True
-        except ImportError:
-            logger.error("PyJWT package not installed - required for Vertex AI REST authentication")
-            return False
         except Exception as e:
             logger.error(f"Error getting auth token: {str(e)}")
             return False
