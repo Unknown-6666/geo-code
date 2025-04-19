@@ -12,14 +12,14 @@ TOKEN = os.getenv("DISCORD_TOKEN")
 # This allows the web dashboard to still function even if the bot can't start
 
 # AI configuration
-# Google Vertex AI configuration (primary)
-GOOGLE_CLOUD_PROJECT = os.getenv("GOOGLE_CLOUD_PROJECT")
-VERTEX_LOCATION = os.getenv("VERTEX_LOCATION", "us-central1") 
-USE_VERTEX_AI = os.getenv("USE_VERTEX_AI", "true").lower() == "true"
-
-# Legacy Gemini API configuration (now used as fallback)
+# Gemini API configuration (primary)
 GOOGLE_API_KEY = os.getenv("GOOGLE_AI_API_KEY") or os.getenv("GOOGLE_API")
 USE_GOOGLE_AI = bool(GOOGLE_API_KEY)
+
+# Google Vertex AI configuration (disabled by default)
+GOOGLE_CLOUD_PROJECT = os.getenv("GOOGLE_CLOUD_PROJECT")
+VERTEX_LOCATION = os.getenv("VERTEX_LOCATION", "us-central1") 
+USE_VERTEX_AI = os.getenv("USE_VERTEX_AI", "false").lower() == "true"  # Disabled by default
 
 # This flag is set in main.py if we need to use fallback mode
 USE_AI_FALLBACK = os.getenv("USE_AI_FALLBACK", "false").lower() == "true"
