@@ -21,13 +21,19 @@ class FunCommands(commands.Cog):
     # Custom check function for jog command
     def is_jog_allowed():
         async def predicate(ctx):
-            # Allow bot owner
-            if await ctx.bot.is_owner(ctx.author):
+            # Allow bot owner using our custom is_bot_owner function for consistency
+            # This will use the same BOT_OWNER_IDS list as all other commands
+            if is_bot_owner(ctx.author.id):
+                logger.info(f"Jog command allowed for owner: {ctx.author.name} (ID: {ctx.author.id})")
                 return True
+                
             # Allow specified user ID
-            if JOG_ALLOWED_USER_ID and ctx.author.id == JOG_ALLOWED_USER_ID:
+            if JOG_ALLOWED_USER_ID and ctx.author.id == int(JOG_ALLOWED_USER_ID):
+                logger.info(f"Jog command allowed for authorized user: {ctx.author.name} (ID: {ctx.author.id})")
                 return True
+                
             # Deny everyone else
+            logger.warning(f"Jog command access denied for {ctx.author.name} (ID: {ctx.author.id})")
             await ctx.send(embed=create_error_embed("Access Denied", "You don't have permission to use this command."))
             return False
         return commands.check(predicate)
@@ -133,14 +139,19 @@ class FunCommands(commands.Cog):
 
     # Custom check for slash command version
     async def slash_is_jog_allowed(interaction: discord.Interaction):
-        # Allow bot owner
-        app_info = await interaction.client.application_info()
-        if interaction.user.id == app_info.owner.id:
+        # Allow bot owner using our custom is_bot_owner function for consistency
+        # This will use the same BOT_OWNER_IDS list as all other commands
+        if is_bot_owner(interaction.user.id):
+            logger.info(f"Jog slash command allowed for owner: {interaction.user.name} (ID: {interaction.user.id})")
             return True
+            
         # Allow specified user ID
-        if JOG_ALLOWED_USER_ID and interaction.user.id == JOG_ALLOWED_USER_ID:
+        if JOG_ALLOWED_USER_ID and interaction.user.id == int(JOG_ALLOWED_USER_ID):
+            logger.info(f"Jog slash command allowed for authorized user: {interaction.user.name} (ID: {interaction.user.id})")
             return True
+            
         # Deny everyone else
+        logger.warning(f"Jog slash command access denied for {interaction.user.name} (ID: {interaction.user.id})")
         await interaction.response.send_message(
             embed=create_error_embed("Access Denied", "You don't have permission to use this command."),
             ephemeral=True
@@ -321,9 +332,9 @@ class FunCommands(commands.Cog):
     @app_commands.describe(user_id="The Discord user ID of the person who should have jog command access")
     async def set_jog_user_slash(self, interaction: discord.Interaction, user_id: str = None):
         """Set a specific user who can use the jog command (Bot Owner Only)"""
-        # Check if user is the bot owner
-        app_info = await interaction.client.application_info()
-        if interaction.user.id != app_info.owner.id:
+        # Check if user is the bot owner using our custom is_bot_owner function for consistency
+        if not is_bot_owner(interaction.user.id):
+            logger.warning(f"SetJogUser command denied for non-owner: {interaction.user.name} (ID: {interaction.user.id})")
             await interaction.response.send_message(
                 embed=create_error_embed("Access Denied", "Only the bot owner can use this command."),
                 ephemeral=True

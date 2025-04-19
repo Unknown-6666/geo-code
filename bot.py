@@ -27,6 +27,17 @@ class Bot(commands.Bot):
             help_command=None
         )
         self.tree.on_error = self.on_app_command_error
+        
+    async def is_owner(self, user: discord.User) -> bool:
+        """
+        Override the default is_owner check to use our BOT_OWNER_IDS from config.
+        This ensures consistency between is_bot_owner() and Discord.py's is_owner().
+        """
+        from config import BOT_OWNER_IDS
+        # Check if the user ID is in our BOT_OWNER_IDS tuple
+        is_owner = user.id in BOT_OWNER_IDS
+        logger.debug(f"Owner check for {user} (ID: {user.id}): {is_owner}")
+        return is_owner
 
     async def setup_hook(self):
         """Load cogs and start tasks"""
@@ -139,12 +150,17 @@ class Bot(commands.Bot):
 
     async def on_ready(self):
         """Called when the bot is ready"""
+        from config import BOT_OWNER_IDS
+        
         logger.info(f'Successfully logged in as {self.user.name} (ID: {self.user.id})')
         logger.info(f'Connected to {len(self.guilds)} guilds')
         logger.info('Bot is now ready to receive commands')
         print(f'Logged in as {self.user.name}')
         print(f'Bot ID: {self.user.id}')
         print('------')
+        
+        # Log the configured bot owners for verification
+        logger.info(f'Configured BOT_OWNER_IDS: {BOT_OWNER_IDS}')
 
         # We'll only sync guild-specific commands if needed via the !sync_guild command
         # This prevents command duplication - global commands are sufficient for most bots
