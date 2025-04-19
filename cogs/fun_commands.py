@@ -32,9 +32,10 @@ class FunCommands(commands.Cog):
                 logger.info(f"Jog command allowed for authorized user: {ctx.author.name} (ID: {ctx.author.id})")
                 return True
                 
-            # Deny everyone else
+            # Deny everyone else - just log the denial but don't send a message here
+            # to avoid duplicate messages (the command error handler will send one)
             logger.warning(f"Jog command access denied for {ctx.author.name} (ID: {ctx.author.id})")
-            await ctx.send(embed=create_error_embed("Access Denied", "You don't have permission to use this command."))
+            # We'll let the command error handler send the appropriate message
             return False
         return commands.check(predicate)
 
@@ -150,7 +151,8 @@ class FunCommands(commands.Cog):
             logger.info(f"Jog slash command allowed for authorized user: {interaction.user.name} (ID: {interaction.user.id})")
             return True
             
-        # Deny everyone else
+        # Deny everyone else - for app_commands we need to send the error message here
+        # since app_commands don't have the same error handling as regular commands
         logger.warning(f"Jog slash command access denied for {interaction.user.name} (ID: {interaction.user.id})")
         await interaction.response.send_message(
             embed=create_error_embed("Access Denied", "You don't have permission to use this command."),
