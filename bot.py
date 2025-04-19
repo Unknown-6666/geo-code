@@ -6,6 +6,7 @@ import asyncio
 import discord
 import logging
 import argparse
+from datetime import datetime, timezone
 from discord.ext import commands, tasks
 from discord import app_commands
 from config import TOKEN, DEFAULT_PREFIX, STATUS_MESSAGES
