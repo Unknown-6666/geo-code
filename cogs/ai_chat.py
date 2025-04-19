@@ -738,45 +738,82 @@ class AIChat(commands.Cog):
         """Test connection to Vertex AI (Admin only)"""
         await interaction.response.defer(ephemeral=True)
         
-        # Check if Vertex AI is available
-        if not HAS_VERTEX_AI:
-            await interaction.followup.send(
-                embed=create_error_embed(
-                    "Vertex AI Error",
-                    "The google-cloud-aiplatform library is not installed. Vertex AI is not available."
-                ),
-                ephemeral=True
-            )
-            return
+        # Check environment variables first
+        project_id = os.environ.get('GOOGLE_CLOUD_PROJECT')
+        location = os.environ.get('VERTEX_LOCATION')
+        creds = bool(os.environ.get('GOOGLE_CREDENTIALS') or os.environ.get('GOOGLE_APPLICATION_CREDENTIALS'))
+        
+        # Format results
+        result_lines = []
+        result_lines.append("__**Vertex AI Configuration**__")
+        result_lines.append(f"Project ID: `{project_id if project_id else 'Not set'}`")
+        result_lines.append(f"Location: `{location if location else 'Not set'}`")
+        result_lines.append(f"Credentials: `{'Set' if creds else 'Not set'}`")
+        result_lines.append(f"USE_VERTEX_AI: `{os.environ.get('USE_VERTEX_AI', 'false')}`")
+        
+        result_lines.append("\n__**Available AI Clients**__")
+        result_lines.append(f"Standard Vertex AI Package: `{HAS_VERTEX_AI}`")
+        result_lines.append(f"REST API Client Available: `{HAS_VERTEX_REST}`")
         
         # Check if Vertex AI is enabled in config
         if not self.use_vertex_ai:
-            await interaction.followup.send(
-                embed=create_error_embed(
-                    "Vertex AI Not Enabled",
-                    "Vertex AI is not enabled in the configuration. Set USE_VERTEX_AI=true to enable it."
-                ),
-                ephemeral=True
-            )
+            result_lines.append("\n❌ **Vertex AI is not enabled in the configuration.**")
+            result_lines.append("Set USE_VERTEX_AI=true to enable it.")
+            await interaction.followup.send("\n".join(result_lines), ephemeral=True)
             return
-        
-        # Check for the client initialization
-        if not self.vertex_client:
-            await interaction.followup.send(
-                embed=create_error_embed(
-                    "Vertex AI Error",
-                    "The Vertex AI client could not be initialized."
-                ),
-                ephemeral=True
-            )
-            return
-        
-        if not self.vertex_client.initialized:
-            # Check environment variables
-            project_id = os.environ.get('GOOGLE_CLOUD_PROJECT')
-            location = os.environ.get('VERTEX_LOCATION')
-            creds = bool(os.environ.get('GOOGLE_CREDENTIALS') or os.environ.get('GOOGLE_APPLICATION_CREDENTIALS'))
             
+        # Test Standard API Client if available
+        result_lines.append("\n__**Standard API Client**__")
+        
+        if self.vertex_client and self.vertex_client.initialized:
+            result_lines.append("✅ Standard client initialized successfully")
+            
+            # Try to test the connection with a simple query
+            try:
+                test_response = await self.vertex_client.generate_text(
+                    prompt="Hello, this is a test of the Vertex AI connection. Please respond with a short greeting.",
+                    max_output_tokens=100
+                )
+                
+                if test_response:
+                    result_lines.append("✅ Successfully generated a response:")
+                    result_lines.append(f"```{test_response[:200] + '...' if len(test_response) > 200 else test_response}```")
+                else:
+                    result_lines.append("❌ No response received from Vertex AI standard client.")
+            except Exception as e:
+                result_lines.append(f"❌ Error: {str(e)}")
+        else:
+            result_lines.append("❌ Standard client initialization failed or not available")
+            
+        # Test REST API Client if available
+        result_lines.append("\n__**REST API Client**__")
+        
+        if self.vertex_rest_client and self.vertex_rest_client.initialized:
+            result_lines.append("✅ REST API client initialized successfully")
+            
+            # Try to test the connection with a simple query
+            try:
+                test_response = await self.vertex_rest_client.generate_text(
+                    prompt="Hello, this is a test of the Vertex AI REST API. Please respond with a short greeting."
+                )
+                
+                if test_response:
+                    result_lines.append("✅ Successfully generated a response via REST API:")
+                    result_lines.append(f"```{test_response[:200] + '...' if len(test_response) > 200 else test_response}```")
+                else:
+                    result_lines.append("❌ No response received from Vertex AI REST API client.")
+            except Exception as e:
+                result_lines.append(f"❌ Error: {str(e)}")
+        else:
+            result_lines.append("❌ REST API client initialization failed or not available")
+            
+        # Summary section
+        result_lines.append("\n__**Summary**__")
+        
+        if (self.vertex_client and self.vertex_client.initialized) or (self.vertex_rest_client and self.vertex_rest_client.initialized):
+            result_lines.append("✅ At least one Vertex AI client is available and working!")
+            result_lines.append("The bot will use Google Gemini AI as the primary service with Vertex AI as a fallback.")
+        else:
             missing = []
             if not project_id:
                 missing.append("GOOGLE_CLOUD_PROJECT")
@@ -786,56 +823,14 @@ class AIChat(commands.Cog):
                 missing.append("GOOGLE_CREDENTIALS or GOOGLE_APPLICATION_CREDENTIALS")
             
             if missing:
-                await interaction.followup.send(
-                    embed=create_error_embed(
-                        "Vertex AI Error",
-                        f"The Vertex AI client initialization failed. Missing environment variables: {', '.join(missing)}"
-                    ),
-                    ephemeral=True
-                )
+                result_lines.append(f"❌ Vertex AI configuration is incomplete. Missing: {', '.join(missing)}")
             else:
-                await interaction.followup.send(
-                    embed=create_error_embed(
-                        "Vertex AI Error",
-                        "The Vertex AI client initialization failed for an unknown reason. Check the bot logs for details."
-                    ),
-                    ephemeral=True
-                )
-            return
-        
-        # Try to test the connection with a simple query
-        try:
-            test_response = await self.vertex_client.generate_text(
-                prompt="Hello, this is a test of the Vertex AI connection. Please respond with a short greeting.",
-                max_output_tokens=100
-            )
-            
-            if test_response:
-                embed = create_embed(
-                    "Vertex AI Connection Test",
-                    "✅ Successfully connected to Vertex AI and generated a response."
-                )
-                embed.add_field(name="Project ID", value=os.environ.get('GOOGLE_CLOUD_PROJECT', 'Unknown'))
-                embed.add_field(name="Location", value=os.environ.get('VERTEX_LOCATION', 'Unknown'))
-                embed.add_field(name="Test Response", value=test_response[:200] + "..." if len(test_response) > 200 else test_response)
+                result_lines.append("❌ Vertex AI clients failed to initialize for an unknown reason. Check the bot logs for details.")
                 
-                await interaction.followup.send(embed=embed, ephemeral=True)
-            else:
-                await interaction.followup.send(
-                    embed=create_error_embed(
-                        "Vertex AI Error",
-                        "Connection test failed. No response was received from Vertex AI."
-                    ),
-                    ephemeral=True
-                )
-        except Exception as e:
-            await interaction.followup.send(
-                embed=create_error_embed(
-                    "Vertex AI Error",
-                    f"Error testing Vertex AI connection: {str(e)}"
-                ),
-                ephemeral=True
-            )
+            result_lines.append("The bot will use Google Gemini AI as the primary service with G4F as the fallback.")
+            
+        # Send all results
+        await interaction.followup.send("\n".join(result_lines), ephemeral=True)
     
     @app_commands.command(name="ai_reload", description="Reload AI preferences from file (Admin only)")
     @app_commands.default_permissions(administrator=True)
