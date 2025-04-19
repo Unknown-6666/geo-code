@@ -186,12 +186,92 @@ class Bot(commands.Bot):
 
     async def on_app_command_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
         """Handle slash command errors"""
-        logger.error(f'Slash command error: {str(error)}')
-
-        if isinstance(error, app_commands.MissingPermissions):
-            await interaction.response.send_message("You don't have permission to use this command.", ephemeral=True)
+        # Log the error
+        command_name = interaction.command.name if interaction.command else "Unknown command"
+        logger.error(f'Slash command error in {command_name}: {str(error)}')
+        
+        # Check if this was a check failure (permission/access error)
+        if isinstance(error, app_commands.CheckFailure):
+            # Don't send a response if the interaction has already been responded to
+            # This prevents duplicate error messages when custom checks already sent a response
+            if not interaction.response.is_done():
+                await interaction.response.send_message(
+                    embed=discord.Embed(
+                        title="Access Denied",
+                        description="You don't have permission to use this command.",
+                        color=discord.Color.red()
+                    ),
+                    ephemeral=True
+                )
+        # Other types of errors
+        elif not interaction.response.is_done():
+            await interaction.response.send_message(
+                embed=discord.Embed(
+                    title="Error",
+                    description=f"An error occurred while executing this command:\n`{str(error)}`",
+                    color=discord.Color.red()
+                ),
+                ephemeral=True
+            )
+            
+    async def on_command_error(self, ctx, error):
+        """Handle prefix command errors"""
+        command_name = ctx.command.name if ctx.command else "Unknown command"
+        logger.error(f'Command error in {command_name}: {str(error)}')
+        
+        # Check if this was a check failure (permission/access error)
+        if isinstance(error, commands.CheckFailure):
+            # We'll check if a custom check already sent an error message
+            # by checking the last few messages in the channel
+            
+            # Try to get recent messages (last 5)
+            try:
+                recent_messages = [msg async for msg in ctx.channel.history(limit=5)]
+                # Check if any recent bot message contains an error embed
+                bot_error_sent = any(
+                    msg.author.id == self.user.id and 
+                    msg.embeds and 
+                    msg.embeds[0].title in ["Access Denied", "Error"] and
+                    (datetime.now(timezone.utc) - msg.created_at).seconds < 5
+                    for msg in recent_messages
+                )
+                
+                # Only send a new error message if we haven't already sent one
+                if not bot_error_sent:
+                    await ctx.send(
+                        embed=discord.Embed(
+                            title="Access Denied",
+                            description="You don't have permission to use this command.",
+                            color=discord.Color.red()
+                        )
+                    )
+            except Exception as e:
+                # If we can't check message history for some reason, just send the error
+                logger.error(f"Error checking message history: {e}")
+                await ctx.send(
+                    embed=discord.Embed(
+                        title="Access Denied",
+                        description="You don't have permission to use this command.",
+                        color=discord.Color.red()
+                    )
+                )
+        # Other error types
+        elif isinstance(error, commands.CommandInvokeError):
+            await ctx.send(
+                embed=discord.Embed(
+                    title="Error",
+                    description=f"An error occurred while executing this command:\n`{str(error.original)}`",
+                    color=discord.Color.red()
+                )
+            )
         else:
-            await interaction.response.send_message(f"An error occurred: {str(error)}", ephemeral=True)
+            await ctx.send(
+                embed=discord.Embed(
+                    title="Error",
+                    description=f"An error occurred while executing this command:\n`{str(error)}`",
+                    color=discord.Color.red()
+                )
+            )
 
     async def on_command(self, ctx):
         """Log when commands are used"""
