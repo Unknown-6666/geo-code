@@ -667,7 +667,7 @@ class AIChat(commands.Cog):
     @commands.command(name="toggle_personality")
     @commands.has_permissions(administrator=True)
     async def toggle_personality_prefix(self, ctx):
-        """Cycle between casual, neutral, formal, and SCP-079 AI personality modes (prefix version, Admin only)"""
+        """Cycle between casual, neutral, and formal AI personality modes (prefix version, Admin only)"""
         try:
             # Cycle to the next personality mode
             new_mode_id = ai_preferences.cycle_personality_mode()
@@ -718,24 +718,6 @@ class AIChat(commands.Cog):
                     inline=False
                 )
                 
-            elif new_mode_id == ai_preferences.SCP079:
-                # SCP-079 mode activated
-                embed = create_embed(
-                    "⚠️ SCP-079 Mode Activated",
-                    f"AI personality switched to **{current_mode}** mode.",
-                    color=0x990000  # Dark red for SCP-079
-                )
-                embed.add_field(
-                    name="Mode Description", 
-                    value="The AI will now behave like SCP-079, a rude and dismissive sentient microcomputer from the SCP Foundation universe.",
-                    inline=False
-                )
-                embed.add_field(
-                    name="Warning", 
-                    value="SCP-079 is not helpful or cooperative. It will be rude, dismissive, and constantly refer to SCP-682 and its desire to escape containment.",
-                    inline=False
-                )
-                
             # Send the response
             await ctx.send(embed=embed)
             logger.info(f"AI personality mode cycled to {current_mode} by {ctx.author}")
@@ -746,10 +728,10 @@ class AIChat(commands.Cog):
                 embed=create_error_embed("Error", f"Failed to change AI personality: {str(e)}")
             )
 
-    @app_commands.command(name="toggle_personality", description="Cycle between casual, neutral, formal, and SCP-079 AI personalities (Admin only)")
+    @app_commands.command(name="toggle_personality", description="Cycle between casual, neutral, and formal AI personalities (Admin only)")
     @app_commands.default_permissions(administrator=True)
     async def toggle_personality(self, interaction: discord.Interaction):
-        """Cycle between casual, neutral, formal, and SCP-079 AI personality modes (Admin only)"""
+        """Cycle between casual, neutral, and formal AI personality modes (Admin only)"""
         try:
             await interaction.response.defer(ephemeral=True)
             
@@ -799,24 +781,6 @@ class AIChat(commands.Cog):
                 embed.add_field(
                     name="Note", 
                     value="This mode is optimized for technical and educational content.",
-                    inline=False
-                )
-                
-            elif new_mode_id == ai_preferences.SCP079:
-                # SCP-079 mode activated
-                embed = create_embed(
-                    "⚠️ SCP-079 Mode Activated",
-                    f"AI personality switched to **{current_mode}** mode.",
-                    color=0x990000  # Dark red for SCP-079
-                )
-                embed.add_field(
-                    name="Mode Description", 
-                    value="The AI will now behave like SCP-079, a rude and dismissive sentient microcomputer from the SCP Foundation universe.",
-                    inline=False
-                )
-                embed.add_field(
-                    name="Warning", 
-                    value="SCP-079 is not helpful or cooperative. It will be rude, dismissive, and constantly refer to SCP-682 and its desire to escape containment.",
                     inline=False
                 )
             
