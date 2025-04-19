@@ -1,10 +1,18 @@
 {
   "blocked_words": [
-"test"
+    "kendrick lamar",
+    "kendrick",
+    "lamar",
+    "k.lamar",
+    "k. lamar",
+    "kendricklamar",
+    "k dot",
+    "kdot"
   ],
   "filter_enabled": {},
   "warning_count": {
-   
+    "953793114714300458": {
+      "1003686821600960582": 3
     }
   }
 }
