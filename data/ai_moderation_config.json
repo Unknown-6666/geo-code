@@ -13,7 +13,16 @@
     "smart_responses": false,
     "image_moderation": false
   },
-  "message_history": {},
+  "message_history": {
+    "953793114714300458": {
+      "1003686821600960582": [
+        {
+          "content": "!sync_guild",
+          "timestamp": "2025-04-19T14:34:04.549162"
+        }
+      ]
+    }
+  },
   "raid_detection": {
     "join_threshold": 5,
     "timeframe_seconds": 60,

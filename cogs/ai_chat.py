@@ -13,7 +13,7 @@ from discord.ext import commands
 from utils.embed_helpers import create_embed, create_error_embed
 from utils.ai_preference_manager import ai_preferences
 from models.conversation import Conversation
-from config import GOOGLE_API_KEY, USE_GOOGLE_AI
+from config import GOOGLE_CLOUD_PROJECT, VERTEX_LOCATION
 
 # Import Vertex AI clients - will be None if not available
 try:
@@ -215,45 +215,46 @@ class AIChat(commands.Cog):
             response = custom_response
             ai_source = "Custom Response"
         
-        # If no custom response, try Gemini AI
+        # If no custom response, try Vertex AI as primary
         elif not response:
             # Set up system prompt
             system_prompt = ai_preferences.get_system_prompt()
             
-            # Try Google Gemini AI if API key is available
-            if USE_GOOGLE_AI:
-                logger.info(f"Using Google AI ({self.gemini_model}) for response")
+            # Try primary Vertex AI client first if it's available and configured
+            if self.vertex_client and self.vertex_client.initialized:
+                logger.info("Using Vertex AI as primary AI provider")
+                try:
+                    # Get conversation history for Vertex
+                    history = None
+                    if user_id and include_history:
+                        history = Conversation.get_formatted_history(user_id, limit=8)
+                    
+                    # Use chat method for conversations with history
+                    if include_history and history:
+                        response = await self.vertex_client.generate_chat_response(
+                            message=prompt,
+                            history=history,
+                            system_prompt=system_prompt
+                        )
+                    else:
+                        # Use simple generation for one-off questions
+                        response = await self.vertex_client.generate_text(
+                            prompt=prompt,
+                            system_prompt=system_prompt
+                        )
+                    
+                    if response:
+                        ai_source = "Vertex AI"
+                except Exception as e:
+                    logger.error(f"Error getting Vertex AI response: {str(e)}")
+                    # Continue to next fallback
+            
+            # If Vertex AI failed or not available, try Google Gemini AI
+            if not response and USE_GOOGLE_AI:
+                logger.info(f"Using Google AI ({self.gemini_model}) as fallback")
                 response = await self.get_google_ai_response(prompt, system_prompt, user_id, include_history)
-                ai_source = f"Google {self.gemini_model.split('/')[-1]}"
-        
-        # Try primary Vertex AI client as a fallback if it's available and configured
-        if not response and self.vertex_client and self.vertex_client.initialized:
-            logger.info("Using Vertex AI as fallback for response")
-            try:
-                # Get conversation history for Vertex
-                history = None
-                if user_id and include_history:
-                    history = Conversation.get_formatted_history(user_id, limit=8)
-                
-                # Use chat method for conversations with history
-                if include_history and history:
-                    response = await self.vertex_client.generate_chat_response(
-                        message=prompt,
-                        history=history,
-                        system_prompt=system_prompt
-                    )
-                else:
-                    # Use simple generation for one-off questions
-                    response = await self.vertex_client.generate_text(
-                        prompt=prompt,
-                        system_prompt=system_prompt
-                    )
-                
                 if response:
-                    ai_source = "Vertex AI"
-            except Exception as e:
-                logger.error(f"Error getting Vertex AI response: {str(e)}")
-                # Continue to next fallback
+                    ai_source = f"Google {self.gemini_model.split('/')[-1]}"
         
         # Try REST API client as a fallback if available and standard client failed
         if not response and self.vertex_rest_client and self.vertex_rest_client.initialized:

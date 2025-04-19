@@ -1,6 +1,6 @@
 # Google Vertex AI Setup Guide
 
-This guide will help you set up Google Vertex AI as an additional AI provider for your Discord bot. Vertex AI provides high-quality AI models that can be used as a fallback when Gemini API is unavailable or rate-limited.
+This guide will help you set up Google Vertex AI as the primary AI provider for your Discord bot. Vertex AI provides high-quality AI models that offer advanced capabilities for all bot features.
 
 ## Prerequisites
 
@@ -72,12 +72,12 @@ If you're hosting on Replit, you can set these as secrets:
 
 ## Implementation Details
 
-The bot has been designed with a fallback mechanism:
+The bot has been designed with a tiered AI system prioritizing Vertex AI:
 
-1. First tries Google Gemini AI (if API key is available)
-2. Falls back to Vertex AI standard client if available
-3. Falls back to Vertex AI REST API client if standard client fails or isn't available
-4. Finally falls back to G4F library as a last resort
+1. First tries Vertex AI standard client (primary provider)
+2. Falls back to Vertex AI REST API client if standard client fails
+3. Falls back to Google Gemini AI (if API key is available)
+4. Finally falls back to G4F library or basic analysis as a last resort
 
 ## Troubleshooting
 
