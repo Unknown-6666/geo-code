@@ -102,23 +102,7 @@ class BasicCommands(commands.Cog):
             inline=False
         )
 
-        # Music Commands
-        embed.add_field(
-            name="Music Commands",
-            value="""
-            `/play [query]` - Play a song from YouTube
-            `/pause` - Pause the current song
-            `/resume` - Resume the paused song
-            `/skip` - Skip to the next song
-            `/queue` - Show the current music queue
-            `/stop` - Stop playing and clear queue
-            `/now_playing` - Show the current song
-            `/volume [0-100]` - Set volume
-            `/join` - Join voice channel
-            `/leave` - Leave voice channel
-            """,
-            inline=False
-        )
+
         
         # Moderation Commands
         embed.add_field(
@@ -264,22 +248,7 @@ class BasicCommands(commands.Cog):
             inline=False
         )
         
-        # Music Commands
-        embed.add_field(
-            name="Music Commands",
-            value="""
-            `!play [query]` - Play a song from YouTube
-            `!pause` - Pause the current song
-            `!resume` - Resume the paused song
-            `!skip` - Skip to the next song
-            `!queue` - Show the current music queue
-            `!stop` - Stop playing and clear the queue
-            `!leave` - Disconnect the bot from voice channel
-            `!volume [1-100]` - Adjust the volume
-            `!now` - Show the currently playing song
-            """,
-            inline=False
-        )
+
         
         # Moderation Commands
         embed.add_field(
