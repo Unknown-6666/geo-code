@@ -1,0 +1,23 @@
+[2025-04-19 03:17:44 +0000] [927] [INFO] Handling signal: winch
+2025-04-19 03:19:37,899 - asyncio - ERROR - Task exception was never retrieved
+future: <Task finished name='CommandTree-invoker' coro=<CommandTree._from_interaction.<locals>.wrapper() done, defined at /home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/discord/app_commands/tree.py:1149> exception=AttributeError("'Interaction' object has no attribute 'guild_permissions'")>
+Traceback (most recent call last):
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/discord/app_commands/tree.py", line 1151, in wrapper
+    await self._call(interaction)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/discord/app_commands/tree.py", line 1310, in _call
+    await command._invoke_with_namespace(interaction, namespace)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/discord/app_commands/commands.py", line 879, in _invoke_with_namespace
+    if not await self._check_can_run(interaction):
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/discord/app_commands/commands.py", line 1017, in _check_can_run
+    return await async_all(f(interaction) for f in predicates)  # type: ignore
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/discord/utils.py", line 725, in async_all
+    for elem in gen:
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/discord/app_commands/commands.py", line 1017, in <genexpr>
+    return await async_all(f(interaction) for f in predicates)  # type: ignore
+                           ^^^^^^^^^^^^^^
+  File "/home/runner/workspace/utils/permissions.py", line 22, in is_admin
+    return member.guild_permissions.administrator
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'Interaction' object has no attribute 'guild_permissions'
