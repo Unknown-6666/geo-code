@@ -42,9 +42,23 @@ def setup_vertex_ai_credentials():
         try:
             # Try to parse it as JSON, it might already be proper JSON
             try:
-                json.loads(creds_json)
-                logger.info("Credentials parsed as valid JSON")
-                is_valid_json = True
+                # First try to load as is
+                try:
+                    json.loads(creds_json)
+                    logger.info("Credentials parsed as valid JSON")
+                    is_valid_json = True
+                except:
+                    # If it fails, try to fix common issues with the JSON
+                    # Sometimes JSON has extraneous quotes or formatting 
+                    creds_json = creds_json.strip()
+                    
+                    # Try again with cleaned up string
+                    try:
+                        json.loads(creds_json)
+                        logger.info("Credentials parsed as valid JSON after cleanup")
+                        is_valid_json = True
+                    except:
+                        raise json.JSONDecodeError("Invalid JSON", creds_json, 0)
             except json.JSONDecodeError:
                 logger.error("GOOGLE_CREDENTIALS contains invalid JSON format, attempting to extract...")
                 # Try to find and extract the JSON part if it contains extra text
@@ -58,12 +72,15 @@ def setup_vertex_ai_credentials():
                             logger.info("Successfully extracted valid JSON from credentials")
                             is_valid_json = True
                         except json.JSONDecodeError:
-                            logger.error("Failed to extract valid JSON")
-                            is_valid_json = False
+                            # Last attempt - try writing it to the file directly
+                            logger.warning("Direct JSON parsing failed, trying to write directly to file")
+                            is_valid_json = True  # We'll try directly writing the file
                     else:
                         is_valid_json = False
                 else:
-                    is_valid_json = False
+                    # Last attempt - try writing it to the file directly
+                    logger.warning("JSON markers not found, trying to write directly to file")
+                    is_valid_json = True  # We'll try directly writing the file
             
             # If we have valid JSON, write it to a file
             if is_valid_json:

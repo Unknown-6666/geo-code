@@ -1,140 +1,99 @@
-# Vertex AI Integration Setup Guide
+# Google Vertex AI Setup Guide
 
-This guide will help you set up and configure Google's Vertex AI integration with the Discord bot. Vertex AI provides higher quality AI responses with more advanced capabilities than the default providers.
+This guide will help you set up Google Vertex AI as an additional AI provider for your Discord bot. Vertex AI provides high-quality AI models that can be used as a fallback when Gemini API is unavailable or rate-limited.
 
 ## Prerequisites
 
-1. A Google Cloud Platform (GCP) account
-2. A GCP project with billing enabled
-3. Access to Vertex AI API
+Before you begin, you'll need:
 
-## Setup Steps
+1. A Google Cloud Platform account
+2. A Google Cloud project with the Vertex AI API enabled
+3. A service account with appropriate permissions for Vertex AI
 
-### 1. Create a Google Cloud Project
+## Setup Process
 
-If you don't already have a GCP project:
+### 1. Create a Google Cloud Project (if you don't have one)
 
 1. Go to the [Google Cloud Console](https://console.cloud.google.com/)
-2. Click "New Project" at the top right
-3. Enter a project name and select a billing account
-4. Click "Create"
+2. Click "New Project"
+3. Enter a project name and click "Create"
+4. Note your Project ID, you'll need it later
 
 ### 2. Enable the Vertex AI API
 
-1. In your GCP project, go to the [API Library](https://console.cloud.google.com/apis/library)
+1. Go to the [API Library](https://console.cloud.google.com/apis/library)
 2. Search for "Vertex AI API"
-3. Click on the result and then click "Enable"
+3. Click on "Vertex AI API" 
+4. Click "Enable"
 
 ### 3. Create a Service Account
 
-1. Navigate to "IAM & Admin" > "Service Accounts"
+1. Go to "IAM & Admin" > "Service Accounts"
 2. Click "Create Service Account"
-3. Enter a name and description for your service account
-4. Click "Create and Continue"
-5. Assign the following roles:
-   - "Vertex AI User"
-   - "Storage Object Viewer" (Optional: only needed if accessing custom models)
-6. Click "Continue" and then "Done"
+3. Enter a service account name (e.g., "discord-bot-vertex-ai")
+4. For the role, select "Vertex AI User" (roles/aiplatform.user)
+5. Click "Done"
 
-### 4. Create and Download a Service Account Key
+### 4. Create a Service Account Key
 
-1. In the Service Accounts list, find the service account you just created
-2. Click the three dots menu (⋮) at the end of the row
-3. Select "Manage keys"
+1. Find your service account in the list
+2. Click on the three dots in the "Actions" column
+3. Select "Manage Keys"
 4. Click "Add Key" > "Create new key"
-5. Choose "JSON" format
+5. Select JSON format
 6. Click "Create"
-7. The key file will be automatically downloaded to your computer
+7. Save the downloaded JSON file securely
 
-### 5. Configure Environment Variables
+### 5. Configure Environment Variables for Your Bot
 
-Add the following environment variables to your Discord bot:
+There are two main options for configuring your bot to use Vertex AI:
+
+#### Option 1: Set environment variables in your hosting environment
+
+Set the following environment variables:
 
 ```
-GOOGLE_CREDENTIALS=<content of the JSON key file>
-GOOGLE_CLOUD_PROJECT=<your Google Cloud project ID>
+GOOGLE_APPLICATION_CREDENTIALS=/path/to/your/credentials.json  
+GOOGLE_CLOUD_PROJECT=your-project-id
 VERTEX_LOCATION=us-central1
 USE_VERTEX_AI=true
-VERTEX_AI_PRIORITY=1
 ```
 
-Notes:
-- For `GOOGLE_CREDENTIALS`, copy the entire content of the JSON key file including braces
-- `VERTEX_LOCATION` should be a region where Vertex AI is available (e.g., "us-central1")
-- `VERTEX_AI_PRIORITY` sets the priority order for AI providers (1=highest, 3=lowest)
+#### Option 2: Use Replit Secrets
 
-### 6. Test Vertex AI Authentication
+If you're hosting on Replit, you can set these as secrets:
 
-Run the test script to verify your Vertex AI setup:
+1. Go to your Repl's "Secrets" tab
+2. Create the following secrets:
+   - `GOOGLE_CREDENTIALS`: Copy the entire content of your JSON credentials file
+   - `GOOGLE_CLOUD_PROJECT`: Your Google Cloud project ID
+   - `VERTEX_LOCATION`: The GCP region to use (e.g., "us-central1")
+   - `USE_VERTEX_AI`: Set to "true"
 
-```
-python test_vertex_auth.py
-```
+## Implementation Details
 
-If successful, you should see a confirmation message showing your project settings and a sample response from Vertex AI.
+The bot has been designed with a fallback mechanism:
+
+1. First tries Google Gemini AI (if API key is available)
+2. Falls back to Vertex AI standard client if available
+3. Falls back to Vertex AI REST API client if standard client fails or isn't available
+4. Finally falls back to G4F library as a last resort
 
 ## Troubleshooting
 
-### Common Issues
+If you encounter issues with Vertex AI:
 
-#### Authentication Errors
+1. Run the `/testvertex` command in your Discord server (Admin only)
+2. Check the bot logs for detailed error messages
+3. Verify your credentials are correct and the service account has proper permissions
+4. Ensure the Vertex AI API is enabled for your project
 
-```
-Error: google.auth.exceptions.DefaultCredentialsError: Could not automatically determine credentials
-```
+## Additional Resources
 
-Solution: Make sure the `GOOGLE_CREDENTIALS` environment variable is set correctly with the complete JSON content.
+- [Vertex AI Documentation](https://cloud.google.com/vertex-ai/docs)
+- [Python Client for Vertex AI](https://cloud.google.com/python/docs/reference/aiplatform/latest)
+- [Vertex AI Pricing](https://cloud.google.com/vertex-ai/pricing)
 
-#### API Not Enabled
+---
 
-```
-Error: google.api_core.exceptions.PermissionDenied: 403 Vertex AI API has not been used in project X before or it is disabled
-```
-
-Solution: Go to the Google Cloud Console and ensure the Vertex AI API is enabled for your project.
-
-#### Location Not Available
-
-```
-Error: google.api_core.exceptions.InvalidArgument: 400 Location 'X' is not supported for this method
-```
-
-Solution: Change `VERTEX_LOCATION` to a supported region like "us-central1" or "us-east1".
-
-#### Permission Issues
-
-```
-Error: google.api_core.exceptions.PermissionDenied: 403 Permission 'aiplatform.models.predict' denied
-```
-
-Solution: Ensure your service account has the "Vertex AI User" role assigned.
-
-## Usage Notes
-
-- The bot will automatically use Vertex AI when properly configured with the highest priority.
-- If Vertex AI encounters an error, the bot will fall back to Google Gemini AI.
-- If both Vertex AI and Gemini fail, the bot will use G4F as a final fallback.
-- You can monitor AI provider usage in the bot logs.
-
-## Resource Management
-
-Vertex AI usage incurs costs based on the number of tokens processed. To manage costs:
-
-1. Set appropriate usage quotas in the Google Cloud Console
-2. Consider setting up budget alerts
-3. For free tier or limited usage, use the Gemini AI integration instead
-
-## Model Configuration
-
-The default configuration uses the latest text generation models. To change models:
-
-1. Edit `utils/vertex_ai_client.py`
-2. Modify the `VERTEX_AI_MODEL_NAME` constant for each model type
-
-## Advanced Configuration
-
-For advanced users, you can modify:
-
-- System prompts (in `utils/ai_preference_manager.py`)
-- Token limits (in `utils/vertex_ai_client.py`)
-- Model parameters like temperature and top_k (in `utils/vertex_ai_client.py`)
+For more information on configuring other aspects of the bot, refer to the main documentation.
