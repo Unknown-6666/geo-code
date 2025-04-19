@@ -1,7 +1,9 @@
 {
   "toxicity_threshold": 0.7,
   "spam_threshold": 0.7,
-  "enabled_guilds": {},
+  "enabled_guilds": {
+    "953793114714300458": true
+  },
   "enabled_features": {
     "content_filtering": true,
     "spam_detection": true,
