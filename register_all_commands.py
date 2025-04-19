@@ -81,19 +81,7 @@ async def register_all_commands():
             "description": "Show your recent conversation with the AI"
         },
         
-        # SCP-079 commands
-        {
-            "name": "scp079",
-            "description": "Communicate with SCP-079, the Old AI"
-        },
-        {
-            "name": "scp079_info",
-            "description": "Get information about SCP-079"
-        },
-        {
-            "name": "scp079_clear",
-            "description": "Clear your conversation history with SCP-079"
-        },
+
         
         # Basic commands
         {

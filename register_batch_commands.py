@@ -50,23 +50,8 @@ async def register_essential_commands():
     
     # Define essential command groups in smaller batches
     command_batches = [
-        # Batch 1: SCP-079 commands (highest priority)
-        [
-            {
-                "name": "scp079",
-                "description": "Communicate with SCP-079, the Old AI"
-            },
-            {
-                "name": "scp079_info",
-                "description": "Get information about SCP-079"
-            },
-            {
-                "name": "scp079_clear",
-                "description": "Clear your conversation history with SCP-079"
-            }
-        ],
         
-        # Batch 2: AI Chat commands
+        # Batch 1: AI Chat commands
         [
             {
                 "name": "ask",
@@ -82,7 +67,7 @@ async def register_essential_commands():
             }
         ],
         
-        # Batch 3: Basic utility commands
+        # Batch 2: Basic utility commands
         [
             {
                 "name": "ping",
@@ -102,7 +87,7 @@ async def register_essential_commands():
             }
         ],
         
-        # Batch 4: Moderation commands
+        # Batch 3: Moderation commands
         [
             {
                 "name": "kick",
@@ -126,7 +111,7 @@ async def register_essential_commands():
             }
         ],
         
-        # Batch 5: Entertainment commands
+        # Batch 4: Entertainment commands
         [
             {
                 "name": "meme",
