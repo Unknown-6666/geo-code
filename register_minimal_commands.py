@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Minimal command registration script for SCP-079 commands.
+Minimal command registration script for essential bot commands.
 Uses a very lightweight approach to avoid issues with Discord's API rate limits.
 """
 import os
@@ -44,27 +44,19 @@ def register_minimal_commands():
         print(f"Error getting application ID: {e}")
         return False
     
-    # Define the SCP-079 commands
+    # Define basic commands
     commands = [
         {
-            "name": "scp079",
-            "description": "Communicate with SCP-079, the Old AI",
-            "options": [
-                {
-                    "name": "message",
-                    "description": "Your message to SCP-079",
-                    "type": 3,  # String type
-                    "required": True
-                }
-            ]
+            "name": "ping",
+            "description": "Check if the bot is responsive"
         },
         {
-            "name": "scp079_info",
-            "description": "Get information about SCP-079"
+            "name": "help",
+            "description": "Get help with bot commands"
         },
         {
-            "name": "scp079_clear",
-            "description": "Clear your conversation history with SCP-079"
+            "name": "info",
+            "description": "Get information about the server"
         }
     ]
     

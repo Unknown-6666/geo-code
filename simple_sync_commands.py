@@ -26,20 +26,8 @@ class SimpleBot(commands.Bot):
         intents.message_content = True
         super().__init__(command_prefix='!', intents=intents)
 
-# Create a simplified version of SCP-079 commands
-scp079_group = app_commands.Group(name="scp079", description="SCP-079 commands")
-
-@scp079_group.command(name="talk", description="Communicate with SCP-079, the Old AI")
-async def scp079_talk(interaction: discord.Interaction, message: str):
-    await interaction.response.send_message("Command registered successfully.", ephemeral=True)
-
-@app_commands.command(name="scp079_info", description="Get information about SCP-079")
-async def scp079_info(interaction: discord.Interaction):
-    await interaction.response.send_message("Command registered successfully.", ephemeral=True)
-
-@app_commands.command(name="scp079_clear", description="Clear your conversation history with SCP-079")
-async def scp079_clear(interaction: discord.Interaction):
-    await interaction.response.send_message("Command registered successfully.", ephemeral=True)
+# Placeholder for command groups
+# Note: SCP-079 commands have been removed
 
 async def sync_essential_commands():
     """Sync commands from essential cogs only"""
@@ -57,15 +45,10 @@ async def sync_essential_commands():
         await bot.login(TOKEN)
         print("Successfully connected to Discord!")
         
-        # Add the SCP-079 commands to the command tree
-        bot.tree.add_command(scp079_group)
-        bot.tree.add_command(scp079_info)
-        bot.tree.add_command(scp079_clear)
-        
         # Sync commands
-        print("Syncing SCP-079 commands...")
+        print("Syncing essential commands...")
         await bot.tree.sync()
-        print("Successfully synced SCP-079 commands!")
+        print("Successfully synced essential commands!")
         
         return True
         
