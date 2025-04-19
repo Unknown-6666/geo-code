@@ -13,7 +13,7 @@ from discord.ext import commands
 from utils.embed_helpers import create_embed, create_error_embed
 from utils.ai_preference_manager import ai_preferences
 from models.conversation import Conversation
-from config import GOOGLE_CLOUD_PROJECT, VERTEX_LOCATION
+from config import GOOGLE_CLOUD_PROJECT, VERTEX_LOCATION, USE_VERTEX_AI, USE_GOOGLE_AI, GOOGLE_API_KEY
 
 # Import Vertex AI clients - will be None if not available
 try:
@@ -81,125 +81,13 @@ class AIChat(commands.Cog):
                 logger.info("Vertex AI not enabled in configuration")
         
         # Log AI provider status
-        if USE_GOOGLE_AI:
-            logger.info(f"AI Chat cog initialized with Google {self.gemini_model}")
+        if self.vertex_client and self.vertex_client.initialized:
+            logger.info("AI Chat cog initialized with Vertex AI (primary)")
+        elif self.vertex_rest_client and self.vertex_rest_client.initialized:
+            logger.info("AI Chat cog initialized with Vertex AI REST API")
         else:
-            logger.info("AI Chat cog initialized with fallback AI providers")
-            logger.info("To use Google's AI services, set the GOOGLE_API environment variable")
-
-
-    
-    async def get_google_ai_response(self, prompt, system_prompt=None, user_id=None, include_history=True):
-        """Get a response from Google's Gemini 1.5 AI API with conversation history support"""
-        if not GOOGLE_API_KEY:
-            return None
-
-        max_retries = 3
-        retry_delay = 1  # Start with 1 second delay and increase exponentially
-        
-        # Default settings
-        temperature = 0.7
-        max_tokens = 1000
-        
-        # Use the provided system prompt or default
-        if not system_prompt:
-            system_prompt = "You are a friendly and helpful chat bot. Keep responses concise and engaging."
-
-        for attempt in range(max_retries):
-            try:
-                # Gemini API endpoint for text generation - using Gemini 1.5
-                url = f"https://generativelanguage.googleapis.com/{self.gemini_api_version}/{self.gemini_model}:generateContent?key={GOOGLE_API_KEY}"
-                
-                # Prepare conversation history for context if user_id is provided and include_history is True
-                history_contents = []
-                if user_id and include_history:
-                    # Get conversation history
-                    history = Conversation.get_formatted_history(user_id, limit=8)  # Get last 8 messages
-                    
-                    # If we have history, add it to the conversation
-                    if history:
-                        logger.info(f"Including {len(history)} previous messages in conversation history")
-                        for msg in history:
-                            # Convert to Gemini format (role + parts)
-                            # Gemini API only accepts "user" or "model" roles, map "assistant" to "model"
-                            gemini_role = "model" if msg["role"] == "assistant" else "user"
-                            history_contents.append({
-                                "role": gemini_role,
-                                "parts": [{"text": msg["content"]}]
-                            })
-                
-                # Prepare request payload with the correct role and history
-                contents = history_contents.copy() if history_contents else []
-                
-                # Add current user message
-                contents.append({
-                    "role": "user",
-                    "parts": [
-                        {"text": prompt}
-                    ]
-                })
-                
-                payload = {
-                    "contents": contents,
-                    "generationConfig": {
-                        "temperature": temperature,
-                        "topK": 40,
-                        "topP": 0.95,
-                        "maxOutputTokens": max_tokens
-                    }
-                }
-                
-                # Always add system prompt to ensure proper character roleplay
-                if system_prompt:
-                    # For Gemini, we need to prepend the system prompt to the user message
-                    # This ensures the character roleplay is maintained
-                    modified_prompt = f"[System instructions: {system_prompt}]\n\nUser: {prompt}"
-                    payload["contents"][-1]["parts"][0]["text"] = modified_prompt
-                
-                async with aiohttp.ClientSession() as session:
-                    async with session.post(url, json=payload) as response:
-                        if response.status == 429:  # Rate limited
-                            retry_after = retry_delay * (2 ** attempt)  # Exponential backoff
-                            logger.warning(f"Google AI API rate limited. Retrying in {retry_after}s (attempt {attempt+1}/{max_retries})")
-                            await asyncio.sleep(retry_after)
-                            continue
-                            
-                        elif response.status != 200:
-                            logger.error(f"Google AI API returned status code {response.status}")
-                            error_text = await response.text()
-                            logger.error(f"Error details: {error_text[:200]}")
-                            
-                            if attempt < max_retries - 1:
-                                retry_after = retry_delay * (2 ** attempt)
-                                logger.warning(f"Retrying in {retry_after}s (attempt {attempt+1}/{max_retries})")
-                                await asyncio.sleep(retry_after)
-                                continue
-                            else:
-                                return None
-                        
-                        data = await response.json()
-                        
-                        if "candidates" not in data or not data["candidates"]:
-                            logger.error("No candidates in Google AI response")
-                            logger.error(f"Response data: {json.dumps(data)[:200]}")
-                            return None
-                        
-                        # Extract the response text
-                        text_parts = data["candidates"][0]["content"]["parts"]
-                        response_text = " ".join([part["text"] for part in text_parts if "text" in part])
-                        return response_text
-            
-            except Exception as e:
-                logger.error(f"Error getting Google AI response: {str(e)}")
-                if attempt < max_retries - 1:
-                    retry_after = retry_delay * (2 ** attempt)
-                    logger.warning(f"Retrying in {retry_after}s (attempt {attempt+1}/{max_retries})")
-                    await asyncio.sleep(retry_after)
-                else:
-                    return None
-                    
-        # If we got here, all retries failed
-        return None
+            logger.info("AI Chat cog initialized with fallback AI providers only")
+            logger.info("To use Vertex AI services, set the GOOGLE_CREDENTIALS environment variables")
 
     async def _process_ai_request(self, prompt, user_id=None, include_history=False):
         """Process an AI request and return the response and source
@@ -249,12 +137,7 @@ class AIChat(commands.Cog):
                     logger.error(f"Error getting Vertex AI response: {str(e)}")
                     # Continue to next fallback
             
-            # If Vertex AI failed or not available, try Google Gemini AI
-            if not response and USE_GOOGLE_AI:
-                logger.info(f"Using Google AI ({self.gemini_model}) as fallback")
-                response = await self.get_google_ai_response(prompt, system_prompt, user_id, include_history)
-                if response:
-                    ai_source = f"Google {self.gemini_model.split('/')[-1]}"
+            # If Vertex AI failed, we'll proceed to REST API and then g4f fallbacks
         
         # Try REST API client as a fallback if available and standard client failed
         if not response and self.vertex_rest_client and self.vertex_rest_client.initialized:

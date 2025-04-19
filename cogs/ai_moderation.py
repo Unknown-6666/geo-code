@@ -10,7 +10,7 @@ from discord import app_commands
 from discord.ext import commands
 from utils.embed_helpers import create_embed, create_error_embed
 from utils.permissions import is_mod, is_admin, is_bot_owner, PermissionChecks
-from config import GOOGLE_API_KEY, USE_GOOGLE_AI, COLORS
+from config import GOOGLE_API_KEY, USE_GOOGLE_AI, USE_VERTEX_AI, GOOGLE_CLOUD_PROJECT, VERTEX_LOCATION, COLORS
 
 # Import Vertex AI clients if available
 try:
@@ -41,23 +41,40 @@ class AIModeration(commands.Cog):
         self.gemini_model = "models/gemini-1.5-pro"
         self.gemini_api_version = "v1beta"
         
-        # Initialize Vertex AI clients for fallback
+        # Initialize Vertex AI clients (primary)
         self.vertex_client = None
         self.vertex_rest_client = None
+        self.use_vertex_ai = USE_VERTEX_AI
         
-        if HAS_VERTEX_AI:
+        # Try the SDK client first (if available)
+        if HAS_VERTEX_AI and self.use_vertex_ai:
             try:
                 self.vertex_client = VertexAIClient()
-                logger.info("Vertex AI SDK client initialized for moderation")
+                if self.vertex_client.initialized:
+                    logger.info("Vertex AI SDK client initialized successfully for moderation")
+                else:
+                    logger.warning("Vertex AI SDK client failed to initialize properly")
             except Exception as e:
                 logger.error(f"Error initializing Vertex AI SDK client: {str(e)}")
+                self.vertex_client = None
                 
-        if HAS_VERTEX_REST:
+        # Try the REST API client as fallback or if SDK client failed
+        if HAS_VERTEX_REST and self.use_vertex_ai and (not self.vertex_client or not self.vertex_client.initialized):
             try:
+                logger.info("Attempting to initialize Vertex REST API client...")
                 self.vertex_rest_client = VertexRESTClient()
-                logger.info("Vertex REST API client initialized for moderation")
+                if self.vertex_rest_client.initialized:
+                    logger.info("Vertex REST API client initialized successfully for moderation")
+                else:
+                    logger.warning("Vertex REST API client failed to initialize properly")
             except Exception as e:
                 logger.error(f"Error initializing Vertex REST API client: {str(e)}")
+                self.vertex_rest_client = None
+                
+        # Log status
+        if self.use_vertex_ai and not (self.vertex_client or self.vertex_rest_client):
+            logger.warning("Vertex AI requested but both client methods failed to initialize for moderation")
+            logger.warning("Will use Google AI API or basic analysis as fallbacks")
         
         # Set default thresholds
         if "toxicity_threshold" not in self.config:

@@ -56,10 +56,10 @@ Set the following environment variables:
 GOOGLE_APPLICATION_CREDENTIALS=/path/to/your/credentials.json  
 GOOGLE_CLOUD_PROJECT=your-project-id
 VERTEX_LOCATION=us-central1
-USE_VERTEX_AI=true
+USE_VERTEX_AI=true  # This is now true by default
 ```
 
-#### Option 2: Use Replit Secrets
+#### Option 2: Use Replit Secrets (Recommended)
 
 If you're hosting on Replit, you can set these as secrets:
 
@@ -68,7 +68,8 @@ If you're hosting on Replit, you can set these as secrets:
    - `GOOGLE_CREDENTIALS`: Copy the entire content of your JSON credentials file
    - `GOOGLE_CLOUD_PROJECT`: Your Google Cloud project ID
    - `VERTEX_LOCATION`: The GCP region to use (e.g., "us-central1")
-   - `USE_VERTEX_AI`: Set to "true"
+   
+Note: The bot is now configured to use Vertex AI by default (`USE_VERTEX_AI=true`)
 
 ## Implementation Details
 

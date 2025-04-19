@@ -102,12 +102,16 @@ Scans shared media and links for inappropriate content:
      - `GOOGLE_CLOUD_PROJECT` - Your Google Cloud project ID
      - `VERTEX_LOCATION` - The Vertex AI location (e.g., "us-central1")
      - `GOOGLE_CREDENTIALS` - Your Google Cloud service account JSON
-   - For Google Gemini (fallback provider), set `GOOGLE_AI_API_KEY` environment variable
+   
+   The bot now uses Vertex AI as the primary AI provider by default (`USE_VERTEX_AI=true`).
+
    - The bot uses a multi-tier AI system for maximum reliability:
      1. Vertex AI SDK (primary)
      2. Vertex AI REST API (first fallback)
-     3. Google Gemini (second fallback)
+     3. Google Gemini (second fallback, optional: set `GOOGLE_AI_API_KEY`)
      4. Basic pattern matching (final fallback)
+   
+   For detailed setup instructions, see the VERTEX_AI_SETUP.md file.
 
 2. Enable features for your server:
    - Use the `/moderateai` command to enable features server-wide
