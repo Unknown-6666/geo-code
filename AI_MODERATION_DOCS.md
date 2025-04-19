@@ -99,7 +99,15 @@ Scans shared media and links for inappropriate content:
 
 1. First, ensure you have the necessary API keys:
    - For Google AI features, set the `GOOGLE_AI_API_KEY` environment variable
-   - Without this key, the bot will use fallback methods with reduced capabilities
+   - For Vertex AI integration, set the following environment variables:
+     - `GOOGLE_CLOUD_PROJECT` - Your Google Cloud project ID
+     - `VERTEX_LOCATION` - The Vertex AI location (e.g., "us-central1")
+     - `GOOGLE_CREDENTIALS` - Your Google Cloud service account JSON
+   - The bot uses a multi-tier AI system for maximum reliability:
+     1. Google Gemini (primary)
+     2. Vertex AI SDK (first fallback)
+     3. Vertex AI REST API (second fallback)
+     4. Basic pattern matching (final fallback)
 
 2. Enable features for your server:
    - Use the `/moderateai` command to enable features server-wide
@@ -124,3 +132,17 @@ Scans shared media and links for inappropriate content:
 - If content isn't being filtered properly, try adjusting thresholds
 - For image analysis issues, ensure the bot has access to view attachments
 - If link analysis is slow, consider adding common domains to the whitelist
+
+### Vertex AI Integration Troubleshooting
+
+- Use the `/testvertex` command to check your Vertex AI configuration status
+- If Vertex AI isn't connecting:
+  - Verify your Google Cloud credentials are correctly formatted JSON
+  - Check that your project ID and location are correct
+  - Ensure your service account has the necessary Vertex AI permissions
+- If you see authentication errors:
+  - Make sure your service account has the "Vertex AI User" role
+  - Verify that the Vertex AI API is enabled in your Google Cloud project
+- If PyJWT errors occur:
+  - The bot includes a fallback to use the direct REST API instead
+  - No action is required as fallback is automatic

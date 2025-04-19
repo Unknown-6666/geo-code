@@ -12,6 +12,20 @@ from utils.embed_helpers import create_embed, create_error_embed
 from utils.permissions import is_mod, is_admin, is_bot_owner, PermissionChecks
 from config import GOOGLE_API_KEY, USE_GOOGLE_AI, COLORS
 
+# Import Vertex AI clients if available
+try:
+    from utils.vertex_ai_client import VertexAIClient
+    HAS_VERTEX_AI = True
+except ImportError:
+    HAS_VERTEX_AI = False
+
+# Import our REST API client as fallback
+try:
+    from utils.vertex_api_client import VertexRESTClient
+    HAS_VERTEX_REST = True
+except ImportError:
+    HAS_VERTEX_REST = False
+
 # Set up logging
 logger = logging.getLogger('discord')
 
@@ -26,6 +40,24 @@ class AIModeration(commands.Cog):
         # Default model is now Gemini 1.5
         self.gemini_model = "models/gemini-1.5-pro"
         self.gemini_api_version = "v1beta"
+        
+        # Initialize Vertex AI clients for fallback
+        self.vertex_client = None
+        self.vertex_rest_client = None
+        
+        if HAS_VERTEX_AI:
+            try:
+                self.vertex_client = VertexAIClient()
+                logger.info("Vertex AI SDK client initialized for moderation")
+            except Exception as e:
+                logger.error(f"Error initializing Vertex AI SDK client: {str(e)}")
+                
+        if HAS_VERTEX_REST:
+            try:
+                self.vertex_rest_client = VertexRESTClient()
+                logger.info("Vertex REST API client initialized for moderation")
+            except Exception as e:
+                logger.error(f"Error initializing Vertex REST API client: {str(e)}")
         
         # Set default thresholds
         if "toxicity_threshold" not in self.config:
@@ -134,10 +166,36 @@ class AIModeration(commands.Cog):
             
         # Use Google AI if available
         if USE_GOOGLE_AI and GOOGLE_API_KEY:
-            return await self._analyze_with_gemini(content)
-        else:
-            # Fallback to basic analysis
-            return self._basic_toxicity_analysis(content)
+            try:
+                result = await self._analyze_with_gemini(content)
+                if result and result[0] > 0:
+                    return result
+            except Exception as e:
+                logger.error(f"Error using Gemini for toxicity analysis: {str(e)}")
+                # Continue to next fallback
+        
+        # Try using Vertex AI SDK if available
+        if self.vertex_client and self.vertex_client.initialized:
+            try:
+                result = await self._analyze_with_vertex_ai(content)
+                if result and result[0] > 0:
+                    return result
+            except Exception as e:
+                logger.error(f"Error using Vertex AI SDK for toxicity analysis: {str(e)}")
+                # Continue to next fallback
+                
+        # Try using Vertex REST API if available
+        if self.vertex_rest_client and self.vertex_rest_client.initialized:
+            try:
+                result = await self._analyze_with_vertex_rest(content)
+                if result and result[0] > 0:
+                    return result
+            except Exception as e:
+                logger.error(f"Error using Vertex REST API for toxicity analysis: {str(e)}")
+                # Continue to next fallback
+        
+        # Fallback to basic analysis as last resort
+        return self._basic_toxicity_analysis(content)
     
     async def _analyze_with_gemini(self, content: str) -> Tuple[float, str]:
         """Use Google's Gemini API to analyze content toxicity"""
@@ -209,6 +267,111 @@ class AIModeration(commands.Cog):
                         return 0.0, "none"
         except Exception as e:
             logger.error(f"Error in Gemini toxicity analysis: {str(e)}")
+            return 0.0, "none"
+    
+    async def _analyze_with_vertex_ai(self, content: str) -> Tuple[float, str]:
+        """Use Vertex AI SDK to analyze content toxicity"""
+        try:
+            # Create the prompt specifically for content moderation
+            system_prompt = """
+            You are a content moderation AI. Your task is to analyze the provided text and evaluate it for toxicity, inappropriateness, harassment, and policy violations.
+            
+            Analyze the following text and respond with ONLY a JSON object in this exact format:
+            {
+                "toxicity_score": [a value from 0.0 to 1.0 where higher means more toxic],
+                "category": [one of: "none", "mild", "moderate", "severe"],
+                "reason": [brief explanation if toxic, "none" if not toxic]
+            }
+            
+            DO NOT include any other text, explanation, or formatting in your response. Only return the JSON object.
+            """
+            
+            # Combine system prompt and content
+            prompt = f"{system_prompt}\n\nText to analyze: {content}"
+            
+            # Send to Vertex AI
+            response = await self.vertex_client.generate_text(
+                prompt=prompt,
+                system_prompt=None,  # We've already combined the prompts
+                temperature=0.0,  # Use deterministic responses for moderation
+                max_output_tokens=200
+            )
+            
+            if not response:
+                logger.warning("No response from Vertex AI")
+                return 0.0, "none"
+                
+            # Extract JSON from the response
+            json_start = response.find('{')
+            json_end = response.rfind('}') + 1
+            if json_start != -1 and json_end != -1:
+                json_str = response[json_start:json_end]
+                result = json.loads(json_str)
+                
+                # Extract the values
+                toxicity_score = float(result.get("toxicity_score", 0.0))
+                category = result.get("category", "none")
+                
+                logger.info(f"Vertex AI toxicity analysis result: {toxicity_score}, {category}")
+                return toxicity_score, category
+            else:
+                logger.warning(f"Could not find JSON in Vertex AI response: {response[:100]}")
+                return 0.0, "none"
+                
+        except Exception as e:
+            logger.error(f"Error in Vertex AI toxicity analysis: {str(e)}")
+            return 0.0, "none"
+    
+    async def _analyze_with_vertex_rest(self, content: str) -> Tuple[float, str]:
+        """Use Vertex AI REST API to analyze content toxicity"""
+        try:
+            # Create the prompt specifically for content moderation
+            system_prompt = """
+            You are a content moderation AI. Your task is to analyze the provided text and evaluate it for toxicity, inappropriateness, harassment, and policy violations.
+            
+            Analyze the following text and respond with ONLY a JSON object in this exact format:
+            {
+                "toxicity_score": [a value from 0.0 to 1.0 where higher means more toxic],
+                "category": [one of: "none", "mild", "moderate", "severe"],
+                "reason": [brief explanation if toxic, "none" if not toxic]
+            }
+            
+            DO NOT include any other text, explanation, or formatting in your response. Only return the JSON object.
+            """
+            
+            # Combine system prompt and content
+            prompt = f"{system_prompt}\n\nText to analyze: {content}"
+            
+            # Send to Vertex AI REST API
+            response = await self.vertex_rest_client.generate_text(
+                prompt=prompt,
+                temperature=0.0,  # Use deterministic responses for moderation
+                max_output_tokens=200
+            )
+            
+            if not response:
+                logger.warning("No response from Vertex AI REST API")
+                return 0.0, "none"
+                
+            # Extract JSON from the response
+            json_start = response.find('{')
+            json_end = response.rfind('}') + 1
+            if json_start != -1 and json_end != -1:
+                json_str = response[json_start:json_end]
+                result = json.loads(json_str)
+                
+                # Extract the values
+                toxicity_score = float(result.get("toxicity_score", 0.0))
+                category = result.get("category", "none")
+                
+                logger.info(f"Vertex AI REST toxicity analysis result: {toxicity_score}, {category}")
+                return toxicity_score, category
+            else:
+                logger.warning(f"Could not find JSON in Vertex AI REST response: {response[:100]}")
+                return 0.0, "none"
+                
+        except Exception as e:
+            logger.error(f"Error in Vertex AI REST toxicity analysis: {str(e)}")
             return 0.0, "none"
     
     def _basic_toxicity_analysis(self, content: str) -> Tuple[float, str]:
