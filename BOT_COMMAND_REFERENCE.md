@@ -27,18 +27,7 @@ This document provides a complete reference of all commands available in the bot
 | `/voicechat` | `!voicechat`, `!vc` | Join your voice channel and enable AI voice chat |
 | `/voice_stop` | `!voice_stop`, `!vc_stop` | Stop AI voice chat and disconnect from the voice channel |
 
-## Music Commands
 
-| Slash Command | Prefix Command | Description |
-|--------------|---------------|-------------|
-| `/join` | `!join` | Join your current voice channel |
-| `/leave` | `!leave` | Leave the voice channel |
-| `/play <query>` | `!play <query>` | Play a song from YouTube, SoundCloud, or Spotify |
-| `/stop` | `!stop` | Stop playing and clear the queue |
-| `/skip` | `!skip` | Skip to the next song in the queue |
-| `/queue` | `!queue` | Show the current music queue |
-| `/volume <0-100>` | `!volume <0-100>` | Set the playback volume |
-| `/search <query> <platform>` | `!search <query>` | Search for music on YouTube or SoundCloud |
 
 ## Economy Commands
 
@@ -100,27 +89,13 @@ This document provides a complete reference of all commands available in the bot
 - The bot will respond both with text and voice
 - Use `/voice_stop` or `!vc_stop` when you're done
 
-### Using Music Commands
 
-The bot supports various music sources:
-- **YouTube**: Just use the song name or YouTube URL
-- **SoundCloud**: Prefix your search with "soundcloud:" or use a SoundCloud URL
-- **Spotify**: Use a Spotify track URL
-
-Examples:
-```
-!play despacito
-!play soundcloud: chill beats
-!play https://www.youtube.com/watch?v=dQw4w9WgXcQ
-!play https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT
-```
 
 ## Command Permissions
 
 Some commands require specific permissions to use:
 - Moderation commands require appropriate moderation permissions
 - Admin commands require administrator permissions
-- Music commands can be used by anyone with access to the voice channels
 - Voice AI commands require permissions to connect to and speak in voice channels
 - Economy commands are available to all members
 

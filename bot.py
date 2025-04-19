@@ -386,7 +386,6 @@ async def sync_commands_only():
             "cogs.memes",
             "cogs.fun_commands",    # Fun commands cog including jog command
             "cogs.moderation",
-            "cogs.music",
             "cogs.profanity_filter",
             "cogs.rules_enforcer",
             "cogs.verification",
