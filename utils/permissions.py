@@ -76,6 +76,25 @@ class PermissionChecks:
         async def predicate(ctx):
             is_owner = is_bot_owner(ctx.author.id)
             logger.info(f"Owner command attempted by {ctx.author} (ID: {ctx.author.id}): {'✅ Allowed' if is_owner else '❌ Denied'}")
+            
+            # If not owner, send error message
+            if not is_owner:
+                try:
+                    from discord import Embed
+                    await ctx.send(
+                        embed=Embed(
+                            title="Access Denied",
+                            description="You don't have permission to use this command. Only the bot owner can use it.",
+                            color=0xFF0000
+                        )
+                    )
+                    logger.info(f"Sent owner-only access denied message to {ctx.author.id}")
+                except Exception as e:
+                    logger.error(f"Error sending permission denied message: {e}")
+                
+                # Raise our custom exception to signal that we've already handled the error response
+                raise PermissionError(f"User {ctx.author.id} is not the bot owner")
+                
             return is_owner
         return commands.check(predicate)
 
@@ -93,6 +112,25 @@ class PermissionChecks:
                 f"{'✅ Allowed' if has_permission else '❌ Denied'} "
                 f"(Owner: {is_owner_result}, Mod: {is_mod_result}, Admin: {is_admin_result})"
             )
+            
+            # If permission check fails, send error message and raise our custom exception
+            if not has_permission:
+                try:
+                    from discord import Embed
+                    await ctx.send(
+                        embed=Embed(
+                            title="Access Denied",
+                            description="You don't have permission to use this command. Only moderators or higher can use it.",
+                            color=0xFF0000
+                        )
+                    )
+                    logger.info(f"Sent mod-only access denied message to {ctx.author.id}")
+                except Exception as e:
+                    logger.error(f"Error sending permission denied message: {e}")
+                
+                # Raise our custom exception to signal that we've already handled the error response
+                raise PermissionError(f"User {ctx.author.id} is not a moderator")
+                
             return has_permission
         return commands.check(predicate)
         
@@ -179,5 +217,27 @@ class PermissionChecks:
                 f"{'✅ Allowed' if has_permission else '❌ Denied'} "
                 f"(Owner: {is_owner_result}, Admin: {is_admin_result})"
             )
+            
+            # If permission check fails, send error message and raise our custom exception
+            if not has_permission:
+                # Try to respond if interaction hasn't been responded to yet
+                if not interaction.response.is_done():
+                    try:
+                        from discord import Embed
+                        await interaction.response.send_message(
+                            embed=Embed(
+                                title="Access Denied",
+                                description="You don't have permission to use this command. Only administrators can use it.",
+                                color=0xFF0000
+                            ),
+                            ephemeral=True
+                        )
+                        logger.info(f"Sent admin-only access denied message to {interaction.user.id}")
+                    except Exception as e:
+                        logger.error(f"Error sending permission denied message: {e}")
+                
+                # Raise our custom exception to signal that we've already handled the error response
+                raise PermissionError(f"User {interaction.user.id} is not an administrator")
+                
             return has_permission
         return predicate
