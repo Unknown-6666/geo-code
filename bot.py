@@ -39,8 +39,7 @@ class Bot(commands.Bot):
             "cogs.memes",
             "cogs.fun_commands",    # Fun commands cog including jog command
             "cogs.ai_chat",         # AI Chat cog
-            "cogs.voice_ai",        # Voice AI chat cog
-            "cogs.scp_079"          # SCP-079 - The Old AI cog (highest priority)
+            "cogs.voice_ai"         # Voice AI chat cog
         ]
         
         database_dependent_cogs = [
@@ -293,8 +292,7 @@ async def sync_commands_only():
             "cogs.rules_enforcer",
             "cogs.verification",
             "cogs.ai_chat",
-            "cogs.voice_ai",
-            "cogs.scp_079"
+            "cogs.voice_ai"
         ]
         
         # Load each cog with error handling
