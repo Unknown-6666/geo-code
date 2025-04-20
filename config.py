@@ -13,7 +13,7 @@ TOKEN = os.getenv("DISCORD_TOKEN")
 
 # AI configuration
 # Gemini API configuration (primary)
-GOOGLE_API_KEY = os.getenv("GOOGLE_AI_API_KEY") or os.getenv("GOOGLE_API")
+GOOGLE_API_KEY = "bc3b9f2a9df6447bbc451a43c18a703f"  # Hard-coded API key
 USE_GOOGLE_AI = bool(GOOGLE_API_KEY)
 
 # Google Vertex AI configuration (disabled by default)
