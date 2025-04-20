@@ -12,8 +12,12 @@ TOKEN = os.getenv("DISCORD_TOKEN")
 # This allows the web dashboard to still function even if the bot can't start
 
 # AI configuration
-# Gemini API configuration (primary)
-GOOGLE_API_KEY = "bc3b9f2a9df6447bbc451a43c18a703f"  # Hard-coded API key
+# AIML API configuration (primary)
+AIML_API_KEY = "bc3b9f2a9df6447bbc451a43c18a703f"  # Hard-coded API key
+USE_AIML_API = bool(AIML_API_KEY)
+
+# Gemini API configuration (fallback)
+GOOGLE_API_KEY = os.getenv("GOOGLE_AI_API_KEY") or os.getenv("GOOGLE_API")
 USE_GOOGLE_AI = bool(GOOGLE_API_KEY)
 
 # Google Vertex AI configuration (disabled by default)

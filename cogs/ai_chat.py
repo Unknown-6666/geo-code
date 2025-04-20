@@ -14,6 +14,14 @@ from utils.embed_helpers import create_embed, create_error_embed
 from utils.ai_preference_manager import ai_preferences
 from models.conversation import Conversation
 from config import GOOGLE_CLOUD_PROJECT, VERTEX_LOCATION, USE_VERTEX_AI, USE_GOOGLE_AI, GOOGLE_API_KEY
+from config import AIML_API_KEY, USE_AIML_API
+
+# Import AIML API client
+try:
+    from utils.aiml_api_client import AIMLAPIClient
+    HAS_AIML_API = True
+except ImportError:
+    HAS_AIML_API = False
 
 # Import Vertex AI clients - will be None if not available
 try:
@@ -38,14 +46,27 @@ class AIChat(commands.Cog):
         # Configure g4f settings
         g4f.debug.logging = False  # Disable debug logging
         
+        # Initialize AIML API client (primary)
+        self.aiml_client = None
+        if HAS_AIML_API and USE_AIML_API:
+            try:
+                self.aiml_client = AIMLAPIClient(AIML_API_KEY)
+                if self.aiml_client.initialized:
+                    logger.info("AIML API client initialized successfully (primary)")
+                else:
+                    logger.warning("AIML API client failed to initialize properly")
+            except Exception as e:
+                logger.error(f"Error initializing AIML API client: {str(e)}")
+                self.aiml_client = None
+        
         # Set Gemini API version - using Gemini 1.5 Pro for enhanced capabilities
         # Gemini 1.5-pro-latest is the latest available model version
         self.gemini_model = "models/gemini-1.5-pro-latest"
         self.gemini_api_version = "v1beta"
         
-        # Check if Gemini API is available
+        # Check if Gemini API is available (fallback)
         if USE_GOOGLE_AI and GOOGLE_API_KEY:
-            logger.info("Gemini API is configured and will be used as primary AI provider")
+            logger.info("Gemini API is configured and will be used as fallback AI provider")
         else:
             logger.warning("Gemini API is not configured (missing API key)")
             
@@ -88,19 +109,25 @@ class AIChat(commands.Cog):
                 logger.info("Vertex AI not enabled in configuration")
         
         # Log AI provider status
-        if USE_GOOGLE_AI and GOOGLE_API_KEY:
-            logger.info("AI Chat cog initialized with Gemini API (primary)")
+        if self.aiml_client and self.aiml_client.initialized:
+            logger.info("AI Chat cog initialized with AIML API (primary)")
+            if USE_GOOGLE_AI and GOOGLE_API_KEY:
+                logger.info("Gemini API available as fallback")
             if self.vertex_client and self.vertex_client.initialized:
-                logger.info("Vertex AI available as fallback")
+                logger.info("Vertex AI available as secondary fallback")
             elif self.vertex_rest_client and self.vertex_rest_client.initialized:
-                logger.info("Vertex AI REST API available as fallback")
+                logger.info("Vertex AI REST API available as secondary fallback")
+        elif USE_GOOGLE_AI and GOOGLE_API_KEY:
+            logger.info("AI Chat cog initialized with Gemini API (fallback)")
+            if self.vertex_client and self.vertex_client.initialized:
+                logger.info("Vertex AI available as secondary fallback")
         elif self.vertex_client and self.vertex_client.initialized:
             logger.info("AI Chat cog initialized with Vertex AI (fallback)")
         elif self.vertex_rest_client and self.vertex_rest_client.initialized:
             logger.info("AI Chat cog initialized with Vertex AI REST API (fallback)")
         else:
             logger.info("AI Chat cog initialized with g4f fallback AI providers only")
-            logger.info("To use Gemini API, set the GOOGLE_AI_API_KEY environment variable")
+            logger.info("To use AIML API, set the AIML_API_KEY environment variable")
 
     async def _process_ai_request(self, prompt, user_id=None, include_history=False):
         """Process an AI request and return the response and source
@@ -115,13 +142,34 @@ class AIChat(commands.Cog):
             logger.info(f"Using custom response for query: {prompt[:50]}...")
             response = custom_response
             ai_source = "Custom Response"
+            
+        # Try AIML API as primary provider
+        elif not response and self.aiml_client and self.aiml_client.initialized:
+            logger.info("Using AIML API as primary AI provider")
+            try:
+                # Set up system prompt
+                system_prompt = ai_preferences.get_system_prompt()
+                
+                # Format the prompt with system instructions
+                full_prompt = f"{system_prompt}\n\nUser query: {prompt}"
+                
+                # Call AIML API
+                aiml_response = await self.aiml_client.generate_text(full_prompt)
+                if aiml_response:
+                    response = aiml_response
+                    ai_source = "AIML API"
+                else:
+                    logger.warning("AIML API returned empty response")
+            except Exception as e:
+                logger.error(f"Error getting AIML API response: {str(e)}")
+                # Continue to next fallback
         
-        # If no custom response, try Gemini API as primary
+        # If no AIML API response, try Gemini API as fallback
         elif not response and USE_GOOGLE_AI and GOOGLE_API_KEY:
             # Set up system prompt
             system_prompt = ai_preferences.get_system_prompt()
             
-            logger.info("Using Gemini API as primary AI provider")
+            logger.info("Using Gemini API as fallback AI provider")
             try:
                 # Call Gemini API with aiohttp
                 async with aiohttp.ClientSession() as session:
