@@ -12,7 +12,14 @@ from discord import app_commands
 from discord.ext import commands
 from utils.embed_helpers import create_embed, create_error_embed
 from utils.permissions import is_mod, is_admin, is_bot_owner
-from config import GOOGLE_API_KEY, USE_GOOGLE_AI, COLORS
+from config import GOOGLE_API_KEY, USE_GOOGLE_AI, COLORS, AIML_API_KEY, USE_AIML_API
+
+# Import AIML API client
+try:
+    from utils.aiml_api_client import AIMLAPIClient
+    HAS_AIML_API = True
+except ImportError:
+    HAS_AIML_API = False
 
 # Set up logging
 logger = logging.getLogger('discord')
@@ -28,6 +35,19 @@ class AIConversation(commands.Cog):
         # Default model is now Gemini 1.5 (latest version)
         self.gemini_model = "models/gemini-1.5-pro-latest"
         self.gemini_api_version = "v1beta"
+        
+        # Initialize AIML API client (primary)
+        self.aiml_client = None
+        if HAS_AIML_API and USE_AIML_API:
+            try:
+                self.aiml_client = AIMLAPIClient(AIML_API_KEY)
+                if self.aiml_client.initialized:
+                    logger.info("AIML API client initialized successfully for AI Conversation")
+                else:
+                    logger.warning("AIML API client failed to initialize properly for AI Conversation")
+            except Exception as e:
+                logger.error(f"Error initializing AIML API client for AI Conversation: {str(e)}")
+                self.aiml_client = None
         
         # Channel histories for summarization
         self.channel_histories = defaultdict(list)
@@ -115,10 +135,43 @@ class AIConversation(commands.Cog):
         if not messages:
             return "No messages to summarize."
         
-        # Use Google AI if available, otherwise use a basic summary
+        # Format messages for the prompt
+        formatted_messages = ""
+        for msg in messages:
+            formatted_messages += f"{msg['author']}: {msg['content']}\n"
+        
+        # Try AIML API as primary provider
+        if self.aiml_client and self.aiml_client.initialized:
+            logger.info("Using AIML API for conversation summarization")
+            try:
+                # Create the prompt for summarization
+                system_prompt = """
+                You are a helpful AI assistant that specializes in summarizing Discord conversations.
+                Your task is to create a concise summary of the provided conversation.
+                Focus on the main topics discussed, key questions asked and answered, and any decisions made.
+                Group related messages together by topic rather than listing everything chronologically.
+                Keep your summary clear, informative, and under 400 words.
+                """
+                
+                prompt = f"{system_prompt}\n\nConversation to summarize:\n{formatted_messages}"
+                
+                # Call AIML API summarize method
+                summary = await self.aiml_client.summarize(formatted_messages)
+                if summary:
+                    logger.info("Successfully generated summary with AIML API")
+                    return summary
+                else:
+                    logger.warning("AIML API returned empty summary, falling back to alternatives")
+            except Exception as e:
+                logger.error(f"Error generating summary with AIML API: {str(e)}")
+                # Continue to next fallback
+                
+        # If no AIML API response, try Gemini API as fallback
         if USE_GOOGLE_AI and GOOGLE_API_KEY:
+            logger.info("Using Gemini API as fallback for conversation summarization")
             return await self._summarize_with_gemini(messages)
         else:
+            logger.info("Using basic summarization as fallback")
             return self._basic_summary(messages)
     
     async def _summarize_with_gemini(self, messages: List[Dict]) -> str:
