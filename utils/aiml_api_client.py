@@ -42,10 +42,14 @@ class AIMLAPIClient:
                 "Authorization": f"Bearer {self.api_key}"
             }
             
-            # Adjust the endpoint and payload format based on the actual API documentation
-            endpoint = f"{self.base_url}/v1/generate"
+            # AIML API endpoint for text generation
+            endpoint = f"{self.base_url}/chat/completions"
+            # Format payload for the AIML API's completion endpoint
             payload = {
-                "prompt": prompt,
+                "model": "gpt-3.5-turbo",  # Using a standard model supported by AIML API
+                "messages": [
+                    {"role": "user", "content": prompt}
+                ],
                 "max_tokens": max_tokens,
                 "temperature": temperature
             }
@@ -66,15 +70,17 @@ class AIMLAPIClient:
             try:
                 response_json = json.loads(response_text)
                 
-                # Extract the text from the response based on the API's response format
-                # Adjust this extraction logic based on the actual API response structure
-                if "text" in response_json:
-                    return response_json["text"]
-                elif "choices" in response_json and len(response_json["choices"]) > 0:
-                    return response_json["choices"][0].get("text", "")
-                else:
-                    logger.error(f"Unexpected response format: {response_json}")
-                    return None
+                # Extract the text from the response based on the AIML API's response format
+                # Which follows the OpenAI API format standards
+                if "choices" in response_json and len(response_json["choices"]) > 0:
+                    choice = response_json["choices"][0]
+                    if "message" in choice and "content" in choice["message"]:
+                        return choice["message"]["content"]
+                    elif "text" in choice:
+                        return choice["text"]
+                
+                logger.error(f"Unexpected AIML API response format: {response_json}")
+                return None
             except json.JSONDecodeError:
                 logger.error(f"Invalid JSON response: {response_text}")
                 return None
@@ -95,10 +101,16 @@ class AIMLAPIClient:
                 "Authorization": f"Bearer {self.api_key}"
             }
             
-            # Adjust the endpoint and payload format based on the actual API documentation
-            endpoint = f"{self.base_url}/v1/analyze"
+            # Use the general chat completions endpoint with content analysis prompt
+            endpoint = f"{self.base_url}/chat/completions"
             payload = {
-                "content": content
+                "model": "gpt-3.5-turbo",
+                "messages": [
+                    {"role": "system", "content": "You analyze content for tone, sentiment, toxicity, and other characteristics. Provide your analysis in JSON format."},
+                    {"role": "user", "content": f"Analyze the following content and provide a structured assessment:\n\n{content}"}
+                ],
+                "max_tokens": 500,
+                "temperature": 0.3  # Lower temperature for more deterministic analysis
             }
             
             # Use requests in a non-blocking way with asyncio executor
@@ -115,7 +127,35 @@ class AIMLAPIClient:
             # Parse the JSON response
             try:
                 response_json = json.loads(response_text)
-                return response_json
+                # Extract the analysis from the chat completion response
+                if "choices" in response_json and len(response_json["choices"]) > 0:
+                    choice = response_json["choices"][0]
+                    if "message" in choice and "content" in choice["message"]:
+                        analysis_text = choice["message"]["content"]
+                        
+                        # Try to parse the analysis text as JSON if it's in JSON format
+                        try:
+                            # Find JSON content (often models will include explanatory text before/after JSON)
+                            import re
+                            json_match = re.search(r'({[\s\S]*})', analysis_text)
+                            if json_match:
+                                analysis_json = json.loads(json_match.group(1))
+                                return analysis_json
+                            else:
+                                # Return as text object if not valid JSON
+                                return {
+                                    "analysis": analysis_text,
+                                    "format": "text"
+                                }
+                        except json.JSONDecodeError:
+                            # If not valid JSON, return the text as is
+                            return {
+                                "analysis": analysis_text,
+                                "format": "text"
+                            }
+                
+                logger.error(f"Unexpected AIML API response format for analysis: {response_json}")
+                return {"error": "Unexpected response format"}
             except json.JSONDecodeError:
                 logger.error(f"Invalid JSON response: {response_text}")
                 return {"error": "Invalid JSON response"}
@@ -136,11 +176,16 @@ class AIMLAPIClient:
                 "Authorization": f"Bearer {self.api_key}"
             }
             
-            # Adjust the endpoint and payload format based on the actual API documentation
-            endpoint = f"{self.base_url}/v1/summarize"
+            # Use the general chat completions endpoint with a summarization prompt
+            endpoint = f"{self.base_url}/chat/completions"
             payload = {
-                "content": content,
-                "max_length": max_length
+                "model": "gpt-3.5-turbo",
+                "messages": [
+                    {"role": "system", "content": "You are a helpful AI that summarizes content accurately and concisely."},
+                    {"role": "user", "content": f"Please summarize the following text in about {max_length} words or less:\n\n{content}"}
+                ],
+                "max_tokens": max_length * 4,  # Approximate tokens needed for word count
+                "temperature": 0.5  # Lower temperature for more focused summaries
             }
             
             # Use requests in a non-blocking way with asyncio executor
@@ -157,12 +202,17 @@ class AIMLAPIClient:
             # Parse the JSON response
             try:
                 response_json = json.loads(response_text)
-                # Extract the summary from the response based on the API's response format
-                if "summary" in response_json:
-                    return response_json["summary"]
-                else:
-                    logger.error(f"Unexpected response format: {response_json}")
-                    return None
+                # Extract the summary using the same logic as generate_text 
+                # since we're using the same endpoint
+                if "choices" in response_json and len(response_json["choices"]) > 0:
+                    choice = response_json["choices"][0]
+                    if "message" in choice and "content" in choice["message"]:
+                        return choice["message"]["content"]
+                    elif "text" in choice:
+                        return choice["text"]
+                
+                logger.error(f"Unexpected AIML API response format for summarization: {response_json}")
+                return None
             except json.JSONDecodeError:
                 logger.error(f"Invalid JSON response: {response_text}")
                 return None
