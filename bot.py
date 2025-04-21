@@ -44,26 +44,20 @@ class Bot(commands.Bot):
         """Load cogs and start tasks"""
         logger.info("Setting up bot...")
         
-        # Organize cogs by dependency
+        # Organize cogs by dependency - keeping only moderation, economy, and fun commands
         essential_cogs = [
             "cogs.basic_commands",
             "cogs.member_events",
             "cogs.memes",
             "cogs.fun_commands",    # Fun commands cog including jog command
-            "cogs.ai_chat",         # AI Chat cog
-            "cogs.voice_ai",        # Voice AI chat cog
             "cogs.ai_moderation",   # AI-powered content moderation
-            "cogs.ai_conversation", # AI-powered conversation features
-            "cogs.ai_content_analysis" # AI-powered image and link analysis
         ]
         
         database_dependent_cogs = [
-            "cogs.economy",
-            "cogs.moderation",
-            "cogs.youtube_tracker",
+            "cogs.economy",         # Economy system
+            "cogs.moderation",      # Moderation tools
             "cogs.profanity_filter",
             "cogs.rules_enforcer",
-            "cogs.verification",
         ]
         
         # First, load all essential cogs that don't depend on database
