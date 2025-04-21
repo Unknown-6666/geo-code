@@ -394,23 +394,17 @@ async def sync_commands_only():
         await bot._async_setup_hook()  # Set up the bot's internal state
         await bot.login(TOKEN)  # Login to Discord
         
-        # Load all cogs
+        # Load only moderation, economy, and fun cogs
         cogs = [
             "cogs.basic_commands",
             "cogs.member_events",
-            "cogs.youtube_tracker", 
-            "cogs.economy",
             "cogs.memes",
             "cogs.fun_commands",    # Fun commands cog including jog command
             "cogs.moderation",
+            "cogs.economy",         # Economy system
             "cogs.profanity_filter",
             "cogs.rules_enforcer",
-            "cogs.verification",
-            "cogs.ai_chat",
-            "cogs.voice_ai",
-            "cogs.ai_moderation",   # AI-powered content moderation
-            "cogs.ai_conversation", # AI-powered conversation features
-            "cogs.ai_content_analysis" # AI-powered image and link analysis
+            "cogs.ai_moderation",   # AI-powered content moderation (keeping this one)
         ]
         
         # Load each cog with error handling
