@@ -22,7 +22,10 @@ async def check_commands():
     essential_cogs = [
         "cogs.basic_commands",
         "cogs.fun_commands",
-        "cogs.ai_moderation",
+        "cogs.ai_chat",
+        "cogs.voice_ai",
+        "cogs.ai_conversation",
+        "cogs.ai_content_analysis",
     ]
     
     database_cogs = [
