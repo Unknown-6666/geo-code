@@ -521,6 +521,65 @@
             `;
         }
         
+        // Helper function to create a message element
+        function createMessageElement(message) {
+            const messageElement = document.createElement('div');
+            messageElement.className = 'message';
+            
+            // Add message ID attribute for loading older messages
+            if (message.id) {
+                messageElement.setAttribute('data-message-id', message.id);
+            }
+            
+            // Create avatar element
+            const avatarElement = document.createElement('div');
+            if (message.author.avatarUrl) {
+                avatarElement.innerHTML = `<img src="${message.author.avatarUrl}" alt="${message.author.username}" width="40" height="40" class="rounded-circle">`;
+            } else {
+                avatarElement.className = 'message-avatar';
+                avatarElement.textContent = message.author.username.charAt(0).toUpperCase();
+            }
+            
+            // Create message content
+            const contentElement = document.createElement('div');
+            contentElement.className = 'message-content';
+            
+            // Format timestamp
+            const messageDate = new Date(message.timestamp);
+            
+            // Handle attachments
+            let attachmentsHtml = '';
+            if (message.attachments && message.attachments.length > 0) {
+                message.attachments.forEach(attachment => {
+                    if (attachment.url.match(/\.(jpeg|jpg|gif|png)$/i)) {
+                        attachmentsHtml += `<div class="mt-2"><img src="${attachment.url}" alt="${attachment.filename}" class="img-fluid rounded" style="max-width: 300px;"></div>`;
+                    } else {
+                        attachmentsHtml += `<div class="mt-2"><a href="${attachment.url}" target="_blank"><i class="bi bi-file-earmark"></i> ${attachment.filename}</a></div>`;
+                    }
+                });
+            }
+            
+            contentElement.innerHTML = `
+                <div class="message-author">
+                    ${message.author.username}
+                    <span class="message-timestamp" title="${messageDate.toLocaleDateString()}">${formatTime(messageDate)}</span>
+                </div>
+                <div class="message-text">${formatMessageContent(message.content)}</div>
+                ${attachmentsHtml}
+            `;
+            
+            // If message is pending, add a style
+            if (message.pending) {
+                messageElement.style.opacity = '0.7';
+            }
+            
+            // Assemble the message
+            messageElement.appendChild(avatarElement);
+            messageElement.appendChild(contentElement);
+            
+            return messageElement;
+        }
+        
         function loadOlderMessages(channelId, beforeMessageId) {
             // Show loading indicator at the top of the message area
             const messageArea = document.getElementById('message-area');
