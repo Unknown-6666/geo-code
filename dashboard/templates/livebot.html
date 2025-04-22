@@ -213,7 +213,12 @@
             
             <!-- Channel list -->
             <div class="col-auto channel-list" style="width: 240px;">
-                <h6 class="text-uppercase px-3 text-muted fs-6 fw-bold">Channels</h6>
+                <div class="d-flex justify-content-between px-3">
+                <h6 class="text-uppercase text-muted fs-6 fw-bold">Channels</h6>
+                <button id="dm-button" class="btn btn-sm btn-outline-secondary" title="Direct Messages">
+                    <i class="bi bi-envelope"></i>
+                </button>
+            </div>
                 <div id="channel-list">
                     <!-- Channels will be dynamically loaded here -->
                     <div class="text-center p-3 text-muted">
