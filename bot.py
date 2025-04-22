@@ -348,6 +348,9 @@ async def main():
     """Main function to run the bot"""
     logger.info("Starting bot...")
     
+    # Import the main module to store the bot instance for dashboard access
+    import main as main_module
+    
     # Validate that the token exists before attempting to start the bot
     if not TOKEN:
         logger.error("No Discord token found in environment variables")
@@ -363,7 +366,11 @@ async def main():
         logger.error("Attempting to continue despite database error")
     
     try:
-        async with Bot() as bot:
+        bot_instance = Bot()
+        # Store the bot instance in the main module for dashboard access
+        main_module.discord_bot = bot_instance
+        
+        async with bot_instance as bot:
             await bot.start(TOKEN)
     except discord.LoginFailure:
         logger.error("Invalid Discord token. Please check your DISCORD_TOKEN environment variable.")

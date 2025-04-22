@@ -79,6 +79,9 @@ from dashboard.app import app
 import bot
 import asyncio
 
+# Global variable to store the bot instance for dashboard access
+discord_bot = None
+
 # Global flag to track if we're in deployment mode
 is_deployment = os.environ.get('DEPLOYMENT', 'false').lower() == 'true'
 logger.info(f"Deployment mode: {is_deployment}")
