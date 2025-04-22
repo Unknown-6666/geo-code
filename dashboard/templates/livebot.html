@@ -301,6 +301,7 @@
         function setupEventListeners() {
             const messageInput = document.getElementById('message-input');
             const sendButton = document.getElementById('send-button');
+            const dmButton = document.getElementById('dm-button');
             
             // Send message when Enter key is pressed in the input field
             messageInput.addEventListener('keypress', function(e) {
@@ -312,12 +313,32 @@
             
             // Send message when send button is clicked
             sendButton.addEventListener('click', sendMessage);
+            
+            // Load DMs when DM button is clicked
+            dmButton.addEventListener('click', loadDMChannels);
+            
+            // Add event listener for loading older messages when scrolling to top
+            const messageArea = document.getElementById('message-area');
+            messageArea.addEventListener('scroll', function() {
+                if (messageArea.scrollTop === 0) {
+                    const channelId = messageInput.getAttribute('data-channel-id');
+                    if (channelId) {
+                        const messages = document.querySelectorAll('.message');
+                        if (messages.length > 0) {
+                            const oldestMessage = messages[0];
+                            const oldestMessageId = oldestMessage.getAttribute('data-message-id');
+                            loadOlderMessages(channelId, oldestMessageId);
+                        }
+                    }
+                }
+            });
         }
         
         function sendMessage() {
             const messageInput = document.getElementById('message-input');
             const content = messageInput.value.trim();
             const channelId = messageInput.getAttribute('data-channel-id');
+            const channelType = messageInput.getAttribute('data-channel-type') || 'regular';
             
             if (content && channelId) {
                 // Clear the input field
@@ -325,6 +346,7 @@
                 
                 // Show a temporary message (optimistic UI)
                 addMessage({
+                    id: 'temp-' + Date.now(),
                     content: content,
                     author: {
                         username: document.getElementById('bot-username').textContent,
@@ -334,16 +356,28 @@
                     pending: true
                 });
                 
+                // Determine if this is a DM or regular channel message
+                let endpoint = '/api/send_message';
+                let payload = {
+                    channel_id: channelId,
+                    content: content
+                };
+                
+                if (channelType === 'dm') {
+                    endpoint = '/api/send_dm';
+                    payload = {
+                        user_id: messageInput.getAttribute('data-recipient-id'),
+                        content: content
+                    };
+                }
+                
                 // Send the message to the server
-                fetch('/api/send_message', {
+                fetch(endpoint, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({
-                        channel_id: channelId,
-                        content: content
-                    }),
+                    body: JSON.stringify(payload),
                 })
                 .then(response => response.json())
                 .then(data => {
@@ -358,6 +392,202 @@
                     showNotification('Failed to send message. Check your connection.', 'danger');
                 });
             }
+        }
+        
+        function loadDMChannels() {
+            // Change the channel list heading
+            document.querySelector('.channel-list .d-flex h6').innerText = 'DIRECT MESSAGES';
+            
+            // Remove active state from all servers
+            document.querySelectorAll('.server-icon').forEach(server => {
+                server.classList.remove('active');
+            });
+            
+            // Empty the message area
+            document.getElementById('message-area').innerHTML = `
+                <div class="text-center p-4">
+                    <div class="mb-3">
+                        <i class="bi bi-envelope" style="font-size: 3rem;"></i>
+                    </div>
+                    <h4>Direct Messages</h4>
+                    <p class="text-muted">Select a user to view your private conversation</p>
+                </div>
+            `;
+            
+            // Load DM channels from API
+            fetch('/api/dm_channels')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        const channelList = document.getElementById('channel-list');
+                        channelList.innerHTML = '';
+                        
+                        if (data.dm_channels.length === 0) {
+                            channelList.innerHTML = `
+                                <div class="text-center p-3 text-muted">
+                                    <small>No direct messages found</small>
+                                </div>
+                            `;
+                            return;
+                        }
+                        
+                        // Create DM channel list
+                        data.dm_channels.forEach(dmChannel => {
+                            const channelElement = document.createElement('div');
+                            channelElement.className = 'channel-item';
+                            channelElement.setAttribute('data-channel-id', dmChannel.id);
+                            channelElement.setAttribute('data-recipient-id', dmChannel.recipient.id);
+                            
+                            // Create avatar or initial
+                            let avatarHtml = '';
+                            if (dmChannel.recipient.avatar_url) {
+                                avatarHtml = `<img src="${dmChannel.recipient.avatar_url}" alt="${dmChannel.recipient.username}" class="rounded-circle me-2" width="24" height="24">`;
+                            } else {
+                                const initial = dmChannel.recipient.username.charAt(0).toUpperCase();
+                                avatarHtml = `<span class="rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center me-2" style="width: 24px; height: 24px;">${initial}</span>`;
+                            }
+                            
+                            // Add bot badge if recipient is a bot
+                            const botBadge = dmChannel.recipient.is_bot ? 
+                                '<span class="badge bg-primary ms-1">BOT</span>' : '';
+                            
+                            channelElement.innerHTML = `
+                                ${avatarHtml} ${dmChannel.recipient.username} ${botBadge}
+                            `;
+                            
+                            channelElement.addEventListener('click', () => {
+                                selectDMChannel(dmChannel.id, dmChannel.recipient);
+                            });
+                            
+                            channelList.appendChild(channelElement);
+                        });
+                    } else {
+                        console.error('Error loading DM channels:', data.message);
+                        document.getElementById('channel-list').innerHTML = `
+                            <div class="text-center p-3 text-danger">
+                                <small>Error loading DM channels</small>
+                            </div>
+                        `;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    document.getElementById('channel-list').innerHTML = `
+                        <div class="text-center p-3 text-danger">
+                            <small>Failed to load DM channels</small>
+                        </div>
+                    `;
+                });
+        }
+        
+        function selectDMChannel(channelId, recipient) {
+            // Update active channel
+            document.querySelectorAll('.channel-item').forEach(channel => {
+                channel.classList.remove('active');
+            });
+            
+            document.querySelector(`.channel-item[data-channel-id="${channelId}"]`).classList.add('active');
+            
+            // Update channel header
+            const channelHeader = document.getElementById('current-channel');
+            channelHeader.innerHTML = recipient.username;
+            
+            // Update channel icon
+            const headerIcon = channelHeader.previousElementSibling;
+            headerIcon.className = 'bi bi-envelope me-2';
+            
+            // Update message input
+            const messageInput = document.getElementById('message-input');
+            messageInput.removeAttribute('disabled');
+            messageInput.setAttribute('data-channel-id', channelId);
+            messageInput.setAttribute('data-channel-type', 'dm');
+            messageInput.setAttribute('data-recipient-id', recipient.id);
+            messageInput.placeholder = `Message @${recipient.username}`;
+            
+            // Enable send button
+            document.getElementById('send-button').removeAttribute('disabled');
+            
+            // Clear message area
+            document.getElementById('message-area').innerHTML = '';
+            
+            // Load messages for this DM channel
+            loadMessages(channelId);
+            
+            // Clear member list (not applicable for DMs)
+            document.getElementById('member-list').innerHTML = `
+                <div class="text-center p-3 text-muted">
+                    <small>Private conversation with ${recipient.username}</small>
+                </div>
+            `;
+        }
+        
+        function loadOlderMessages(channelId, beforeMessageId) {
+            // Show loading indicator at the top of the message area
+            const messageArea = document.getElementById('message-area');
+            const loadingIndicator = document.createElement('div');
+            loadingIndicator.className = 'text-center p-2 text-muted loading-indicator';
+            loadingIndicator.innerHTML = `
+                <small><i class="bi bi-arrow-repeat spin"></i> Loading older messages...</small>
+            `;
+            messageArea.insertBefore(loadingIndicator, messageArea.firstChild);
+            
+            // Remember the current scroll height to maintain position
+            const scrollHeightBefore = messageArea.scrollHeight;
+            
+            // Fetch older messages
+            fetch(`/api/older_messages?channel_id=${channelId}&before_message_id=${beforeMessageId}`)
+                .then(response => response.json())
+                .then(data => {
+                    // Remove loading indicator
+                    const loadingEl = document.querySelector('.loading-indicator');
+                    if (loadingEl) loadingEl.remove();
+                    
+                    if (data.status === 'success') {
+                        if (data.messages.length === 0) {
+                            // No more messages to load
+                            const noMoreIndicator = document.createElement('div');
+                            noMoreIndicator.className = 'text-center p-2 text-muted';
+                            noMoreIndicator.innerHTML = `
+                                <small>No more messages</small>
+                            `;
+                            messageArea.insertBefore(noMoreIndicator, messageArea.firstChild);
+                            return;
+                        }
+                        
+                        // Prepend older messages to the top of the message area
+                        data.messages.forEach(message => {
+                            const messageElement = createMessageElement(message);
+                            messageElement.style.opacity = '0';
+                            messageArea.insertBefore(messageElement, messageArea.firstChild);
+                            
+                            // Fade in effect
+                            setTimeout(() => {
+                                messageElement.style.opacity = '1';
+                                messageElement.style.transition = 'opacity 0.3s';
+                            }, 10);
+                        });
+                        
+                        // Adjust scroll position to maintain view at the same position
+                        const scrollHeightAfter = messageArea.scrollHeight;
+                        messageArea.scrollTop = scrollHeightAfter - scrollHeightBefore;
+                    } else {
+                        console.error('Error loading older messages:', data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    // Remove loading indicator
+                    const loadingEl = document.querySelector('.loading-indicator');
+                    if (loadingEl) loadingEl.remove();
+                    
+                    // Show error message
+                    const errorIndicator = document.createElement('div');
+                    errorIndicator.className = 'text-center p-2 text-danger';
+                    errorIndicator.innerHTML = `
+                        <small>Failed to load older messages</small>
+                    `;
+                    messageArea.insertBefore(errorIndicator, messageArea.firstChild);
+                });
         }
         
         function loadBotInfo() {
