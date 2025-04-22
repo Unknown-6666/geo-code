@@ -5,10 +5,15 @@ import asyncio
 import datetime
 import subprocess
 import threading
+import uuid
 from flask import Flask, render_template, redirect, url_for, flash, request, session, jsonify
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from requests_oauthlib import OAuth2Session
 from werkzeug.security import generate_password_hash, check_password_hash
+
+# Discord.py imports for bot integration
+import discord
+from discord.ext import commands
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG)
@@ -261,6 +266,356 @@ def refresh_commands():
         return jsonify({
             'status': 'error',
             'message': f'An error occurred: {str(e)}'
+        }), 500
+
+# Get a reference to the bot instance from the main module
+def get_bot():
+    """Get the bot instance from the main module"""
+    try:
+        from main import discord_bot
+        return discord_bot
+    except (ImportError, AttributeError):
+        logger.error("Could not import bot instance from main module")
+        return None
+
+# LiveBot API Endpoints
+@app.route('/api/bot_info', methods=['GET'])
+def api_bot_info():
+    """Get information about the bot"""
+    try:
+        bot = get_bot()
+        if not bot:
+            return jsonify({
+                'status': 'error',
+                'message': 'Bot is not running'
+            }), 500
+
+        # Get the bot's user information
+        user = bot.user
+        return jsonify({
+            'status': 'success',
+            'username': user.name,
+            'discriminator': user.discriminator if hasattr(user, 'discriminator') else None,
+            'id': str(user.id),
+            'avatar_url': user.avatar.url if user.avatar else None,
+            'is_bot': user.bot
+        })
+    except Exception as e:
+        logger.error(f"Error getting bot info: {str(e)}", exc_info=True)
+        return jsonify({
+            'status': 'error',
+            'message': f'Error getting bot info: {str(e)}'
+        }), 500
+
+@app.route('/api/guilds', methods=['GET'])
+def api_guilds():
+    """Get a list of guilds the bot is in"""
+    try:
+        bot = get_bot()
+        if not bot:
+            return jsonify({
+                'status': 'error',
+                'message': 'Bot is not running'
+            }), 500
+
+        guilds = []
+        for guild in bot.guilds:
+            guilds.append({
+                'id': str(guild.id),
+                'name': guild.name,
+                'member_count': guild.member_count,
+                'icon_url': guild.icon.url if guild.icon else None,
+                'owner_id': str(guild.owner_id) if guild.owner_id else None
+            })
+
+        return jsonify({
+            'status': 'success',
+            'guilds': guilds
+        })
+    except Exception as e:
+        logger.error(f"Error getting guilds: {str(e)}", exc_info=True)
+        return jsonify({
+            'status': 'error',
+            'message': f'Error getting guilds: {str(e)}'
+        }), 500
+
+@app.route('/api/channels', methods=['GET'])
+def api_channels():
+    """Get a list of channels in a guild"""
+    try:
+        guild_id = request.args.get('guild_id')
+        if not guild_id:
+            return jsonify({
+                'status': 'error',
+                'message': 'Missing guild_id parameter'
+            }), 400
+
+        bot = get_bot()
+        if not bot:
+            return jsonify({
+                'status': 'error',
+                'message': 'Bot is not running'
+            }), 500
+
+        # Find the guild
+        guild = bot.get_guild(int(guild_id))
+        if not guild:
+            return jsonify({
+                'status': 'error',
+                'message': f'Guild with ID {guild_id} not found'
+            }), 404
+
+        channels = []
+        for channel in guild.channels:
+            # Add only text channels and categories
+            if channel.type in [discord.ChannelType.text, discord.ChannelType.category]:
+                channels.append({
+                    'id': str(channel.id),
+                    'name': channel.name,
+                    'type': int(channel.type.value),
+                    'position': channel.position,
+                    'parent_id': str(channel.category_id) if hasattr(channel, 'category_id') and channel.category_id else None
+                })
+
+        return jsonify({
+            'status': 'success',
+            'channels': channels
+        })
+    except Exception as e:
+        logger.error(f"Error getting channels: {str(e)}", exc_info=True)
+        return jsonify({
+            'status': 'error',
+            'message': f'Error getting channels: {str(e)}'
+        }), 500
+
+@app.route('/api/channel_info', methods=['GET'])
+def api_channel_info():
+    """Get information about a channel"""
+    try:
+        channel_id = request.args.get('channel_id')
+        if not channel_id:
+            return jsonify({
+                'status': 'error',
+                'message': 'Missing channel_id parameter'
+            }), 400
+
+        bot = get_bot()
+        if not bot:
+            return jsonify({
+                'status': 'error',
+                'message': 'Bot is not running'
+            }), 500
+
+        # Find the channel
+        channel = bot.get_channel(int(channel_id))
+        if not channel:
+            return jsonify({
+                'status': 'error',
+                'message': f'Channel with ID {channel_id} not found'
+            }), 404
+
+        return jsonify({
+            'status': 'success',
+            'id': str(channel.id),
+            'name': channel.name,
+            'type': int(channel.type.value),
+            'guild_id': str(channel.guild.id),
+            'position': channel.position,
+            'parent_id': str(channel.category_id) if hasattr(channel, 'category_id') and channel.category_id else None
+        })
+    except Exception as e:
+        logger.error(f"Error getting channel info: {str(e)}", exc_info=True)
+        return jsonify({
+            'status': 'error',
+            'message': f'Error getting channel info: {str(e)}'
+        }), 500
+
+@app.route('/api/messages', methods=['GET'])
+def api_messages():
+    """Get a list of messages in a channel"""
+    try:
+        channel_id = request.args.get('channel_id')
+        if not channel_id:
+            return jsonify({
+                'status': 'error',
+                'message': 'Missing channel_id parameter'
+            }), 400
+
+        bot = get_bot()
+        if not bot:
+            return jsonify({
+                'status': 'error',
+                'message': 'Bot is not running'
+            }), 500
+
+        # Find the channel
+        channel = bot.get_channel(int(channel_id))
+        if not channel:
+            return jsonify({
+                'status': 'error',
+                'message': f'Channel with ID {channel_id} not found'
+            }), 404
+
+        # Get the most recent messages (async function, need to run it in the bot's event loop)
+        messages = []
+        # Use run_until_complete with a new event loop if we need to
+        try:
+            # Warning: This can lead to unexpected behaviors if running in a different thread
+            # Since the bot's event loop is already running, we'll create a new one for this operation
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            # Get recent messages (up to 50)
+            message_objects = loop.run_until_complete(channel.history(limit=50).flatten())
+            loop.close()
+            
+            # Convert to serializable format
+            for message in message_objects:
+                messages.append({
+                    'id': str(message.id),
+                    'content': message.content,
+                    'author': {
+                        'id': str(message.author.id),
+                        'username': message.author.name,
+                        'discriminator': message.author.discriminator if hasattr(message.author, 'discriminator') else None,
+                        'avatarUrl': message.author.avatar.url if message.author.avatar else None
+                    },
+                    'timestamp': message.created_at.isoformat(),
+                    'edited_timestamp': message.edited_at.isoformat() if message.edited_at else None,
+                    'attachments': [{'url': attachment.url, 'filename': attachment.filename} for attachment in message.attachments],
+                    'embeds': [{'title': embed.title, 'description': embed.description} for embed in message.embeds]
+                })
+        except Exception as inner_e:
+            logger.error(f"Error getting message history: {str(inner_e)}", exc_info=True)
+            # Provide a fallback response with empty messages to avoid breaking the UI
+            messages = []
+
+        return jsonify({
+            'status': 'success',
+            'messages': messages
+        })
+    except Exception as e:
+        logger.error(f"Error getting messages: {str(e)}", exc_info=True)
+        return jsonify({
+            'status': 'error',
+            'message': f'Error getting messages: {str(e)}'
+        }), 500
+
+@app.route('/api/members', methods=['GET'])
+def api_members():
+    """Get a list of members in a guild"""
+    try:
+        guild_id = request.args.get('guild_id')
+        if not guild_id:
+            return jsonify({
+                'status': 'error',
+                'message': 'Missing guild_id parameter'
+            }), 400
+
+        bot = get_bot()
+        if not bot:
+            return jsonify({
+                'status': 'error',
+                'message': 'Bot is not running'
+            }), 500
+
+        # Find the guild
+        guild = bot.get_guild(int(guild_id))
+        if not guild:
+            return jsonify({
+                'status': 'error',
+                'message': f'Guild with ID {guild_id} not found'
+            }), 404
+
+        members = []
+        for member in guild.members:
+            # Get the member's highest role
+            highest_role = None
+            highest_role_name = None
+            highest_role_color = None
+            
+            if len(member.roles) > 1:  # Skip the @everyone role
+                highest_role = member.roles[-1]  # Roles are sorted by position
+                highest_role_name = highest_role.name
+                highest_role_color = f"#{highest_role.color.value:06x}" if highest_role.color.value else None
+            
+            members.append({
+                'id': str(member.id),
+                'username': member.name,
+                'discriminator': member.discriminator if hasattr(member, 'discriminator') else None,
+                'nick': member.nick,
+                'avatar_url': member.avatar.url if member.avatar else None,
+                'status': 'online',  # We can't directly get status, so assume online
+                'highest_role_id': str(highest_role.id) if highest_role else None,
+                'highest_role_name': highest_role_name,
+                'highest_role_color': highest_role_color,
+                'is_bot': member.bot
+            })
+
+        return jsonify({
+            'status': 'success',
+            'members': members
+        })
+    except Exception as e:
+        logger.error(f"Error getting members: {str(e)}", exc_info=True)
+        return jsonify({
+            'status': 'error',
+            'message': f'Error getting members: {str(e)}'
+        }), 500
+
+@app.route('/api/send_message', methods=['POST'])
+def api_send_message():
+    """Send a message to a channel"""
+    try:
+        data = request.json
+        channel_id = data.get('channel_id')
+        content = data.get('content')
+        
+        if not channel_id or not content:
+            return jsonify({
+                'status': 'error',
+                'message': 'Missing channel_id or content parameter'
+            }), 400
+
+        bot = get_bot()
+        if not bot:
+            return jsonify({
+                'status': 'error',
+                'message': 'Bot is not running'
+            }), 500
+
+        # Find the channel
+        channel = bot.get_channel(int(channel_id))
+        if not channel:
+            return jsonify({
+                'status': 'error',
+                'message': f'Channel with ID {channel_id} not found'
+            }), 404
+
+        # Send the message (async function, need to run it in the bot's event loop)
+        try:
+            # Warning: This can lead to unexpected behaviors if running in a different thread
+            # Since the bot's event loop is already running, we'll create a new one for this operation
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            message = loop.run_until_complete(channel.send(content))
+            loop.close()
+            
+            return jsonify({
+                'status': 'success',
+                'message_id': str(message.id)
+            })
+        except Exception as inner_e:
+            logger.error(f"Error sending message: {str(inner_e)}", exc_info=True)
+            return jsonify({
+                'status': 'error',
+                'message': f'Error sending message: {str(inner_e)}'
+            }), 500
+            
+    except Exception as e:
+        logger.error(f"Error in send_message endpoint: {str(e)}", exc_info=True)
+        return jsonify({
+            'status': 'error',
+            'message': f'Error sending message: {str(e)}'
         }), 500
 
 if __name__ == '__main__':
