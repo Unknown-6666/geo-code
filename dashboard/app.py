@@ -465,7 +465,16 @@ def api_messages():
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
             # Get recent messages (up to 50)
-            message_objects = loop.run_until_complete(channel.history(limit=50).flatten())
+            # Handle the async generator directly instead of using flatten()
+            history = channel.history(limit=50)
+            message_objects = []
+            
+            # Collect messages
+            async def collect_messages():
+                async for message in history:
+                    message_objects.append(message)
+            
+            loop.run_until_complete(collect_messages())
             loop.close()
             
             # Convert to serializable format
@@ -616,6 +625,218 @@ def api_send_message():
         return jsonify({
             'status': 'error',
             'message': f'Error sending message: {str(e)}'
+        }), 500
+        
+@app.route('/api/send_dm', methods=['POST'])
+def api_send_dm():
+    """Send a direct message to a user"""
+    try:
+        data = request.json
+        user_id = data.get('user_id')
+        content = data.get('content')
+        
+        if not user_id or not content:
+            return jsonify({
+                'status': 'error',
+                'message': 'Missing user_id or content parameter'
+            }), 400
+
+        bot = get_bot()
+        if not bot:
+            return jsonify({
+                'status': 'error',
+                'message': 'Bot is not running'
+            }), 500
+
+        try:
+            # Find the user and DM channel
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            
+            # Create a function to fetch user and send message
+            async def send_dm():
+                user = await bot.fetch_user(int(user_id))
+                if not user:
+                    return None, f'User with ID {user_id} not found'
+                
+                # Send the DM
+                dm_channel = await user.create_dm()
+                message = await dm_channel.send(content)
+                return message, None
+            
+            # Run the async function
+            message, error = loop.run_until_complete(send_dm())
+            loop.close()
+            
+            if error:
+                return jsonify({
+                    'status': 'error',
+                    'message': error
+                }), 404
+            
+            return jsonify({
+                'status': 'success',
+                'message_id': str(message.id)
+            })
+        except Exception as inner_e:
+            logger.error(f"Error sending DM: {str(inner_e)}", exc_info=True)
+            return jsonify({
+                'status': 'error',
+                'message': f'Error sending DM: {str(inner_e)}'
+            }), 500
+            
+    except Exception as e:
+        logger.error(f"Error in send_dm endpoint: {str(e)}", exc_info=True)
+        return jsonify({
+            'status': 'error',
+            'message': f'Error sending DM: {str(e)}'
+        }), 500
+        
+@app.route('/api/dm_channels', methods=['GET'])
+def api_dm_channels():
+    """Get a list of DM channels"""
+    try:
+        bot = get_bot()
+        if not bot:
+            return jsonify({
+                'status': 'error',
+                'message': 'Bot is not running'
+            }), 500
+        
+        # Get all private channels
+        private_channels = []
+        
+        for channel in bot.private_channels:
+            if isinstance(channel, discord.DMChannel) and channel.recipient:
+                private_channels.append({
+                    'id': str(channel.id),
+                    'type': 'dm',
+                    'recipient': {
+                        'id': str(channel.recipient.id),
+                        'username': channel.recipient.name,
+                        'discriminator': channel.recipient.discriminator if hasattr(channel.recipient, 'discriminator') else None,
+                        'avatar_url': channel.recipient.avatar.url if channel.recipient.avatar else None,
+                        'is_bot': channel.recipient.bot
+                    },
+                    'last_message_id': str(channel.last_message_id) if channel.last_message_id else None
+                })
+        
+        return jsonify({
+            'status': 'success',
+            'dm_channels': private_channels
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting DM channels: {str(e)}", exc_info=True)
+        return jsonify({
+            'status': 'error',
+            'message': f'Error getting DM channels: {str(e)}'
+        }), 500
+        
+@app.route('/api/older_messages', methods=['GET'])
+def api_older_messages():
+    """Get older messages before a certain message ID"""
+    try:
+        channel_id = request.args.get('channel_id')
+        before_message_id = request.args.get('before_message_id')
+        limit = request.args.get('limit', 50, type=int)
+        
+        if not channel_id:
+            return jsonify({
+                'status': 'error',
+                'message': 'Missing channel_id parameter'
+            }), 400
+            
+        bot = get_bot()
+        if not bot:
+            return jsonify({
+                'status': 'error',
+                'message': 'Bot is not running'
+            }), 500
+            
+        # Find the channel
+        channel = bot.get_channel(int(channel_id))
+        if not channel:
+            try:
+                # If not found, try to fetch a DM channel
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                
+                async def fetch_dm_channel():
+                    for dm_channel in bot.private_channels:
+                        if str(dm_channel.id) == channel_id:
+                            return dm_channel
+                    return None
+                
+                channel = loop.run_until_complete(fetch_dm_channel())
+                loop.close()
+                
+                if not channel:
+                    return jsonify({
+                        'status': 'error',
+                        'message': f'Channel with ID {channel_id} not found'
+                    }), 404
+            except Exception as inner_e:
+                logger.error(f"Error fetching DM channel: {str(inner_e)}", exc_info=True)
+                return jsonify({
+                    'status': 'error',
+                    'message': f'Error fetching DM channel: {str(inner_e)}'
+                }), 500
+            
+        messages = []
+        
+        try:
+            # Warning: This can lead to unexpected behaviors if running in a different thread
+            # Since the bot's event loop is already running, we'll create a new one for this operation
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            
+            # Get messages before the specified ID
+            history_kwargs = {'limit': limit}
+            if before_message_id:
+                history_kwargs['before'] = discord.Object(id=int(before_message_id))
+                
+            # Handle the async generator directly
+            message_objects = []
+            
+            # Collect messages
+            async def collect_messages():
+                async for message in channel.history(**history_kwargs):
+                    message_objects.append(message)
+            
+            loop.run_until_complete(collect_messages())
+            loop.close()
+            
+            # Convert to serializable format
+            for message in message_objects:
+                messages.append({
+                    'id': str(message.id),
+                    'content': message.content,
+                    'author': {
+                        'id': str(message.author.id),
+                        'username': message.author.name,
+                        'discriminator': message.author.discriminator if hasattr(message.author, 'discriminator') else None,
+                        'avatarUrl': message.author.avatar.url if message.author.avatar else None
+                    },
+                    'timestamp': message.created_at.isoformat(),
+                    'edited_timestamp': message.edited_at.isoformat() if message.edited_at else None,
+                    'attachments': [{'url': attachment.url, 'filename': attachment.filename} for attachment in message.attachments],
+                    'embeds': [{'title': embed.title, 'description': embed.description} for embed in message.embeds]
+                })
+        except Exception as inner_e:
+            logger.error(f"Error getting older messages: {str(inner_e)}", exc_info=True)
+            # Provide a fallback response with empty messages to avoid breaking the UI
+            messages = []
+            
+        return jsonify({
+            'status': 'success',
+            'messages': messages
+        })
+    except Exception as e:
+        logger.error(f"Error getting older messages: {str(e)}", exc_info=True)
+        return jsonify({
+            'status': 'error',
+            'message': f'Error getting older messages: {str(e)}'
         }), 500
 
 if __name__ == '__main__':
