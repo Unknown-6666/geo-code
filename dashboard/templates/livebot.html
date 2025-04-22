@@ -298,6 +298,51 @@
             loadServers();
         });
         
+        // Helper function to show error messages in the LiveBot interface
+        function showErrorDisplay(title, message) {
+            const messageArea = document.getElementById('message-area');
+            
+            // Check if error display already exists
+            const existingError = document.getElementById('error-display');
+            if (existingError) {
+                existingError.remove();
+            }
+            
+            // Create error display
+            const errorDisplay = document.createElement('div');
+            errorDisplay.id = 'error-display';
+            errorDisplay.className = 'text-center p-4';
+            errorDisplay.innerHTML = `
+                <div class="mb-3">
+                    <i class="bi bi-exclamation-triangle-fill text-danger" style="font-size: 3rem;"></i>
+                </div>
+                <h4 class="text-danger">${title}</h4>
+                <p class="text-muted">${message}</p>
+                <button id="retry-connection" class="btn btn-outline-primary mt-3">
+                    <i class="bi bi-arrow-clockwise"></i> Retry Connection
+                </button>
+            `;
+            
+            // Add to message area
+            messageArea.innerHTML = '';
+            messageArea.appendChild(errorDisplay);
+            
+            // Add retry event listener
+            document.getElementById('retry-connection').addEventListener('click', function() {
+                // Reload bot info and servers
+                loadBotInfo();
+                loadServers();
+            });
+        }
+        
+        // Helper function to clear error messages
+        function clearErrorDisplay() {
+            const errorDisplay = document.getElementById('error-display');
+            if (errorDisplay) {
+                errorDisplay.remove();
+            }
+        }
+        
         function setupEventListeners() {
             const messageInput = document.getElementById('message-input');
             const sendButton = document.getElementById('send-button');
@@ -656,6 +701,18 @@
                     if (data.status === 'success') {
                         document.getElementById('bot-username').textContent = data.username;
                         
+                        // Update status to online
+                        const statusText = document.querySelector('.user-area .d-flex .text-muted');
+                        if (statusText) {
+                            statusText.textContent = 'Online';
+                        }
+                        
+                        // Update status indicator to online
+                        const statusIndicator = document.querySelector('.status-indicator');
+                        if (statusIndicator) {
+                            statusIndicator.className = 'status-indicator status-online';
+                        }
+                        
                         // Update avatar if available
                         if (data.avatar_url) {
                             const userArea = document.querySelector('.user-area .d-flex');
@@ -667,15 +724,51 @@
                             avatarElement.className = 'rounded-circle me-2';
                             
                             // Replace status indicator with avatar
-                            const statusIndicator = document.querySelector('.status-indicator');
-                            userArea.replaceChild(avatarElement, statusIndicator);
+                            if (statusIndicator) {
+                                userArea.replaceChild(avatarElement, statusIndicator);
+                            }
                         }
+                        
+                        // Clear any error messages
+                        clearErrorDisplay();
                     } else {
                         console.error('Error loading bot info:', data.message);
+                        document.getElementById('bot-username').textContent = 'Bot';
+                        
+                        // Update status to offline
+                        const statusText = document.querySelector('.user-area .d-flex .text-muted');
+                        if (statusText) {
+                            statusText.textContent = 'Offline';
+                        }
+                        
+                        // Update status indicator to offline
+                        const statusIndicator = document.querySelector('.status-indicator');
+                        if (statusIndicator) {
+                            statusIndicator.className = 'status-indicator status-offline';
+                        }
+                        
+                        // Show error message in a notification
+                        showErrorDisplay('Bot Connection Error', 'The bot appears to be offline or initializing. Please check back in a moment.');
                     }
                 })
                 .catch(error => {
                     console.error('Error:', error);
+                    document.getElementById('bot-username').textContent = 'Bot';
+                    
+                    // Update status to offline
+                    const statusText = document.querySelector('.user-area .d-flex .text-muted');
+                    if (statusText) {
+                        statusText.textContent = 'Connection Error';
+                    }
+                    
+                    // Update status indicator to error
+                    const statusIndicator = document.querySelector('.status-indicator');
+                    if (statusIndicator) {
+                        statusIndicator.className = 'status-indicator status-dnd';
+                    }
+                    
+                    // Show error in message area
+                    showErrorDisplay('Connection Error', 'Could not connect to bot API. Please refresh the page or try again later.');
                 });
         }
         
@@ -735,6 +828,11 @@
                             `<div class="text-center p-3 text-danger">
                                 <small>Error loading servers</small>
                             </div>`;
+                            
+                        // Show error message in the main area
+                        if (data.message === 'Bot is not running') {
+                            showErrorDisplay('Bot Connection Error', 'The bot appears to be offline or initializing. The LiveBot interface requires an active bot connection to display servers and channels.');
+                        }
                     }
                 })
                 .catch(error => {
@@ -743,6 +841,9 @@
                         `<div class="text-center p-3 text-danger">
                             <small>Failed to load servers</small>
                         </div>`;
+                        
+                    // Show error message in the main area
+                    showErrorDisplay('Connection Error', 'Could not connect to the bot API. Please check your connection and try again.');
                 });
         }
         

@@ -273,9 +273,21 @@ def get_bot():
     """Get the bot instance from the main module"""
     try:
         from main import discord_bot
-        return discord_bot
-    except (ImportError, AttributeError):
-        logger.error("Could not import bot instance from main module")
+        
+        # Additional check - make sure bot is actually initialized and logged in
+        if discord_bot and hasattr(discord_bot, 'user') and discord_bot.user:
+            return discord_bot
+        
+        # If we have a bot instance, but it's not properly initialized yet
+        if discord_bot:
+            logger.info("Bot instance exists but not fully initialized")
+            return None
+        
+        # Bot is not running or not available
+        logger.warning("Bot instance not available from main module")
+        return None
+    except (ImportError, AttributeError) as e:
+        logger.error(f"Could not import bot instance from main module: {str(e)}")
         return None
 
 # LiveBot API Endpoints
