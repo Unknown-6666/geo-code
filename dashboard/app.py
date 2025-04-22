@@ -143,6 +143,11 @@ def dashboard():
     # No login required anymore
     return render_template('dashboard.html')
 
+@app.route('/livebot')
+def livebot():
+    """LiveBot interface - View Discord from the bot's perspective"""
+    return render_template('livebot.html')
+
 @app.route('/bot_control')
 def bot_control():
     """Public control panel for the bot"""
