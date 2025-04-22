@@ -302,6 +302,7 @@
             const messageInput = document.getElementById('message-input');
             const sendButton = document.getElementById('send-button');
             const dmButton = document.getElementById('dm-button');
+            const messageArea = document.getElementById('message-area');
             
             // Send message when Enter key is pressed in the input field
             messageInput.addEventListener('keypress', function(e) {
@@ -318,7 +319,6 @@
             dmButton.addEventListener('click', loadDMChannels);
             
             // Add event listener for loading older messages when scrolling to top
-            const messageArea = document.getElementById('message-area');
             messageArea.addEventListener('scroll', function() {
                 if (messageArea.scrollTop === 0) {
                     const channelId = messageInput.getAttribute('data-channel-id');
@@ -819,6 +819,17 @@
         }
         
         function loadMessages(channelId) {
+            // Show loading indicator
+            const messageArea = document.getElementById('message-area');
+            messageArea.innerHTML = `
+                <div class="text-center p-4">
+                    <div class="mb-3">
+                        <i class="bi bi-arrow-repeat spin" style="font-size: 2rem;"></i>
+                    </div>
+                    <p class="text-muted">Loading messages...</p>
+                </div>
+            `;
+            
             fetch(`/api/messages?channel_id=${channelId}`)
                 .then(response => response.json())
                 .then(data => {
@@ -837,6 +848,16 @@
                         
                         // Group messages by day
                         let currentDay = null;
+                        
+                        // Add a message at top indicating more messages can be loaded if there are enough messages
+                        if (data.messages.length >= 50) {
+                            const loadMoreElement = document.createElement('div');
+                            loadMoreElement.className = 'text-center p-2 text-muted';
+                            loadMoreElement.innerHTML = `
+                                <small>Scroll to top to load older messages</small>
+                            `;
+                            messageArea.appendChild(loadMoreElement);
+                        }
                         
                         data.messages.forEach(message => {
                             const messageDate = new Date(message.timestamp);
@@ -1002,6 +1023,11 @@
             const messageElement = document.createElement('div');
             messageElement.className = 'message';
             
+            // Add message ID attribute for loading older messages
+            if (message.id) {
+                messageElement.setAttribute('data-message-id', message.id);
+            }
+            
             // Create avatar
             const avatarElement = document.createElement('div');
             if (message.author.avatarUrl) {
@@ -1015,13 +1041,32 @@
             const messageDate = new Date(message.timestamp);
             const contentElement = document.createElement('div');
             contentElement.className = 'message-content';
-            contentElement.innerHTML = `
+            
+            // Build content HTML (including any attachments)
+            let contentHtml = `
                 <div class="message-author">
                     ${message.author.username}
-                    <span class="message-timestamp">${formatTime(messageDate)}</span>
+                    <span class="message-timestamp" title="${messageDate.toLocaleDateString()}">${formatTime(messageDate)}</span>
                 </div>
                 <div class="message-text">${formatMessageContent(message.content)}</div>
             `;
+            
+            // Add any attachments
+            if (message.attachments && message.attachments.length > 0) {
+                let attachmentsHtml = '';
+                
+                message.attachments.forEach(attachment => {
+                    if (attachment.url.match(/\.(jpeg|jpg|gif|png)$/i)) {
+                        attachmentsHtml += `<div class="mt-2"><img src="${attachment.url}" alt="${attachment.filename}" class="img-fluid rounded" style="max-width: 300px;"></div>`;
+                    } else {
+                        attachmentsHtml += `<div class="mt-2"><a href="${attachment.url}" target="_blank"><i class="bi bi-file-earmark"></i> ${attachment.filename}</a></div>`;
+                    }
+                });
+                
+                contentHtml += attachmentsHtml;
+            }
+            
+            contentElement.innerHTML = contentHtml;
             
             // If message is pending, add a style
             if (message.pending) {
