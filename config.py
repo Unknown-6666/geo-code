@@ -38,6 +38,12 @@ MOD_ROLE_IDS = [
 JOG_ALLOWED_USER_ID = 399759194712047627  # User ID to allow jog command access
 os.environ["JOG_ALLOWED_USER_ID"] = str(JOG_ALLOWED_USER_ID)  # Also set this in environment
 
+# List of user IDs allowed to use fun commands (in addition to bot owner)
+# The bot owner can add/remove from this list using a command
+FUN_COMMAND_ALLOWED_IDS = [
+    399759194712047627,  # Same ID as JOG_ALLOWED_USER_ID for now
+]
+
 # YouTube channel configuration
 YOUTUBE_CHANNELS = [
 

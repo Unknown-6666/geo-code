@@ -4,13 +4,14 @@ import random
 import os
 import asyncio
 import time
+import re
 from discord import app_commands
 from discord.ext import commands
 from datetime import timedelta
-from typing import Optional
+from typing import Optional, Literal
 from utils.embed_helpers import create_embed, create_error_embed
 from utils.permissions import PermissionChecks, is_mod, is_admin, is_bot_owner
-from config import JOG_ALLOWED_USER_ID
+from config import JOG_ALLOWED_USER_ID, FUN_COMMAND_ALLOWED_IDS, BOT_OWNER_IDS
 
 # List of funny fake ban reasons
 FAKE_BAN_REASONS = [
@@ -81,6 +82,57 @@ class FunCommands(commands.Cog):
         self.bot = bot
         # Log the initialization with the specific allowed user ID
         logger.info(f"Fun commands cog initialized. Jog command restricted to bot owner and user ID: {JOG_ALLOWED_USER_ID}")
+        logger.info(f"Fun commands restricted to bot owner and user IDs: {FUN_COMMAND_ALLOWED_IDS}")
+        
+    # Permission check for fun commands (used by all fun commands except jog)
+    def is_fun_command_allowed():
+        """
+        Check if a user is allowed to use fun commands.
+        This restricts fun commands to the bot owner and users in FUN_COMMAND_ALLOWED_IDS.
+        """
+        async def predicate(ctx):
+            # Allow bot owner using our custom is_bot_owner function for consistency
+            if is_bot_owner(ctx.author.id):
+                logger.info(f"Fun command allowed for owner: {ctx.author.name} (ID: {ctx.author.id})")
+                return True
+                
+            # Allow users listed in FUN_COMMAND_ALLOWED_IDS
+            if ctx.author.id in FUN_COMMAND_ALLOWED_IDS:
+                logger.info(f"Fun command allowed for authorized user: {ctx.author.name} (ID: {ctx.author.id})")
+                return True
+                
+            # Deny everyone else
+            logger.warning(f"Fun command access denied for {ctx.author.name} (ID: {ctx.author.id})")
+            await ctx.send(embed=create_error_embed(
+                "Access Denied", 
+                "You don't have permission to use fun commands."
+            ))
+            return False
+        return commands.check(predicate)
+        
+    # Permission check for slash command fun commands
+    async def slash_is_fun_command_allowed(interaction: discord.Interaction):
+        """
+        Check if a user is allowed to use fun slash commands.
+        This restricts fun commands to the bot owner and users in FUN_COMMAND_ALLOWED_IDS.
+        """
+        # Allow bot owner
+        if is_bot_owner(interaction.user.id):
+            logger.info(f"Fun slash command allowed for owner: {interaction.user.name} (ID: {interaction.user.id})")
+            return True
+            
+        # Allow users listed in FUN_COMMAND_ALLOWED_IDS
+        if interaction.user.id in FUN_COMMAND_ALLOWED_IDS:
+            logger.info(f"Fun slash command allowed for authorized user: {interaction.user.name} (ID: {interaction.user.id})")
+            return True
+            
+        # Deny everyone else
+        logger.warning(f"Fun slash command access denied for {interaction.user.name} (ID: {interaction.user.id})")
+        await interaction.response.send_message(
+            embed=create_error_embed("Access Denied", "You don't have permission to use fun commands."),
+            ephemeral=True
+        )
+        return False
 
     # Custom check function for jog command
     def is_jog_allowed():
@@ -759,6 +811,7 @@ class FunCommands(commands.Cog):
 
     # Fake ban command - prefix version
     @commands.command(name="fakeban")
+    @is_fun_command_allowed()
     async def fakeban_prefix(self, ctx, member: discord.Member = None, *, reason: str = None):
         """
         Pretend to ban a user for a funny reason (doesn't actually ban anyone)
@@ -819,6 +872,7 @@ class FunCommands(commands.Cog):
         user="The user to fake ban",
         reason="The reason for the fake ban (optional, will use a random funny reason if not provided)"
     )
+    @app_commands.check(slash_is_fun_command_allowed)
     async def fakeban_slash(self, interaction: discord.Interaction, user: discord.Member, reason: Optional[str] = None):
         """Pretend to ban a user for a funny reason (slash command)"""
         # If the mentioned member is the bot, respond with humor
@@ -864,8 +918,78 @@ class FunCommands(commands.Cog):
         await interaction.followup.send(embed=reveal_embed)
         logger.info(f"Fake ban slash command used by {interaction.user.name} on {user.name} for reason: {reason}")
     
+    # Implement the mocking SpongeBob command - prefix version
+    @commands.command(name="mock", aliases=["mockingspongebob", "spongemock"])
+    @is_fun_command_allowed()
+    async def mock_prefix(self, ctx, *, text: str = None):
+        """
+        Convert text to mOcKiNg SpOnGeBoB format (prefix command)
+        Usage: !mock This is some text
+        """
+        # If no text is provided, check if this is replying to a message
+        if text is None:
+            # Check if message is a reply to another message
+            if ctx.message.reference and ctx.message.reference.resolved:
+                text = ctx.message.reference.resolved.content
+            else:
+                await ctx.send(embed=create_error_embed(
+                    "Missing Text", 
+                    "You need to provide text to mock or reply to a message. Example: !mock This is some text"
+                ))
+                return
+                
+        # Convert the text to mOcKiNg SpOnGeBoB format
+        mock_text = self.to_mock_case(text)
+        
+        # Create the embed with the mocking SpongeBob image
+        mock_embed = discord.Embed(
+            title="MoCkInG sPoNgEbOb",
+            description=f"{mock_text}",
+            color=0xFFD700  # Gold color
+        )
+        mock_embed.set_image(url="https://i.imgur.com/upX2u5N.jpg")  # Mocking SpongeBob meme image
+        
+        await ctx.send(embed=mock_embed)
+        logger.info(f"Mock command used by {ctx.author.name}")
+    
+    # Mocking SpongeBob - slash version
+    @app_commands.command(name="mock", description="Convert text to mOcKiNg SpOnGeBoB format")
+    @app_commands.describe(text="The text to convert to mOcKiNg SpOnGeBoB format")
+    @app_commands.check(slash_is_fun_command_allowed)
+    async def mock_slash(self, interaction: discord.Interaction, text: str):
+        """Convert text to mOcKiNg SpOnGeBoB format (slash command)"""
+        # Convert the text to mOcKiNg SpOnGeBoB format
+        mock_text = self.to_mock_case(text)
+        
+        # Create the embed with the mocking SpongeBob image
+        mock_embed = discord.Embed(
+            title="MoCkInG sPoNgEbOb",
+            description=f"{mock_text}",
+            color=0xFFD700  # Gold color
+        )
+        mock_embed.set_image(url="https://i.imgur.com/upX2u5N.jpg")  # Mocking SpongeBob meme image
+        
+        await interaction.response.send_message(embed=mock_embed)
+        logger.info(f"Mock slash command used by {interaction.user.name}")
+    
+    # Helper function to convert text to mocking SpongeBob format
+    def to_mock_case(self, text: str) -> str:
+        """Convert text to alternating case (mOcKiNg SpOnGeBoB format)"""
+        result = ""
+        should_be_uppercase = random.choice([True, False])  # Random starting case
+        
+        for char in text:
+            if char.isalpha():
+                result += char.upper() if should_be_uppercase else char.lower()
+                should_be_uppercase = not should_be_uppercase
+            else:
+                result += char
+                
+        return result
+        
     # Another fun variation - UNO reverse card - prefix version
     @commands.command(name="unoreverse")
+    @is_fun_command_allowed()
     async def uno_reverse_prefix(self, ctx, member: discord.Member = None):
         """
         Send an UNO reverse card to someone who tried to use a command on you
@@ -896,6 +1020,7 @@ class FunCommands(commands.Cog):
     # UNO reverse card - slash version
     @app_commands.command(name="unoreverse", description="Play an UNO reverse card on someone")
     @app_commands.describe(user="The user to reverse (optional)")
+    @app_commands.check(slash_is_fun_command_allowed)
     async def uno_reverse_slash(self, interaction: discord.Interaction, user: Optional[discord.Member] = None):
         """Send an UNO reverse card (slash command)"""
         # If no user is specified, use a default message
