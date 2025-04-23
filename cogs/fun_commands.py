@@ -3,6 +3,7 @@ import logging
 import random
 import os
 import asyncio
+import time
 from discord import app_commands
 from discord.ext import commands
 from datetime import timedelta
@@ -10,6 +11,68 @@ from typing import Optional
 from utils.embed_helpers import create_embed, create_error_embed
 from utils.permissions import PermissionChecks, is_mod, is_admin, is_bot_owner
 from config import JOG_ALLOWED_USER_ID
+
+# List of funny fake ban reasons
+FAKE_BAN_REASONS = [
+    "using light mode at 3 AM",
+    "putting pineapple on pizza",
+    "using Comic Sans in a professional document",
+    "calling HTML a programming language",
+    "using spaces instead of tabs",
+    "using tabs instead of spaces",
+    "leaving the shopping cart in the parking spot",
+    "saying 'um' too many times",
+    "not returning the shopping cart",
+    "taking too long to decide at a drive-thru",
+    "talking during movies",
+    "replying with 'k'",
+    "using all lowercase on formal emails",
+    "eating cereal with water",
+    "double-dipping chips",
+    "calling gif as 'jif'",
+    "calling gif as 'gif' instead of 'jif'",
+    "singing karaoke really badly",
+    "not sharing snacks",
+    "being sus",
+    "taking 5 business days to reply to text messages",
+    "having an anime profile picture",
+    "making bad puns repeatedly",
+    "using the wrong 'your' in a sentence",
+    "posting cringe",
+    "drinking milk with ice cubes",
+    "paying only in pennies",
+    "being a morning person",
+    "liking Nickelback",
+    "wearing socks with sandals",
+    "clapping when the plane lands",
+    "using auto-tune in karaoke",
+    "quoting vines/TikToks in normal conversation",
+    "not knowing the difference between there, their, and they're",
+    "writing in all caps",
+    "sending multiple messages when one would do",
+    "hoarding the aux cord at parties",
+    "talking about NFTs at dinner",
+    "making too many dad jokes",
+    "microwaving fish in the office",
+    "reply all to company-wide emails",
+    "taking up two parking spaces",
+    "forgetting to mute during Zoom calls",
+    "eating loudly during voice chat",
+    "excessive use of emojis",
+    "not using dark mode",
+    "saying 'literally' literally all the time",
+    "eating a Kit Kat without breaking it apart first",
+    "biting ice cream instead of licking it",
+    "leaving the microwave with 1 second left",
+    "wearing non-prescription glasses",
+    "leaving voicemails in 2023",
+    "eating pizza with a fork and knife",
+    "playing music on public transport without headphones",
+    "doing TikTok dances in public",
+    "claiming to be 'fluent' after using Duolingo for 5 days",
+    "sending 'we need to talk' messages without context",
+    "saying 'I'm not like other girls/guys'"
+]
 
 logger = logging.getLogger('discord')
 
@@ -694,5 +757,168 @@ class FunCommands(commands.Cog):
             await interaction.response.defer()
             await execute_spam(interaction)
 
+    # Fake ban command - prefix version
+    @commands.command(name="fakeban")
+    async def fakeban_prefix(self, ctx, member: discord.Member = None, *, reason: str = None):
+        """
+        Pretend to ban a user for a funny reason (doesn't actually ban anyone)
+        Usage: !fakeban @user [optional reason]
+        """
+        # If no member is mentioned, inform the user
+        if member is None:
+            await ctx.send(embed=create_error_embed(
+                "Missing User",
+                "You need to mention a user to fake ban. Example: !fakeban @user"
+            ))
+            return
+            
+        # If the mentioned member is the bot, respond with humor
+        if member.id == self.bot.user.id:
+            await ctx.send(embed=create_embed(
+                "Nice Try",
+                "You can't ban me, I'm too powerful! ⚡",
+                color=0xE74C3C
+            ))
+            return
+            
+        # Generate a random reason if none is provided
+        if reason is None:
+            reason = random.choice(FAKE_BAN_REASONS)
+        
+        # Create fake ban message
+        ban_embed = discord.Embed(
+            title="🔨 User Banned",
+            description=f"**{member.name}** has been banned from the server!",
+            color=0xE74C3C
+        )
+        ban_embed.add_field(name="Reason", value=reason, inline=False)
+        ban_embed.add_field(name="Banned By", value=ctx.author.mention, inline=True)
+        ban_embed.add_field(name="Duration", value="Forever (or until they apologize)", inline=True)
+        ban_embed.set_thumbnail(url=member.display_avatar.url if hasattr(member, 'display_avatar') else member.avatar.url)
+        ban_embed.set_footer(text="Just kidding! This is a fake ban. No users were harmed in the making of this joke.")
+        
+        # Send the initial ban message
+        ban_msg = await ctx.send(embed=ban_embed)
+        
+        # Wait a moment for comedic effect, then reveal it's fake
+        await asyncio.sleep(3)
+        
+        reveal_embed = discord.Embed(
+            title="😄 Just Kidding!",
+            description=f"**{member.name}** wasn't actually banned. It was just a prank!",
+            color=0x2ECC71
+        )
+        reveal_embed.set_footer(text="This was a fake ban. No moderation actions were taken.")
+        
+        await ctx.send(embed=reveal_embed)
+        logger.info(f"Fake ban command used by {ctx.author.name} on {member.name} for reason: {reason}")
+    
+    # Fake ban command - slash version
+    @app_commands.command(name="fakeban", description="Pretend to ban a user (doesn't actually ban anyone)")
+    @app_commands.describe(
+        user="The user to fake ban",
+        reason="The reason for the fake ban (optional, will use a random funny reason if not provided)"
+    )
+    async def fakeban_slash(self, interaction: discord.Interaction, user: discord.Member, reason: Optional[str] = None):
+        """Pretend to ban a user for a funny reason (slash command)"""
+        # If the mentioned member is the bot, respond with humor
+        if user.id == self.bot.user.id:
+            await interaction.response.send_message(embed=create_embed(
+                "Nice Try",
+                "You can't ban me, I'm too powerful! ⚡",
+                color=0xE74C3C
+            ))
+            return
+            
+        # Generate a random reason if none is provided
+        if reason is None:
+            reason = random.choice(FAKE_BAN_REASONS)
+        
+        # Create fake ban message
+        ban_embed = discord.Embed(
+            title="🔨 User Banned",
+            description=f"**{user.name}** has been banned from the server!",
+            color=0xE74C3C
+        )
+        ban_embed.add_field(name="Reason", value=reason, inline=False)
+        ban_embed.add_field(name="Banned By", value=interaction.user.mention, inline=True)
+        ban_embed.add_field(name="Duration", value="Forever (or until they apologize)", inline=True)
+        ban_embed.set_thumbnail(url=user.display_avatar.url if hasattr(user, 'display_avatar') else user.avatar.url)
+        ban_embed.set_footer(text="This ban hammer is getting a workout today...")
+        
+        # Send the initial ban message
+        await interaction.response.send_message(embed=ban_embed)
+        
+        # Wait a moment for comedic effect, then reveal it's fake
+        await asyncio.sleep(3)
+        
+        # Create the reveal message
+        reveal_embed = discord.Embed(
+            title="😄 Just Kidding!",
+            description=f"**{user.name}** wasn't actually banned. It was just a prank!",
+            color=0x2ECC71
+        )
+        reveal_embed.set_footer(text="This was a fake ban. No moderation actions were taken.")
+        
+        # Send the reveal message
+        await interaction.followup.send(embed=reveal_embed)
+        logger.info(f"Fake ban slash command used by {interaction.user.name} on {user.name} for reason: {reason}")
+    
+    # Another fun variation - UNO reverse card - prefix version
+    @commands.command(name="unoreverse")
+    async def uno_reverse_prefix(self, ctx, member: discord.Member = None):
+        """
+        Send an UNO reverse card to someone who tried to use a command on you
+        Usage: !unoreverse @user
+        """
+        # If no member is mentioned, use a default message
+        if member is None:
+            uno_embed = discord.Embed(
+                title="⏪ UNO Reverse Card ⏪",
+                description=f"{ctx.author.mention} plays an UNO reverse card!",
+                color=0xFF5733
+            )
+            uno_embed.set_image(url="https://i.imgur.com/yXEiYQ4.png")  # UNO reverse card image
+            await ctx.send(embed=uno_embed)
+            return
+            
+        # If a member is mentioned, direct it at them
+        uno_embed = discord.Embed(
+            title="⏪ UNO Reverse Card ⏪",
+            description=f"{ctx.author.mention} plays an UNO reverse card on {member.mention}!",
+            color=0xFF5733
+        )
+        uno_embed.set_image(url="https://i.imgur.com/yXEiYQ4.png")  # UNO reverse card image
+        
+        await ctx.send(embed=uno_embed)
+        logger.info(f"UNO reverse card command used by {ctx.author.name} on {member.name if member else 'no one'}")
+    
+    # UNO reverse card - slash version
+    @app_commands.command(name="unoreverse", description="Play an UNO reverse card on someone")
+    @app_commands.describe(user="The user to reverse (optional)")
+    async def uno_reverse_slash(self, interaction: discord.Interaction, user: Optional[discord.Member] = None):
+        """Send an UNO reverse card (slash command)"""
+        # If no user is specified, use a default message
+        if user is None:
+            uno_embed = discord.Embed(
+                title="⏪ UNO Reverse Card ⏪",
+                description=f"{interaction.user.mention} plays an UNO reverse card!",
+                color=0xFF5733
+            )
+            uno_embed.set_image(url="https://i.imgur.com/yXEiYQ4.png")  # UNO reverse card image
+            await interaction.response.send_message(embed=uno_embed)
+            return
+            
+        # If a user is specified, direct it at them
+        uno_embed = discord.Embed(
+            title="⏪ UNO Reverse Card ⏪",
+            description=f"{interaction.user.mention} plays an UNO reverse card on {user.mention}!",
+            color=0xFF5733
+        )
+        uno_embed.set_image(url="https://i.imgur.com/yXEiYQ4.png")  # UNO reverse card image
+        
+        await interaction.response.send_message(embed=uno_embed)
+        logger.info(f"UNO reverse slash command used by {interaction.user.name} on {user.name if user else 'no one'}")
+        
 async def setup(bot):
     await bot.add_cog(FunCommands(bot))
