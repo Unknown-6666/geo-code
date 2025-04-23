@@ -6,6 +6,7 @@ import asyncio
 from discord import app_commands
 from discord.ext import commands
 from datetime import timedelta
+from typing import Optional
 from utils.embed_helpers import create_embed, create_error_embed
 from utils.permissions import PermissionChecks, is_mod, is_admin, is_bot_owner
 from config import JOG_ALLOWED_USER_ID
@@ -392,6 +393,306 @@ class FunCommands(commands.Cog):
                 "User Not Found",
                 f"Could not find user with ID: {user_id_int}. Make sure the ID is correct and the user shares a server with the bot."
             ))
+            
+    # Spam command - owner only
+    @commands.command(name="spam")
+    @commands.is_owner()  # Only bot owner can use this
+    async def spam_prefix(self, ctx, count: int, *, message: str):
+        """
+        Make the bot spam a message multiple times (prefix command)
+        Usage: !spam [count] [message]
+        Example: !spam 5 Hello everyone!
+        """
+        # Validate the count to prevent abuse
+        if count <= 0:
+            await ctx.send(embed=create_error_embed("Invalid Count", "The count must be a positive number."))
+            return
+            
+        if count > 50:
+            # Confirm the action if it's a large number
+            confirmation_msg = await ctx.send(embed=create_embed(
+                "⚠️ Confirm Message Spam",
+                f"You're about to send {count} messages. This is a lot and might be considered spam by Discord. Are you sure?",
+                color=0xFFCC00
+            ))
+            
+            await confirmation_msg.add_reaction("✅")
+            await confirmation_msg.add_reaction("❌")
+            
+            def check(reaction, user):
+                return user == ctx.author and str(reaction.emoji) in ["✅", "❌"] and reaction.message.id == confirmation_msg.id
+                
+            try:
+                reaction, user = await self.bot.wait_for('reaction_add', timeout=30.0, check=check)
+                
+                if str(reaction.emoji) == "❌":
+                    await confirmation_msg.delete()
+                    await ctx.send(embed=create_embed("Canceled", "Message spam canceled."))
+                    return
+                    
+            except:
+                await confirmation_msg.delete()
+                await ctx.send(embed=create_embed("Canceled", "Message spam request timed out."))
+                return
+        
+        # Create a status message to update
+        status_msg = await ctx.send(embed=create_embed(
+            "🔄 Spam in Progress",
+            f"Starting to send {count} messages...",
+            color=0x3498DB
+        ))
+        
+        # Track if we should keep sending
+        keep_spamming = True
+        
+        # Function to handle stopping the spam if needed
+        async def stop_spam_on_reaction():
+            nonlocal keep_spamming
+            
+            def check(reaction, user):
+                return user == ctx.author and str(reaction.emoji) == "🛑" and reaction.message.id == status_msg.id
+                
+            await status_msg.add_reaction("🛑")  # Stop sign reaction
+            
+            try:
+                # Wait for the stop reaction
+                await self.bot.wait_for('reaction_add', timeout=count * 1.5, check=check)
+                keep_spamming = False
+                await status_msg.edit(embed=create_embed(
+                    "Spam Canceled",
+                    "Stopped sending messages as requested.",
+                    color=0xE74C3C
+                ))
+            except asyncio.TimeoutError:
+                # Timeout just means they didn't click stop
+                pass
+                
+        # Start the reaction listener in the background
+        stop_task = asyncio.create_task(stop_spam_on_reaction())
+        
+        # Send the messages
+        sent_count = 0
+        for i in range(count):
+            if not keep_spamming:
+                break  # Stop if the user requested to stop
+                
+            try:
+                await ctx.send(message)
+                sent_count += 1
+                
+                # Update the status every 5 messages
+                if sent_count % 5 == 0:
+                    await status_msg.edit(embed=create_embed(
+                        "🔄 Spam in Progress",
+                        f"Sent {sent_count}/{count} messages so far...",
+                        color=0x3498DB
+                    ))
+                
+                # Add delays to avoid rate limits
+                if i % 5 == 4:  # Every 5 messages
+                    await asyncio.sleep(1.5)
+                else:
+                    await asyncio.sleep(0.5)  # Small delay between individual messages
+                    
+            except Exception as e:
+                logger.error(f"Error sending spam message: {str(e)}")
+                # If we encounter an error, stop spamming
+                await status_msg.edit(embed=create_error_embed(
+                    "Error",
+                    f"An error occurred after sending {sent_count} messages: {str(e)}"
+                ))
+                break
+        
+        # Cancel the reaction listener if it's still running
+        if not stop_task.done():
+            stop_task.cancel()
+            
+        # Final report (only if not already edited due to cancel or error)
+        if keep_spamming:
+            await status_msg.edit(embed=create_embed(
+                "✅ Spam Complete",
+                f"Successfully sent {sent_count} messages.",
+                color=0x2ECC71
+            ))
+            
+        logger.info(f"Spam command completed by {ctx.author.name}. Sent {sent_count}/{count} messages.")
+    
+    # Slash command version of spam
+    @app_commands.command(name="spam", description="Make the bot spam a message multiple times (Owner only)")
+    @app_commands.describe(
+        count="How many times to send the message",
+        message="The message to spam"
+    )
+    async def spam_slash(self, interaction: discord.Interaction, count: int, message: str):
+        """Make the bot spam a message multiple times (slash command)"""
+        # Check if user is bot owner
+        if not is_bot_owner(interaction.user.id):
+            await interaction.response.send_message(
+                embed=create_error_embed("Access Denied", "Only the bot owner can use this command."),
+                ephemeral=True
+            )
+            return
+            
+        # Validate the count to prevent abuse
+        if count <= 0:
+            await interaction.response.send_message(
+                embed=create_error_embed("Invalid Count", "The count must be a positive number."),
+                ephemeral=True
+            )
+            return
+            
+        # The actual spam execution function
+        async def execute_spam(response_interaction):
+            # Create a status message
+            status_msg = await response_interaction.followup.send(
+                embed=create_embed(
+                    "🔄 Spam in Progress",
+                    f"Starting to send {count} messages...",
+                    color=0x3498DB
+                )
+            )
+            
+            # Create a stop button
+            stop_button = discord.ui.Button(style=discord.ButtonStyle.danger, label="Stop Spamming", custom_id="stop")
+            stop_view = discord.ui.View()
+            stop_view.add_item(stop_button)
+            
+            # Track if we should keep sending
+            keep_spamming = True
+            
+            # Update the status message with a stop button
+            await status_msg.edit(view=stop_view)
+            
+            # Define stop button callback
+            async def stop_callback(stop_interaction):
+                nonlocal keep_spamming
+                # Check if it's the same user
+                if stop_interaction.user.id != interaction.user.id:
+                    await stop_interaction.response.send_message("You didn't initiate this command.", ephemeral=True)
+                    return
+                    
+                keep_spamming = False
+                stop_button.disabled = True
+                await stop_interaction.response.edit_message(
+                    embed=create_embed(
+                        "Spam Canceled",
+                        "Stopped sending messages as requested.",
+                        color=0xE74C3C
+                    ),
+                    view=stop_view
+                )
+                
+            # Attach callback
+            stop_button.callback = stop_callback
+            
+            # Send the messages
+            sent_count = 0
+            channel = interaction.channel
+            
+            for i in range(count):
+                if not keep_spamming:
+                    break  # Stop if the user requested to stop
+                    
+                try:
+                    await channel.send(message)
+                    sent_count += 1
+                    
+                    # Update the status every 5 messages or at the end
+                    if sent_count % 5 == 0 or sent_count == count:
+                        await status_msg.edit(
+                            embed=create_embed(
+                                "🔄 Spam in Progress",
+                                f"Sent {sent_count}/{count} messages so far...",
+                                color=0x3498DB
+                            )
+                        )
+                    
+                    # Add delays to avoid rate limits
+                    if i % 5 == 4:  # Every 5 messages
+                        await asyncio.sleep(1.5)
+                    else:
+                        await asyncio.sleep(0.5)  # Small delay between individual messages
+                        
+                except Exception as e:
+                    logger.error(f"Error sending spam message: {str(e)}")
+                    # If we encounter an error, stop spamming
+                    stop_button.disabled = True
+                    await status_msg.edit(
+                        embed=create_error_embed(
+                            "Error",
+                            f"An error occurred after sending {sent_count} messages: {str(e)}"
+                        ),
+                        view=stop_view
+                    )
+                    break
+            
+            # Final report (only if not already edited due to cancel or error)
+            if keep_spamming:
+                stop_button.disabled = True
+                await status_msg.edit(
+                    embed=create_embed(
+                        "✅ Spam Complete",
+                        f"Successfully sent {sent_count} messages.",
+                        color=0x2ECC71
+                    ),
+                    view=stop_view
+                )
+                
+            logger.info(f"Spam command completed by {interaction.user.name}. Sent {sent_count}/{count} messages.")
+            
+        if count > 50:
+            # For large spam counts, create confirm/cancel buttons
+            confirm_button = discord.ui.Button(style=discord.ButtonStyle.danger, label="Confirm", custom_id="confirm")
+            cancel_button = discord.ui.Button(style=discord.ButtonStyle.secondary, label="Cancel", custom_id="cancel")
+            
+            view = discord.ui.View()
+            view.add_item(confirm_button)
+            view.add_item(cancel_button)
+            
+            # Send confirmation message with buttons
+            await interaction.response.send_message(
+                embed=create_embed(
+                    "⚠️ Confirm Message Spam",
+                    f"You're about to send {count} messages. This is a lot and might be considered spam by Discord. Are you sure?",
+                    color=0xFFCC00
+                ),
+                view=view
+            )
+            
+            # Define button callbacks
+            async def confirm_callback(button_interaction):
+                # Check if it's the same user
+                if button_interaction.user.id != interaction.user.id:
+                    await button_interaction.response.send_message("You didn't initiate this command.", ephemeral=True)
+                    return
+                    
+                # Disable buttons to prevent multiple clicks
+                for item in view.children:
+                    item.disabled = True
+                    
+                await button_interaction.response.edit_message(view=view)
+                await execute_spam(button_interaction)
+            
+            async def cancel_callback(button_interaction):
+                # Check if it's the same user
+                if button_interaction.user.id != interaction.user.id:
+                    await button_interaction.response.send_message("You didn't initiate this command.", ephemeral=True)
+                    return
+                    
+                # Disable buttons to prevent multiple clicks
+                for item in view.children:
+                    item.disabled = True
+                    
+                await button_interaction.response.edit_message(view=view)
+                await button_interaction.followup.send(embed=create_embed("Canceled", "Message spam canceled."))
+            
+            # Attach callbacks to buttons
+            confirm_button.callback = confirm_callback
+            cancel_button.callback = cancel_callback
+        else:
+            # For small counts, no confirmation needed
+            await interaction.response.defer()
+            await execute_spam(interaction)
 
 async def setup(bot):
     await bot.add_cog(FunCommands(bot))
