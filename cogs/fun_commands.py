@@ -280,10 +280,26 @@ class FunCommands(commands.Cog):
     @app_commands.check(slash_is_jog_allowed)
     async def jog(self, interaction: discord.Interaction):
         """Timeout everyone in the server for 60 seconds (slash command)"""
-        # Check if the bot has permissions to timeout members
-        if not interaction.guild.me.guild_permissions.moderate_members:
+        # Check if we're in a guild
+        if not interaction.guild:
             await interaction.response.send_message(
-                embed=create_error_embed("Error", "I don't have permission to timeout members."),
+                embed=create_error_embed("Error", "This command can only be used in a server."),
+                ephemeral=True
+            )
+            return
+            
+        # Check if the bot has permissions to timeout members
+        try:
+            if not interaction.guild.me.guild_permissions.moderate_members:
+                await interaction.response.send_message(
+                    embed=create_error_embed("Error", "I don't have permission to timeout members."),
+                    ephemeral=True
+                )
+                return
+        except Exception as e:
+            logger.error(f"Error checking permissions in jog command: {str(e)}")
+            await interaction.response.send_message(
+                embed=create_error_embed("Error", "I couldn't check my permissions. Please make sure I have the necessary permissions."),
                 ephemeral=True
             )
             return
@@ -1074,8 +1090,7 @@ class FunCommands(commands.Cog):
                 time_left = round(self._dm_cooldown - time_passed)
                 await ctx.send(embed=create_error_embed(
                     "Cooldown Active",
-                    f"Please wait {time_left} seconds before sending another DM to avoid Discord rate limits.",
-                    color=0xF39C12
+                    f"Please wait {time_left} seconds before sending another DM to avoid Discord rate limits."
                 ))
                 return
         
