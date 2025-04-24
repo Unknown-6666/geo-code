@@ -1133,8 +1133,7 @@ class FunCommands(commands.Cog):
                 self._last_dm_time[sender_id] = current_time
                 await ctx.send(embed=create_error_embed(
                     "Rate Limited",
-                    "Discord rate limit hit. Please wait a minute before sending another DM.",
-                    color=0xE74C3C
+                    "Discord rate limit hit. Please wait a minute before sending another DM."
                 ))
                 logger.warning(f"DM rate limit for {ctx.author.name} to {user.name}")
             else:
@@ -1171,8 +1170,7 @@ class FunCommands(commands.Cog):
                 time_left = round(self._dm_cooldown - time_passed)
                 await interaction.response.send_message(embed=create_error_embed(
                     "Cooldown Active",
-                    f"Please wait {time_left} seconds before sending another DM to avoid Discord rate limits.",
-                    color=0xF39C12
+                    f"Please wait {time_left} seconds before sending another DM to avoid Discord rate limits."
                 ), ephemeral=True)
                 return
         
@@ -1215,8 +1213,7 @@ class FunCommands(commands.Cog):
                 self._last_dm_time[sender_id] = current_time
                 await interaction.response.send_message(embed=create_error_embed(
                     "Rate Limited",
-                    "Discord rate limit hit. Please wait a minute before sending another DM.",
-                    color=0xE74C3C
+                    "Discord rate limit hit. Please wait a minute before sending another DM."
                 ), ephemeral=True)
                 logger.warning(f"DM rate limit for {interaction.user.name} to {user.name}")
             else:
