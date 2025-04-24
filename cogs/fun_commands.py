@@ -1151,7 +1151,7 @@ class FunCommands(commands.Cog):
             logger.error(f"DM error from {interaction.user.name} to {user.name}: {str(e)}")
     
     # Channel flood command - prefix version
-    @commands.command(name="flood", aliases=["repeatmsg", "spam"])
+    @commands.command(name="flood", aliases=["repeatmsg", "sendmultiple"])
     @is_fun_command_allowed()
     async def flood_prefix(self, ctx, count: int, *, message: str):
         """
