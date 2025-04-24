@@ -110,11 +110,35 @@ def run_discord_bot():
             os.environ['USE_AI_FALLBACK'] = 'true'
         
         # Set environment variable to disable command syncing on startup
-        # This can be changed to 'true' when you want to sync commands
+        # This effectively prevents duplicate commands since only one instance runs
         os.environ['SYNC_COMMANDS_ON_STARTUP'] = 'false'
         
-        # No need for deployment flags anymore - the bot now clears commands
-        # on every startup to prevent duplication issues
+        # We can set a lockfile to indicate command syncing was done recently
+        # This helps prevent multiple syncs within a short time period
+        sync_lock_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".command_sync.lock")
+        
+        # Check if we've synced commands recently (within last 30 minutes)
+        sync_recently = False
+        if os.path.exists(sync_lock_file):
+            sync_time = os.path.getmtime(sync_lock_file)
+            # Only consider sync recent if it was within the last 30 minutes
+            if time.time() - sync_time < 1800:  # 30 minutes in seconds
+                sync_recently = True
+                logger.info("Command sync performed recently, skipping")
+        
+        # Add a way to force command refresh regardless of the timeout
+        force_refresh = os.environ.get('FORCE_COMMAND_REFRESH', 'false').lower() == 'true'
+        
+        # If it's been more than 30 minutes or we're forcing a refresh 
+        if force_refresh or not sync_recently:
+            # Sync commands the first time the bot runs in a session
+            os.environ['SYNC_COMMANDS_ON_STARTUP'] = 'true'
+            # Create the lock file to indicate we've synced
+            with open(sync_lock_file, 'w') as f:
+                f.write(str(int(time.time())))
+            logger.info("Command sync will run because it hasn't run recently")
+        
+        # No need for deployment flags anymore - the bot now has improved command sync handling
                 
         # Run the bot with better error handling
         try:

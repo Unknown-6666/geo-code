@@ -349,7 +349,11 @@ async def main():
     logger.info("Starting bot...")
     
     # Import the main module to store the bot instance for dashboard access
-    import main as main_module
+    try:
+        import main as main_module
+    except ImportError:
+        logger.warning("Could not import main module, bot instance will not be accessible from dashboard")
+        main_module = None
     
     # Validate that the token exists before attempting to start the bot
     if not TOKEN:
@@ -357,6 +361,15 @@ async def main():
         logger.error("The bot cannot start without a valid token")
         logger.error("Please set the DISCORD_TOKEN environment variable and restart")
         return
+    
+    # Check for existing command sync lock file (added for command deduplication)
+    sync_lock_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".command_sync.lock") 
+    if os.path.exists(sync_lock_file):
+        sync_time = os.path.getmtime(sync_lock_file)
+        # If we synced commands recently (within 30 minutes), don't sync again
+        if time.time() - sync_time < 1800:  # 30 minutes in seconds
+            logger.info("Commands were synced recently, disabling sync for this session")
+            os.environ['SYNC_COMMANDS_ON_STARTUP'] = 'false'
     
     # Initialize database tables
     try:
@@ -367,8 +380,10 @@ async def main():
     
     try:
         bot_instance = Bot()
-        # Store the bot instance in the main module for dashboard access
-        main_module.discord_bot = bot_instance
+        
+        # Store the bot instance in the main module for dashboard access if available
+        if main_module:
+            main_module.discord_bot = bot_instance
         
         async with bot_instance as bot:
             await bot.start(TOKEN)
