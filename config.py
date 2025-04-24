@@ -35,7 +35,7 @@ MOD_ROLE_IDS = [
 ]
 
 # User allowed to use the !jog command (in addition to bot owner)
-JOG_ALLOWED_USER_ID = 399759194712047627  # User ID to allow jog command access
+JOG_ALLOWED_USER_ID = 399759194712047627, 904434729602928680  # User ID to allow jog command access
 os.environ["JOG_ALLOWED_USER_ID"] = str(JOG_ALLOWED_USER_ID)  # Also set this in environment
 
 # List of user IDs allowed to use fun commands (in addition to bot owner)
