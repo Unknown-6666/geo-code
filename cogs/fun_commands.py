@@ -1045,5 +1045,316 @@ class FunCommands(commands.Cog):
         await interaction.response.send_message(embed=uno_embed)
         logger.info(f"UNO reverse slash command used by {interaction.user.name} on {user.name if user else 'no one'}")
         
+    # Send DM command - prefix version
+    @commands.command(name="senddm", aliases=["dm"])
+    @is_fun_command_allowed()
+    async def senddm_prefix(self, ctx, user: discord.Member, *, message: str):
+        """
+        Send a direct message to a user
+        Usage: !senddm @user Your message here
+        """
+        # Check if the target user is the bot
+        if user.id == self.bot.user.id:
+            await ctx.send(embed=create_error_embed(
+                "Nope",
+                "I can't send messages to myself!"
+            ))
+            return
+        
+        # Try to send the DM
+        try:
+            dm_embed = discord.Embed(
+                title="Message from Server",
+                description=message,
+                color=0x7289DA
+            )
+            dm_embed.add_field(name="From", value=f"{ctx.author} ({ctx.author.mention})", inline=True)
+            dm_embed.add_field(name="Server", value=ctx.guild.name, inline=True)
+            dm_embed.set_thumbnail(url=ctx.author.display_avatar.url if hasattr(ctx.author, 'display_avatar') else ctx.author.avatar.url)
+            dm_embed.set_footer(text=f"Sent via {self.bot.user.name} bot")
+            
+            await user.send(embed=dm_embed)
+            
+            # Confirm the DM was sent
+            await ctx.send(embed=create_embed(
+                "DM Sent",
+                f"Successfully sent a DM to {user.mention}",
+                color=0x2ECC71
+            ))
+            logger.info(f"DM sent by {ctx.author.name} to {user.name}")
+        except discord.Forbidden:
+            # The user might have DMs disabled
+            await ctx.send(embed=create_error_embed(
+                "DM Failed",
+                f"I couldn't send a DM to {user.mention}. They may have direct messages disabled or may have blocked me."
+            ))
+            logger.warning(f"DM from {ctx.author.name} to {user.name} failed - Forbidden")
+        except Exception as e:
+            # Some other error occurred
+            await ctx.send(embed=create_error_embed(
+                "Error",
+                f"An error occurred while sending the DM: {str(e)}"
+            ))
+            logger.error(f"DM error from {ctx.author.name} to {user.name}: {str(e)}")
+    
+    # Send DM command - slash version
+    @app_commands.command(name="senddm", description="Send a direct message to a user")
+    @app_commands.describe(
+        user="The user to send a DM to",
+        message="The message to send"
+    )
+    @app_commands.check(slash_is_fun_command_allowed)
+    async def senddm_slash(self, interaction: discord.Interaction, user: discord.Member, message: str):
+        """Send a direct message to a user (slash command)"""
+        # Check if the target user is the bot
+        if user.id == self.bot.user.id:
+            await interaction.response.send_message(embed=create_error_embed(
+                "Nope",
+                "I can't send messages to myself!"
+            ), ephemeral=True)
+            return
+        
+        # Try to send the DM
+        try:
+            dm_embed = discord.Embed(
+                title="Message from Server",
+                description=message,
+                color=0x7289DA
+            )
+            dm_embed.add_field(name="From", value=f"{interaction.user} ({interaction.user.mention})", inline=True)
+            dm_embed.add_field(name="Server", value=interaction.guild.name, inline=True)
+            dm_embed.set_thumbnail(url=interaction.user.display_avatar.url if hasattr(interaction.user, 'display_avatar') else interaction.user.avatar.url)
+            dm_embed.set_footer(text=f"Sent via {self.bot.user.name} bot")
+            
+            await user.send(embed=dm_embed)
+            
+            # Confirm the DM was sent
+            await interaction.response.send_message(embed=create_embed(
+                "DM Sent",
+                f"Successfully sent a DM to {user.mention}",
+                color=0x2ECC71
+            ))
+            logger.info(f"DM sent by {interaction.user.name} to {user.name}")
+        except discord.Forbidden:
+            # The user might have DMs disabled
+            await interaction.response.send_message(embed=create_error_embed(
+                "DM Failed",
+                f"I couldn't send a DM to {user.mention}. They may have direct messages disabled or may have blocked me."
+            ), ephemeral=True)
+            logger.warning(f"DM from {interaction.user.name} to {user.name} failed - Forbidden")
+        except Exception as e:
+            # Some other error occurred
+            await interaction.response.send_message(embed=create_error_embed(
+                "Error",
+                f"An error occurred while sending the DM: {str(e)}"
+            ), ephemeral=True)
+            logger.error(f"DM error from {interaction.user.name} to {user.name}: {str(e)}")
+    
+    # Channel flood command - prefix version
+    @commands.command(name="flood", aliases=["repeatmsg", "spam"])
+    @is_fun_command_allowed()
+    async def flood_prefix(self, ctx, count: int, *, message: str):
+        """
+        Send multiple messages to the current channel
+        Usage: !flood 5 Your message here
+        """
+        # Check if the count is reasonable
+        if count < 1:
+            await ctx.send(embed=create_error_embed(
+                "Invalid Count",
+                "The count must be at least 1."
+            ))
+            return
+        
+        # Cap the maximum number of messages for safety
+        max_allowed = 10
+        if count > max_allowed:
+            await ctx.send(embed=create_embed(
+                "Count Limited",
+                f"For safety, I've limited the count to {max_allowed} messages.",
+                color=0xFFCC00
+            ))
+            count = max_allowed
+        
+        # For larger counts, add a confirmation
+        if count > 3:
+            confirmation_msg = await ctx.send(embed=create_embed(
+                "⚠️ Confirm Flood",
+                f"This will send {count} messages to this channel. Are you sure you want to proceed?",
+                color=0xFFCC00
+            ))
+            
+            await confirmation_msg.add_reaction("✅")
+            await confirmation_msg.add_reaction("❌")
+            
+            def check(reaction, user):
+                return user == ctx.author and str(reaction.emoji) in ["✅", "❌"] and reaction.message.id == confirmation_msg.id
+                
+            try:
+                reaction, user = await self.bot.wait_for('reaction_add', timeout=30.0, check=check)
+                
+                if str(reaction.emoji) == "❌":
+                    await confirmation_msg.delete()
+                    await ctx.send(embed=create_embed("Canceled", "Message flood canceled."))
+                    return
+                    
+            except asyncio.TimeoutError:
+                await confirmation_msg.delete()
+                await ctx.send(embed=create_embed("Canceled", "Message flood timed out."))
+                return
+        
+        # Create embed for each message
+        flood_embed = discord.Embed(
+            title="Repeated Message",
+            description=message,
+            color=0x7289DA
+        )
+        flood_embed.set_footer(text=f"Sent by {ctx.author}")
+        
+        # Send the messages with a small delay between each to avoid rate limiting
+        for i in range(count):
+            try:
+                # Edit the embed to show the message number if sending multiple
+                if count > 1:
+                    flood_embed.set_footer(text=f"Sent by {ctx.author} | Message {i+1}/{count}")
+                
+                await ctx.send(embed=flood_embed)
+                
+                # Add a small delay between messages
+                if i < count - 1:  # Don't delay after the last message
+                    await asyncio.sleep(0.5)
+            except Exception as e:
+                await ctx.send(embed=create_error_embed(
+                    "Error",
+                    f"An error occurred while sending messages: {str(e)}"
+                ))
+                logger.error(f"Flood error from {ctx.author.name}: {str(e)}")
+                break
+        
+        logger.info(f"Flood command used by {ctx.author.name}: {count} messages")
+    
+    # Channel flood command - slash version
+    @app_commands.command(name="flood", description="Send multiple messages to the current channel")
+    @app_commands.describe(
+        count="The number of messages to send (max 10)",
+        message="The message to repeat"
+    )
+    @app_commands.check(slash_is_fun_command_allowed)
+    async def flood_slash(self, interaction: discord.Interaction, count: int, message: str):
+        """Send multiple messages to the current channel (slash command)"""
+        # Check if the count is reasonable
+        if count < 1:
+            await interaction.response.send_message(embed=create_error_embed(
+                "Invalid Count",
+                "The count must be at least 1."
+            ), ephemeral=True)
+            return
+        
+        # Cap the maximum number of messages for safety
+        max_allowed = 10
+        if count > max_allowed:
+            await interaction.response.send_message(embed=create_embed(
+                "Count Limited",
+                f"For safety, I've limited the count to {max_allowed} messages.",
+                color=0xFFCC00
+            ))
+            count = max_allowed
+            
+        # Helper function to execute the flood
+        async def execute_flood(interaction, count, message):
+            # Create embed for each message
+            flood_embed = discord.Embed(
+                title="Repeated Message",
+                description=message,
+                color=0x7289DA
+            )
+            
+            # Send initial status
+            await interaction.followup.send(embed=create_embed(
+                "Starting Message Flood",
+                f"Sending {count} messages...",
+                color=0x3498DB
+            ))
+            
+            # Send the messages with a small delay between each to avoid rate limiting
+            for i in range(count):
+                try:
+                    # Update the footer with message count if applicable
+                    if count > 1:
+                        flood_embed.set_footer(text=f"Sent by {interaction.user} | Message {i+1}/{count}")
+                    else:
+                        flood_embed.set_footer(text=f"Sent by {interaction.user}")
+                    
+                    await interaction.channel.send(embed=flood_embed)
+                    
+                    # Add a small delay between messages
+                    if i < count - 1:  # Don't delay after the last message
+                        await asyncio.sleep(0.5)
+                except Exception as e:
+                    await interaction.followup.send(embed=create_error_embed(
+                        "Error",
+                        f"An error occurred while sending messages: {str(e)}"
+                    ))
+                    logger.error(f"Flood error from {interaction.user.name}: {str(e)}")
+                    return  # Exit if there's an error
+            
+            # Send completion message
+            await interaction.followup.send(embed=create_embed(
+                "Message Flood Complete",
+                f"Successfully sent {count} messages.",
+                color=0x2ECC71
+            ))
+            
+            logger.info(f"Flood command used by {interaction.user.name}: {count} messages")
+        
+        # If larger count, add confirmation
+        if count > 3:
+            # Create the confirm/cancel view
+            class ConfirmView(discord.ui.View):
+                def __init__(self, timeout=30):
+                    super().__init__(timeout=timeout)
+                    self.value = None
+                
+                @discord.ui.button(label="Confirm", style=discord.ButtonStyle.danger)
+                async def confirm(self, button_interaction: discord.Interaction, button: discord.ui.Button):
+                    if button_interaction.user.id != interaction.user.id:
+                        await button_interaction.response.send_message("You didn't initiate this command.", ephemeral=True)
+                        return
+                    
+                    self.value = True
+                    self.disable_all_items()
+                    await button_interaction.response.edit_message(view=self)
+                    await execute_flood(button_interaction, count, message)
+                
+                @discord.ui.button(label="Cancel", style=discord.ButtonStyle.secondary)
+                async def cancel(self, button_interaction: discord.Interaction, button: discord.ui.Button):
+                    if button_interaction.user.id != interaction.user.id:
+                        await button_interaction.response.send_message("You didn't initiate this command.", ephemeral=True)
+                        return
+                    
+                    self.value = False
+                    self.disable_all_items()
+                    await button_interaction.response.edit_message(view=self)
+                    await button_interaction.followup.send(embed=create_embed("Canceled", "Message flood canceled."))
+                
+                def disable_all_items(self):
+                    for item in self.children:
+                        item.disabled = True
+            
+            # Create and send the view
+            view = ConfirmView()
+            await interaction.response.send_message(
+                embed=create_embed(
+                    "⚠️ Confirm Flood",
+                    f"This will send {count} messages to this channel. Are you sure you want to proceed?",
+                    color=0xFFCC00
+                ),
+                view=view
+            )
+        else:
+            # For small counts, no confirmation needed
+            await interaction.response.defer()
+            await execute_flood(interaction, count, message)
+
 async def setup(bot):
     await bot.add_cog(FunCommands(bot))
