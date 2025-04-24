@@ -1045,6 +1045,10 @@ class FunCommands(commands.Cog):
         await interaction.response.send_message(embed=uno_embed)
         logger.info(f"UNO reverse slash command used by {interaction.user.name} on {user.name if user else 'no one'}")
         
+    # Dictionary to track recent DM attempts by user
+    _last_dm_time = {}
+    _dm_cooldown = 30  # Cooldown in seconds between DMs to avoid rate limits
+    
     # Send DM command - prefix version
     @commands.command(name="senddm", aliases=["dm"])
     @is_fun_command_allowed()
@@ -1060,6 +1064,20 @@ class FunCommands(commands.Cog):
                 "I can't send messages to myself!"
             ))
             return
+            
+        # Apply cooldown to prevent rate limits
+        current_time = time.time()
+        sender_id = str(ctx.author.id)
+        if sender_id in self._last_dm_time:
+            time_passed = current_time - self._last_dm_time[sender_id]
+            if time_passed < self._dm_cooldown:
+                time_left = round(self._dm_cooldown - time_passed)
+                await ctx.send(embed=create_error_embed(
+                    "Cooldown Active",
+                    f"Please wait {time_left} seconds before sending another DM to avoid Discord rate limits.",
+                    color=0xF39C12
+                ))
+                return
         
         # Try to send the DM
         try:
@@ -1074,6 +1092,9 @@ class FunCommands(commands.Cog):
             dm_embed.set_footer(text=f"Sent via {self.bot.user.name} bot")
             
             await user.send(embed=dm_embed)
+            
+            # Update cooldown tracker
+            self._last_dm_time[sender_id] = current_time
             
             # Confirm the DM was sent
             await ctx.send(embed=create_embed(
@@ -1090,12 +1111,24 @@ class FunCommands(commands.Cog):
             ))
             logger.warning(f"DM from {ctx.author.name} to {user.name} failed - Forbidden")
         except Exception as e:
-            # Some other error occurred
-            await ctx.send(embed=create_error_embed(
-                "Error",
-                f"An error occurred while sending the DM: {str(e)}"
-            ))
-            logger.error(f"DM error from {ctx.author.name} to {user.name}: {str(e)}")
+            # Check for rate limiting errors
+            error_str = str(e)
+            if "40003" in error_str or "rate limit" in error_str.lower() or "too fast" in error_str.lower():
+                # Update cooldown tracker with a longer cooldown in case of rate limiting
+                self._last_dm_time[sender_id] = current_time
+                await ctx.send(embed=create_error_embed(
+                    "Rate Limited",
+                    "Discord rate limit hit. Please wait a minute before sending another DM.",
+                    color=0xE74C3C
+                ))
+                logger.warning(f"DM rate limit for {ctx.author.name} to {user.name}")
+            else:
+                # Some other error occurred
+                await ctx.send(embed=create_error_embed(
+                    "Error",
+                    f"An error occurred while sending the DM: {error_str}"
+                ))
+                logger.error(f"DM error from {ctx.author.name} to {user.name}: {error_str}")
     
     # Send DM command - slash version
     @app_commands.command(name="senddm", description="Send a direct message to a user")
@@ -1113,6 +1146,20 @@ class FunCommands(commands.Cog):
                 "I can't send messages to myself!"
             ), ephemeral=True)
             return
+            
+        # Apply cooldown to prevent rate limits
+        current_time = time.time()
+        sender_id = str(interaction.user.id)
+        if sender_id in self._last_dm_time:
+            time_passed = current_time - self._last_dm_time[sender_id]
+            if time_passed < self._dm_cooldown:
+                time_left = round(self._dm_cooldown - time_passed)
+                await interaction.response.send_message(embed=create_error_embed(
+                    "Cooldown Active",
+                    f"Please wait {time_left} seconds before sending another DM to avoid Discord rate limits.",
+                    color=0xF39C12
+                ), ephemeral=True)
+                return
         
         # Try to send the DM
         try:
@@ -1127,6 +1174,9 @@ class FunCommands(commands.Cog):
             dm_embed.set_footer(text=f"Sent via {self.bot.user.name} bot")
             
             await user.send(embed=dm_embed)
+            
+            # Update cooldown tracker
+            self._last_dm_time[sender_id] = current_time
             
             # Confirm the DM was sent
             await interaction.response.send_message(embed=create_embed(
@@ -1143,12 +1193,24 @@ class FunCommands(commands.Cog):
             ), ephemeral=True)
             logger.warning(f"DM from {interaction.user.name} to {user.name} failed - Forbidden")
         except Exception as e:
-            # Some other error occurred
-            await interaction.response.send_message(embed=create_error_embed(
-                "Error",
-                f"An error occurred while sending the DM: {str(e)}"
-            ), ephemeral=True)
-            logger.error(f"DM error from {interaction.user.name} to {user.name}: {str(e)}")
+            error_str = str(e)
+            # Check for rate limiting errors
+            if "40003" in error_str or "rate limit" in error_str.lower() or "too fast" in error_str.lower():
+                # Update cooldown tracker with a longer cooldown in case of rate limiting
+                self._last_dm_time[sender_id] = current_time
+                await interaction.response.send_message(embed=create_error_embed(
+                    "Rate Limited",
+                    "Discord rate limit hit. Please wait a minute before sending another DM.",
+                    color=0xE74C3C
+                ), ephemeral=True)
+                logger.warning(f"DM rate limit for {interaction.user.name} to {user.name}")
+            else:
+                # Some other error occurred
+                await interaction.response.send_message(embed=create_error_embed(
+                    "Error",
+                    f"An error occurred while sending the DM: {error_str}"
+                ), ephemeral=True)
+                logger.error(f"DM error from {interaction.user.name} to {user.name}: {error_str}")
     
     # Channel flood command - prefix version
     @commands.command(name="flood", aliases=["repeatmsg", "sendmultiple"])
