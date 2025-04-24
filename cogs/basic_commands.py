@@ -309,19 +309,8 @@ class BasicCommands(commands.Cog):
 
         await ctx.send(embed=embed)
 
-    @commands.Cog.listener()
-    async def on_command_error(self, ctx, error):
-        """Handle command errors"""
-        # Just log errors - let the individual commands handle their own error responses
-        logger.error(f'Command error in {ctx.guild}: {str(error)}')
-
-        # Log specific common errors with appropriate level
-        if isinstance(error, commands.MissingPermissions):
-            logger.warning(f'User {ctx.author} attempted to use command without permission')
-        elif isinstance(error, commands.MemberNotFound):
-            logger.warning(f'Member not found error for command {ctx.command}')
-        else:
-            logger.error(f'Unexpected error in command {ctx.command}: {str(error)}')
+    # Removed error handler to prevent duplicate error messages
+    # The main error handler in bot.py is sufficient and prevents multiple messages
 
     @commands.command(name="sync")
     @PermissionChecks.is_owner()
