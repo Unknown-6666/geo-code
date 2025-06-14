@@ -1,10 +1,9 @@
 
 import os
 import logging
-from dotenv import load_dotenv
 
 # Load environment variables from .env file
-# load_dotenv()  # Temporarily disabled
+# load_dotenv()  # Temporarily disabled (dotenv not installed)
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
