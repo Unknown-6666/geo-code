@@ -1,7 +1,7 @@
 
 import os
 import logging
-from dotenv import load_dotenv
+# from dotenv import load_dotenv  # Temporarily disabled
 
 # Load environment variables from .env file
 # load_dotenv()  # Temporarily disabled
