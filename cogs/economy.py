@@ -22,21 +22,20 @@ debug_logger.addHandler(handler)
 class Economy(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        # Import app here to avoid circular imports
-        from app import app
-        self.app = app
         logger.info("Economy cog initialized")
-        # Initialize shop items on startup
-        with self.app.app_context():
-            self.initialize_shop()
+        # Initialize shop items on startup will be done when database is available
 
     def initialize_shop(self):
         """Initialize the shop with default items"""
         debug_logger.info("Initializing shop items...")
         try:
-            # Check if items exist
-            item_count = Item.query.count()
-            debug_logger.info(f"Found {item_count} existing shop items")
+            # Import app here to avoid circular imports
+            from dashboard.app import app
+            
+            with app.app_context():
+                # Check if items exist
+                item_count = Item.query.count()
+                debug_logger.info(f"Found {item_count} existing shop items")
             
             if item_count == 0:
                 debug_logger.info("No shop items found, adding default items")
@@ -102,7 +101,10 @@ class Economy(commands.Cog):
                 except Exception as e:
                     debug_logger.warning(f"Could not fetch Discord user data: {str(e)}")
             
-            with self.app.app_context():
+            # Import app here to avoid circular imports
+            from dashboard.app import app
+            
+            with app.app_context():
                 user = UserEconomy.query.filter_by(user_id=str(user_id)).first()
                 if not user:
                     debug_logger.info(f"Creating new economy profile for user {user_id} ({username})")
