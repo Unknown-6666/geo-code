@@ -17,22 +17,31 @@ app.secret_key = os.environ.get("SESSION_SECRET", "dev_secret_key")
 data_dir = pathlib.Path("./data")
 data_dir.mkdir(exist_ok=True)
 
-# Configure the SQLAlchemy part of the app
-# First, try using local PostgreSQL credentials if available
-if os.environ.get("PGUSER") and os.environ.get("PGHOST") and os.environ.get("PGDATABASE"):
-    # Recreate the database URL using the environment variables
-    local_db_url = f"postgresql://{os.environ.get('PGUSER')}:{os.environ.get('PGPASSWORD')}@{os.environ.get('PGHOST')}:{os.environ.get('PGPORT')}/{os.environ.get('PGDATABASE')}"
-    app.config["SQLALCHEMY_DATABASE_URI"] = local_db_url
-    logger.info(f"Using Replit PostgreSQL database: {os.environ.get('PGHOST')}:{os.environ.get('PGPORT')}")
-elif os.environ.get("DATABASE_URL"):
-    # Next, try the DATABASE_URL environment variable if available
-    app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
-    logger.info(f"Using database from DATABASE_URL environment variable")
-else:
-    # Finally, fall back to SQLite if no other database is available
+# Configure the SQLAlchemy part of the app with better error handling
+try:
+    # First priority: Use newly created Replit PostgreSQL database
+    if os.environ.get("PGUSER") and os.environ.get("PGHOST") and os.environ.get("PGDATABASE"):
+        # Recreate the database URL using the environment variables
+        local_db_url = f"postgresql://{os.environ.get('PGUSER')}:{os.environ.get('PGPASSWORD')}@{os.environ.get('PGHOST')}:{os.environ.get('PGPORT')}/{os.environ.get('PGDATABASE')}"
+        app.config["SQLALCHEMY_DATABASE_URI"] = local_db_url
+        logger.info(f"Using Replit PostgreSQL database: {os.environ.get('PGHOST')}:{os.environ.get('PGPORT')}")
+    elif os.environ.get("DATABASE_URL") and "neon.tech" not in os.environ.get("DATABASE_URL", ""):
+        # Second priority: Use DATABASE_URL if it's not the disabled Neon endpoint
+        app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
+        logger.info(f"Using database from DATABASE_URL environment variable")
+    else:
+        # Fallback: Use SQLite for reliability
+        sqlite_path = os.path.join(data_dir, "discord_bot.db")
+        app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{sqlite_path}"
+        logger.info(f"Using SQLite database as fallback: {sqlite_path}")
+        os.environ["USING_SQLITE_FALLBACK"] = "true"
+except Exception as config_error:
+    logger.error(f"Error configuring database: {str(config_error)}")
+    # Emergency fallback to SQLite
     sqlite_path = os.path.join(data_dir, "discord_bot.db")
     app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{sqlite_path}"
-    logger.info(f"Using SQLite database as fallback: {sqlite_path}")
+    logger.info(f"Emergency fallback to SQLite database: {sqlite_path}")
+    os.environ["USING_SQLITE_FALLBACK"] = "true"
 
 # Configure database connection pooling for better performance and reliability
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {

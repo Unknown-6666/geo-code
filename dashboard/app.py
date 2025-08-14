@@ -442,6 +442,16 @@ def api_channel_info():
             'message': f'Error getting channel info: {str(e)}'
         }), 500
 
+async def collect_channel_messages(channel):
+    """Async function to collect messages from a channel"""
+    messages = []
+    try:
+        async for message in channel.history(limit=50):
+            messages.append(message)
+    except Exception as e:
+        logger.error(f"Error collecting messages: {str(e)}")
+    return messages
+
 @app.route('/api/messages', methods=['GET'])
 def api_messages():
     """Get a list of messages in a channel"""
@@ -468,26 +478,30 @@ def api_messages():
                 'message': f'Channel with ID {channel_id} not found'
             }), 404
 
-        # Get the most recent messages (async function, need to run it in the bot's event loop)
+        # Get the most recent messages using concurrent.futures to properly handle async
         messages = []
-        # Use run_until_complete with a new event loop if we need to
         try:
-            # Warning: This can lead to unexpected behaviors if running in a different thread
-            # Since the bot's event loop is already running, we'll create a new one for this operation
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            # Get recent messages (up to 50)
-            # Handle the async generator directly instead of using flatten()
-            history = channel.history(limit=50)
-            message_objects = []
+            import concurrent.futures
+            import threading
             
-            # Collect messages
-            async def collect_messages():
-                async for message in history:
-                    message_objects.append(message)
+            def get_messages_sync():
+                """Run async message collection in the bot's event loop"""
+                try:
+                    # Get the bot's running event loop
+                    loop = bot.loop
+                    if loop and loop.is_running():
+                        # Create a future to run the async function in the bot's loop
+                        future = asyncio.run_coroutine_threadsafe(collect_channel_messages(channel), loop)
+                        return future.result(timeout=10)  # 10 second timeout
+                    else:
+                        logger.error("Bot event loop is not running")
+                        return []
+                except Exception as e:
+                    logger.error(f"Error in get_messages_sync: {str(e)}")
+                    return []
             
-            loop.run_until_complete(collect_messages())
-            loop.close()
+            # Run the message collection
+            message_objects = get_messages_sync()
             
             # Convert to serializable format
             for message in message_objects:

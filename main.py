@@ -36,6 +36,12 @@ def setup_database_fallback():
         
         # Update the environment variable to force use of the Replit database
         os.environ["DATABASE_URL"] = local_db_url
+        logger.info(f"Set DATABASE_URL to: {local_db_url}")
+        
+        # Remove any existing neon.tech URL to prevent conflicts
+        neon_url = os.environ.get("DATABASE_URL")
+        if neon_url and "neon.tech" in neon_url:
+            logger.info("Overriding disabled Neon database with local PostgreSQL")
         
         # Also update app.config if it's been loaded already
         try:
