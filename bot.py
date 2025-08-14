@@ -376,9 +376,7 @@ async def main():
         init_db()
     except Exception as db_error:
         logger.error(f"Database initialization failed: {str(db_error)}")
-        logger.error("Bot will continue with limited functionality (no economy features)")
-        # Set environment variable to indicate database is unavailable
-        os.environ['DATABASE_UNAVAILABLE'] = 'true'
+        logger.error("Attempting to continue despite database error")
     
     try:
         bot_instance = Bot()
